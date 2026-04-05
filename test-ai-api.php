@@ -67,10 +67,33 @@ if ($curlError) {
 if ($httpCode === 200) {
     echo "✅ API Connection Successful!\n\n";
     
+    // Show raw response first
+    echo "📋 Raw Response:\n";
+    echo "─────────────────────────────────────\n";
+    echo substr($response, 0, 1000) . (strlen($response) > 1000 ? '...' : '');
+    echo "\n─────────────────────────────────────\n\n";
+    
     $json = json_decode($response, true);
     
+    if ($json === null) {
+        echo "⚠️ JSON decode error: " . json_last_error_msg() . "\n";
+        echo "Response length: " . strlen($response) . " bytes\n\n";
+        
+        // Try to find if it's HTML or plain text
+        if (strpos($response, '<html') !== false || strpos($response, '<!DOCTYPE') !== false) {
+            echo "❌ Response is HTML, not JSON!\n";
+            echo "This usually means:\n";
+            echo "- Wrong API endpoint\n";
+            echo "- API key authentication failed\n";
+            echo "- Server returned an error page\n";
+        } else {
+            echo "Response appears to be: " . (ctype_print($response[0] ?? '') ? 'text' : 'binary') . "\n";
+        }
+        exit(1);
+    }
+    
     // Debug: Show full response structure
-    echo "📋 Full Response Structure:\n";
+    echo "📋 Parsed JSON Structure:\n";
     echo "─────────────────────────────────────\n";
     echo json_encode($json, JSON_PRETTY_PRINT);
     echo "\n─────────────────────────────────────\n\n";
