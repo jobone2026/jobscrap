@@ -507,10 +507,15 @@ function cleanHtml($html) {
         'sarkariresult\.com',
         'sarkariexam\.com',
         'karnatakacareers\.org',
+        'indgovtjobs\.net',
+        'ka\.indgovtjobs\.net',
         'arattai',
         'freejobalert\.com',
         'employmentnews\.gov\.in',
-        'pdfjobsjankari\.com'
+        'pdfjobsjankari\.com',
+        'sarkariexam\.com',
+        'sarkarihelp\.com',
+        'sarkari-naukri\.com'
     ];
     
     foreach ($competitorDomains as $domain) {
@@ -635,7 +640,10 @@ function enrichWithAI($data) {
             if ($aiData) {
                 if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
                 if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
-                if (!empty($aiData['content'])) $data['content'] = $aiData['content'];
+                if (!empty($aiData['content'])) {
+                    // Post-process AI content to remove any remaining competitor links
+                    $data['content'] = cleanAIContent($aiData['content']);
+                }
                 $data['ai_enhanced'] = true;
             }
         }
@@ -644,6 +652,39 @@ function enrichWithAI($data) {
     }
 
     return $data;
+}
+
+// Clean AI-generated content to remove competitor links
+function cleanAIContent($html) {
+    // Remove ALL competitor website links
+    $competitorDomains = [
+        'sarkarijobfind\.com',
+        'sarkariresult\.com',
+        'sarkariexam\.com',
+        'karnatakacareers\.org',
+        'indgovtjobs\.net',
+        'ka\.indgovtjobs\.net',
+        'arattai',
+        'freejobalert\.com',
+        'employmentnews\.gov\.in',
+        'pdfjobsjankari\.com',
+        'sarkariexam\.com',
+        'sarkarihelp\.com',
+        'sarkari-naukri\.com'
+    ];
+    
+    foreach ($competitorDomains as $domain) {
+        // Remove entire <a> tag with competitor links, keep only the text
+        $html = preg_replace('/<a[^>]*href="[^"]*' . $domain . '[^"]*"[^>]*>(.*?)<\/a>/is', '$1', $html);
+    }
+    
+    // Remove internal category/tag/state/district/qualification links (keep only text)
+    $html = preg_replace('/<a[^>]*href="[^"]*(\/organization\/|\/states\/|\/qualification\/|\/category\/|\/tag\/|\/districts\/|\/qualifications\/)[^"]*"[^>]*>(.*?)<\/a>/is', '$2', $html);
+    
+    // Remove type="qualification" or similar attributes
+    $html = preg_replace('/\s+type="[^"]*"/i', '', $html);
+    
+    return $html;
 }
 
 $extracted = extractData($html, $url);
