@@ -342,9 +342,31 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
         }
         $inner = cleanHtml($inner);
 
-        if (strlen(strip_tags($inner)) > 300) {
+        // Lower threshold - accept content with at least 100 chars of text
+        if (strlen(strip_tags($inner)) > 100) {
             $contentHtml = $inner;
             break;
+        }
+    }
+
+    // If still no content, try a more aggressive approach
+    if (!$contentHtml) {
+        // Try to get all paragraphs and tables from body
+        $paragraphs = $xpath->query('//body//p | //body//table | //body//ul | //body//ol | //body//h1 | //body//h2 | //body//h3');
+        if ($paragraphs && $paragraphs->length > 0) {
+            $tempDiv = $doc->createElement('div');
+            foreach ($paragraphs as $p) {
+                $clone = $p->cloneNode(true);
+                $tempDiv->appendChild($clone);
+            }
+            $inner = '';
+            foreach ($tempDiv->childNodes as $child) {
+                $inner .= $doc->saveHTML($child);
+            }
+            $inner = cleanHtml($inner);
+            if (strlen(strip_tags($inner)) > 100) {
+                $contentHtml = $inner;
+            }
         }
     }
 
