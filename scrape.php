@@ -622,12 +622,11 @@ function enrichWithAI($data) {
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apiKey,
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept: application/json'
+            'Origin: https://agentrouter.org',
+            'Referer: https://agentrouter.org/'
         ],
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_TIMEOUT => 45,
-        CURLOPT_FOLLOWLOCATION => true
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_TIMEOUT => 45
     ]);
 
     $response = curl_exec($ch);
