@@ -7,11 +7,23 @@ if (file_exists('config.php')) {
     require_once 'config.php';
 }
 
+// Check if AI is enabled
+$aiEnabled = !defined('AI_ENHANCEMENT_ENABLED') || AI_ENHANCEMENT_ENABLED;
+
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
     if ($_POST['action'] === 'chat') {
+        // Check if AI is disabled
+        if (!$aiEnabled) {
+            echo json_encode([
+                'success' => false, 
+                'message' => '⚠️ AI Enhancement is currently disabled in config.php. The auto-scraper is working great without AI! To enable AI, set AI_ENHANCEMENT_ENABLED = true in config.php'
+            ]);
+            exit;
+        }
+        
         $userMessage = trim($_POST['message'] ?? '');
         
         if (!$userMessage) {
@@ -217,6 +229,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <div class="header">
             <h1>🤖 AI Chat Interface</h1>
             <p>Test and interact with JobOne AI Assistant</p>
+            <?php if (!$aiEnabled): ?>
+            <div style="background: #fff3cd; color: #856404; padding: 10px; margin-top: 10px; border-radius: 8px; font-size: 13px;">
+                ⚠️ AI is currently disabled. Auto-scraper is working without AI enhancement.
+            </div>
+            <?php endif; ?>
         </div>
         
         <div class="chat-area" id="chatArea">
