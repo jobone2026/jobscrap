@@ -180,7 +180,9 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
     // Generic link texts to skip (they give no useful title)
     $genericTexts = [
         'here', 'link', 'visit', 'read more', 'more', 'view', 'open', 'go', 'see', 'check',
-        'download mobile app', 'mobile app',
+        'download mobile app', 'mobile app', 'click here',
+        'join arattai channel', 'arattai channel', 'arattai',
+        'sarkari result', 'sarkarijobfind',
     ];
 
     // Keywords to match (in link text OR href OR row context)
@@ -204,7 +206,7 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
         if (is_numeric($text)) continue;
 
         // Skip absolute social/junk domains
-        $skipDomains = ['facebook.com', 'twitter.com', 'youtube.com', 'instagram.com', 'linkedin.com', 'play.google.com', 'apps.apple.com'];
+        $skipDomains = ['facebook.com', 'twitter.com', 'youtube.com', 'instagram.com', 'linkedin.com', 'play.google.com', 'apps.apple.com', 'sarkarijobfind.com', 'sarkariresult.com', 'arattai'];
         $skipThis = false;
         foreach ($skipDomains as $d) {
             if (str_contains($href, $d)) { $skipThis = true; break; }
@@ -416,6 +418,11 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
     foreach (iterator_to_array($textNodes) as $textNode) {
         $val = strtolower($textNode->nodeValue);
         if (str_contains($val, 'android app') || 
+            str_contains($val, 'mobile app') ||
+            str_contains($val, 'download mobile') ||
+            str_contains($val, 'arattai channel') ||
+            str_contains($val, 'join arattai') ||
+            str_contains($val, 'sarkari result') ||
             str_contains($val, 'sarkarijobfind') || 
             str_contains($val, 'satisfied by')) {
             $nodesToDelete[] = $textNode;
@@ -474,6 +481,13 @@ function cleanHtml($html) {
     $html = preg_replace('/<(p|div|span|li|td|th)[^>]*>\s*<\/\1>/i', '', $html);
     // Unwrap divs that only wrap a single table (e.g. table-container remnants)
     $html = preg_replace('/<div>\s*(<table[^>]*>.*?<\/table>)\s*<\/div>/si', '$1', $html);
+    
+    // Remove HTML comments (often contain ad markers)
+    $html = preg_replace('/<!--.*?-->/s', '', $html);
+    
+    // Remove ad placeholder divs
+    $html = preg_replace('/<div[^>]*><!--[^>]*--><ins[^>]*><\/ins><\/div>/is', '', $html);
+    $html = preg_replace('/<ins[^>]*><\/ins>/is', '', $html);
 
     // Ensure tables have border for styling consistency
     $html = preg_replace('/<table(?![^>]*border)[^>]*>/i', '<table border="1" cellpadding="8" cellspacing="0">', $html);
@@ -481,14 +495,49 @@ function cleanHtml($html) {
     // Collapse multiple blank lines
     $html = preg_replace('/(\s*\n){3,}/', "\n\n", $html);
 
-    // Generic domain strings and "like & share" spam removal
-    $html = preg_replace('/<a[^>]*href="[^"]*sarkarijobfind\.com[^"]*"[^>]*>.*?<\/a>/is', '', $html);
+    // ── Remove promotional spam links and text ────────────────────────────────
+    // Remove specific promotional links with their text
+    $html = preg_replace('/<a[^>]*>.*?(Join Arattai Channel|Arattai Channel).*?<\/a>/is', '', $html);
+    $html = preg_replace('/<a[^>]*>.*?(Sarkari Result).*?<\/a>/is', '', $html);
+    $html = preg_replace('/<a[^>]*>.*?(Download Mobile App|Mobile App).*?<\/a>/is', '', $html);
+    
+    // Remove ALL internal website links (competitor sites)
+    $competitorDomains = [
+        'sarkarijobfind\.com',
+        'sarkariresult\.com',
+        'sarkariexam\.com',
+        'karnatakacareers\.org',
+        'arattai',
+        'freejobalert\.com',
+        'employmentnews\.gov\.in',
+        'pdfjobsjankari\.com'
+    ];
+    
+    foreach ($competitorDomains as $domain) {
+        // Remove links to competitor domains
+        $html = preg_replace('/<a[^>]*href="[^"]*' . $domain . '[^"]*"[^>]*>.*?<\/a>/is', '', $html);
+    }
+    
+    // Remove internal category/tag/state links (keep only text)
+    // Pattern: <a href="...organization/...", "...states/...", "...qualification/...">Text</a> -> Text
+    $html = preg_replace('/<a[^>]*href="[^"]*(\/organization\/|\/states\/|\/qualification\/|\/category\/|\/tag\/)[^"]*"[^>]*>(.*?)<\/a>/is', '$2', $html);
+    
+    // Remove standalone text mentions
     $html = str_ireplace('SARKARIJOBFIND.COM', '', $html);
-    $html = str_ireplace('SARKARIJOBFIND', 'JobOne', $html);
+    $html = str_ireplace('SARKARIJOBFIND', '', $html);
+    $html = str_ireplace('Join Arattai Channel:', '', $html);
+    $html = str_ireplace('Sarkari Result:', '', $html);
+    $html = str_ireplace('Download Mobile App:', '', $html);
+    
+    // Remove "IF You Satisfied By..." spam
     $html = preg_replace('/IF You Satisfied By\s+[A-Za-z0-9.]+\s+\(Website\).*?\(Thanks\)\.?/i', '', $html);
     
-    // Ensure all links consistently have professional text if they are buttons, but leave original for now
-    // (CSS handles the box/button effect)
+    // Remove standalone numbers (like 0 1 2 3 4 5 6 7 8 9 10)
+    $html = preg_replace('/<p>\s*[\d\s]+\s*<\/p>/i', '', $html);
+    $html = preg_replace('/^[\d\s]+$/m', '', $html);
+    
+    // Remove "Click Here" links that don't have meaningful context
+    $html = preg_replace('/<a[^>]*>\s*Click Here\s*<\/a>/i', '', $html);
 
     // Swap ALL social media / share links to JobOne standard channels
     $html = preg_replace('/href="[^"]*(telegram|t\.me)[^"]*"/i', 'href="https://t.me/jobone2026"', $html);
@@ -497,6 +546,10 @@ function cleanHtml($html) {
     // Strip remaining bare <div> / <span> wrappers that add no meaning
     $html = preg_replace('/<div>\s*<\/div>/i', '', $html);
     $html = preg_replace('/<span>\s*<\/span>/i', '', $html);
+    
+    // Clean up multiple spaces and empty lines
+    $html = preg_replace('/\s+/m', ' ', $html);
+    $html = preg_replace('/>\s+</m', '><', $html);
 
     return trim($html);
 }
@@ -516,6 +569,11 @@ if (!$html) {
 
 // ─── AI Auto-Generation ────────────────────────────────────────────────────────
 function enrichWithAI($data) {
+    // Check if AI enhancement is enabled
+    if (!defined('AI_ENHANCEMENT_ENABLED') || !AI_ENHANCEMENT_ENABLED) {
+        return $data; // Skip AI enhancement
+    }
+    
     $apiKey = AGENTROUTER_API_KEY;
     // Deepseek endpoint via AgentRouter
     $url = 'https://agentrouter.org/v1/chat/completions';
@@ -524,21 +582,31 @@ function enrichWithAI($data) {
     $rawContent = strip_tags($data['content']);
     $rawContent = substr($rawContent, 0, 4000); 
 
-    $systemPrompt = "You are an expert SEO copywriter and HTML formatter for a government job portal. Review the provided job details and return a strictly valid JSON object with:
+    // Use custom system prompt from config or default
+    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert SEO copywriter and HTML formatter for a government job portal. Review the provided job details and return a strictly valid JSON object with:
 1. \"title\": A concise SEO title (max 60 chars).
 2. \"short_description\": A crisp summary of the job (max 150 chars).
 3. \"content\": A rewritten, beautifully structured HTML version of the job details using <h3>, <p>, <ul>, <li>, and <table border=\"1\" cellpadding=\"8\" cellspacing=\"0\">. Make it professional, easy to read, and highlight important dates and vacancies.";
 
+    // Add additional instructions if defined
+    if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
+        $systemPrompt .= "\n\nAdditional Requirements:" . AI_ADDITIONAL_INSTRUCTIONS;
+    }
+
     $userPrompt = "Job Info: \nTitle: {$data['title']}\nContent: {$rawContent}";
 
+    // Get model and temperature from config or use defaults
+    $model = defined('AI_MODEL') ? AI_MODEL : 'deepseek-v3.2';
+    $temperature = defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3;
+
     $payload = [
-        'model' => 'deepseek-v3.2',
+        'model' => $model,
         'messages' => [
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'user', 'content' => $userPrompt]
         ],
         'response_format' => ['type' => 'json_object'],
-        'temperature' => 0.3
+        'temperature' => $temperature
     ];
 
     $ch = curl_init($url);
@@ -582,6 +650,31 @@ $extracted = extractData($html, $url);
 
 // Pass through AI enrichment
 $extracted = enrichWithAI($extracted);
+
+// ─── Add JobOne social media links at the end of content ──────────────────────
+if (!defined('AUTO_ADD_SOCIAL_LINKS') || AUTO_ADD_SOCIAL_LINKS) {
+    $telegramUrl = defined('TELEGRAM_CHANNEL_URL') ? TELEGRAM_CHANNEL_URL : 'https://t.me/jobone2026';
+    $whatsappUrl = defined('WHATSAPP_CHANNEL_URL') ? WHATSAPP_CHANNEL_URL : 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22';
+    
+    $socialLinksHtml = '
+<div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 8px;">
+    <h3 style="color: #0369a1; margin-top: 0;">📢 Stay Updated with JobOne</h3>
+    <p style="margin: 10px 0;">Join our channels for instant job notifications, admit cards, results & exam updates!</p>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+        <a href="' . htmlspecialchars($telegramUrl) . '" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #0088cc; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
+            <span style="font-size: 20px;">📱</span>
+            <span>Join Telegram Channel</span>
+        </a>
+        <a href="' . htmlspecialchars($whatsappUrl) . '" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #25D366; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
+            <span style="font-size: 20px;">💬</span>
+            <span>Join WhatsApp Channel</span>
+        </a>
+    </div>
+</div>';
+
+    // Append social links to content
+    $extracted['content'] = $extracted['content'] . $socialLinksHtml;
+}
 
 $type = $forcedType ?: detectType($url, $extracted['title'], $html);
 $extracted['type'] = $type;
