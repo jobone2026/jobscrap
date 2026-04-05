@@ -69,6 +69,12 @@ if ($httpCode === 200) {
     
     $json = json_decode($response, true);
     
+    // Debug: Show full response structure
+    echo "📋 Full Response Structure:\n";
+    echo "─────────────────────────────────────\n";
+    echo json_encode($json, JSON_PRETTY_PRINT);
+    echo "\n─────────────────────────────────────\n\n";
+    
     if (isset($json['choices'][0]['message']['content'])) {
         echo "✅ AI Response received:\n";
         echo "─────────────────────────────────────\n";
@@ -89,9 +95,16 @@ if ($httpCode === 200) {
         echo "\n🎉 AI API is working correctly!\n";
         echo "Your jobscrap tool will use AI enhancement.\n";
         
+    } else if (isset($json['content'])) {
+        // Alternative response format
+        echo "✅ AI Response received (alternative format):\n";
+        echo "─────────────────────────────────────\n";
+        echo $json['content'];
+        echo "\n─────────────────────────────────────\n\n";
+        echo "🎉 AI API is working!\n";
     } else {
         echo "⚠️ Unexpected response format\n";
-        echo "Response: " . substr($response, 0, 500) . "...\n";
+        echo "Available keys: " . implode(', ', array_keys($json)) . "\n";
     }
     
 } else {
