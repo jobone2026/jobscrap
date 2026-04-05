@@ -44,11 +44,12 @@ curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
         'Authorization: Bearer ' . AGENTROUTER_API_KEY,
-        'Origin: https://agentrouter.org',
-        'Referer: https://agentrouter.org/'
+        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept: application/json'
     ],
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_TIMEOUT => 30
+    CURLOPT_SSL_VERIFYPEER => true,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_FOLLOWLOCATION => true
 ]);
 
 $response = curl_exec($ch);
