@@ -1,0 +1,7 @@
+test_render.html
+test_scrape_job.json
+tmp/
+*.log
+.DS_Store
+Thumbs.db
+config.php
