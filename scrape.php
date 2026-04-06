@@ -313,6 +313,7 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
         '//*[contains(@class,"post-body")]',
         '//*[contains(@class,"content-area")]',
         '//*[contains(@class,"single-content")]',
+        '//*[contains(@class,"main-content")]',
         '//*[@itemprop="articleBody"]',
         '//*[@itemprop="text"]',
         '//article',
@@ -320,6 +321,7 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
         '//main',
         '//*[@id="content"]',
         '//*[@id="main-content"]',
+        '//*[@id="primary"]',
         '//body',
     ];
 
@@ -332,18 +334,23 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
 
         // Deep-clone so we don't mutate the real DOM across iterations
         $clone = $node->cloneNode(true);
-        $cloneXpath = new DOMXPath($doc);
+        
+        // Create a new DOMXPath for the cloned node's document
+        $cloneDoc = new DOMDocument();
+        $cloneDoc->appendChild($cloneDoc->importNode($clone, true));
+        $cloneXpath = new DOMXPath($cloneDoc);
 
-        removeUnwanted($cloneXpath, $clone, $doc);
+        removeUnwanted($cloneXpath, $cloneDoc->documentElement, $cloneDoc);
 
         $inner = '';
-        foreach ($clone->childNodes as $child) {
-            $inner .= $doc->saveHTML($child);
+        foreach ($cloneDoc->documentElement->childNodes as $child) {
+            $inner .= $cloneDoc->saveHTML($child);
         }
         $inner = cleanHtml($inner);
 
         // Lower threshold - accept content with at least 100 chars of text
-        if (strlen(strip_tags($inner)) > 100) {
+        $textLength = strlen(strip_tags($inner));
+        if ($textLength > 100) {
             $contentHtml = $inner;
             break;
         }
@@ -351,17 +358,21 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
 
     // If still no content, try a more aggressive approach
     if (!$contentHtml) {
-        // Try to get all paragraphs and tables from body
-        $paragraphs = $xpath->query('//body//p | //body//table | //body//ul | //body//ol | //body//h1 | //body//h2 | //body//h3');
-        if ($paragraphs && $paragraphs->length > 0) {
-            $tempDiv = $doc->createElement('div');
-            foreach ($paragraphs as $p) {
-                $clone = $p->cloneNode(true);
+        // Try to get all meaningful content from body
+        $contentElements = $xpath->query('//body//p | //body//table | //body//ul | //body//ol | //body//h1 | //body//h2 | //body//h3 | //body//h4 | //body//div[contains(@class,"content") or contains(@class,"post") or contains(@class,"article")]');
+        if ($contentElements && $contentElements->length > 0) {
+            $tempDoc = new DOMDocument();
+            $tempDiv = $tempDoc->createElement('div');
+            $tempDoc->appendChild($tempDiv);
+            
+            foreach ($contentElements as $elem) {
+                $clone = $tempDoc->importNode($elem, true);
                 $tempDiv->appendChild($clone);
             }
+            
             $inner = '';
             foreach ($tempDiv->childNodes as $child) {
-                $inner .= $doc->saveHTML($child);
+                $inner .= $tempDoc->saveHTML($child);
             }
             $inner = cleanHtml($inner);
             if (strlen(strip_tags($inner)) > 100) {
@@ -381,13 +392,15 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
     // ── HTML tags to nuke entirely ────────────────────────────────────
     $removeTags = [
         'script','style','nav','footer','header','noscript',
-        'iframe','form','aside','button','svg','picture','figure',
+        'iframe','form','aside','button','svg',
         'video','audio','canvas','select','input','textarea',
     ];
     foreach ($removeTags as $tag) {
         $els = $xpath->query('.//' . $tag, $node);
         foreach (iterator_to_array($els) as $el) {
-            $el->parentNode?->removeChild($el);
+            if ($el->parentNode) {
+                $el->parentNode->removeChild($el);
+            }
         }
     }
 
@@ -401,7 +414,7 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
         'ad-', '-ad-', 'ad_', 'banner', 'promo', 'sponsor',
         'google-preferred', 'dfp-', 'adsense',
         // Widgets / sidebars
-        'widget', 'sidebar', 'related', 'yarpp', 'cj-widget',
+        'widget', 'sidebar', 'yarpp', 'cj-widget',
         'fja-alert', 'alert-widget',
         // Navigation
         'breadcrumb', 'pagination', 'nav-', 'menu-',
@@ -412,29 +425,27 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
         'newsletter', 'subscribe', 'signup', 'opt-in',
         // Comments
         'comment', 'disqus', 'respond',
-        // Tags / categories
-        'tag-cloud', 'post-tag', 'category-label',
         // Games / misc clutter
         'games-button', 'play-games', 'button-container',
         'gb-container', 'gb-inside',
-        // FAQ sections added by CMS (not the actual content FAQ)
-        'faq-section', 'faq-container',
-        // Images / media wrappers (keep tables & text, not pictures)
-        'picture_container', 'fl_defer', 'lazy',
     ];
 
     $allElements = $xpath->query('.//*[@class or @id]', $node);
     foreach (iterator_to_array($allElements) as $el) {
         $class = strtolower($el->getAttribute('class') . ' ' . $el->getAttribute('id'));
+        $shouldRemove = false;
         foreach ($junkPatterns as $pattern) {
             if (str_contains($class, $pattern)) {
-                $el->parentNode?->removeChild($el);
+                $shouldRemove = true;
                 break;
             }
         }
+        if ($shouldRemove && $el->parentNode) {
+            $el->parentNode->removeChild($el);
+        }
     }
 
-    // Nuke specific rows / containers by text content safely
+    // Nuke specific spam text content
     $textNodes = $xpath->query('.//text()', $node);
     $nodesToDelete = [];
     foreach (iterator_to_array($textNodes) as $textNode) {
@@ -444,40 +455,18 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
             str_contains($val, 'download mobile') ||
             str_contains($val, 'arattai channel') ||
             str_contains($val, 'join arattai') ||
-            str_contains($val, 'sarkari result') ||
-            str_contains($val, 'sarkarijobfind') || 
             str_contains($val, 'satisfied by')) {
             $nodesToDelete[] = $textNode;
         }
     }
 
-    $deletedNodes = new SplObjectStorage();
-
     foreach ($nodesToDelete as $textNode) {
-        // Skip if already deleted (no parent)
-        if (!$textNode->parentNode || $deletedNodes->contains($textNode)) continue;
-
-        $target = $textNode->parentNode;
-        while ($target && !in_array($target->nodeName, ['tr', 'p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])) {
-            if ($target->nodeName === 'div') break; 
-            if ($target->nodeName === 'body' || $target->nodeName === 'html') break;
-            $target = $target->parentNode;
-        }
+        if (!$textNode->parentNode) continue;
         
-        if ($target && $target->parentNode && !$deletedNodes->contains($target)) {
-            if ($target->nodeName === 'div' && strlen($target->nodeValue) > 300) {
-                $immediate = $textNode->parentNode;
-                if ($immediate && $immediate->parentNode && !$deletedNodes->contains($immediate)) {
-                    $immediate->parentNode->removeChild($immediate);
-                    $deletedNodes->attach($immediate);
-                }
-            } else {
-                $target->parentNode->removeChild($target);
-                $deletedNodes->attach($target);
-            }
-        } elseif (!$deletedNodes->contains($textNode)) {
-            $textNode->parentNode->removeChild($textNode);
-            $deletedNodes->attach($textNode);
+        $target = $textNode->parentNode;
+        // Only remove the immediate parent if it's a small container
+        if ($target && in_array($target->nodeName, ['p', 'span', 'a', 'li']) && $target->parentNode) {
+            $target->parentNode->removeChild($target);
         }
     }
 }
