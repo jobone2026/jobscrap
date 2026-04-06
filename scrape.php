@@ -18,6 +18,7 @@ if (file_exists('config.php')) {
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { return; }
 $input = json_decode(file_get_contents('php://input'), true);
 $url = trim($input['url'] ?? '');
 $forcedType = trim($input['forced_type'] ?? '');
@@ -54,13 +55,21 @@ function fetchPage($url) {
 
 // ─── 2. Detect post type ─────────────────────────────────────────────────────
 function detectType($url, $title, $html) {
-    $haystack = strtolower($url . ' ' . $title . ' ' . substr($html, 0, 5000));
+    // Use only title + body text — exclude domain to avoid false positives
+    // (e.g. sarkariresult.com.cm triggering "result" for a recruitment post)
+    $haystack = strtolower($title . ' ' . substr($html, 0, 5000));
+    // Also include URL path (not domain) for additional hints
+    $urlPath = strtolower(parse_url($url, PHP_URL_PATH) ?? '');
+    $haystack .= ' ' . $urlPath;
+
+    // Order matters: check specific types first, then "job" BEFORE "result"
+    // because many recruitment pages also mention "result date"
     $map = [
         'admit_card' => ['admit card', 'admit-card', 'admitcard', 'hall ticket', 'hall-ticket', 'call letter'],
         'answer_key' => ['answer key', 'answer-key', 'answerkey', 'answer sheet', 'official key'],
-        'result'     => ['result', 'merit list', 'cutoff', 'cut-off', 'final result', 'scorecard'],
         'syllabus'   => ['syllabus', 'exam pattern', 'curriculum'],
-        'job'        => ['recruitment', 'vacancy', 'notification', 'apply online', 'application', 'job'],
+        'job'        => ['recruitment', 'vacancy', 'notification', 'apply online', 'application', 'job', 'bharti', 'online form'],
+        'result'     => ['result', 'merit list', 'cutoff', 'cut-off', 'final result', 'scorecard'],
     ];
     foreach ($map as $type => $keywords) {
         foreach ($keywords as $kw) {
@@ -73,6 +82,14 @@ function detectType($url, $title, $html) {
 // ─── 3. Extract key data ─────────────────────────────────────────────────────
 function extractData($html, $url) {
     libxml_use_internal_errors(true);
+    
+    // Pre-strip scripts, styles, and noscript blocks via regex before DOM parsing.
+    // This prevents DOMDocument from misinterpreting HTML tags inside JS strings or template literals,
+    // which causes raw JS code to bleed into the text/HTML output.
+    $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+    $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
+    $html = preg_replace('/<noscript\b[^>]*>(.*?)<\/noscript>/is', '', $html);
+    
     $doc = new DOMDocument();
     $doc->loadHTML('<?xml encoding="utf-8"?>' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
     $xpath = new DOMXPath($doc);
@@ -163,20 +180,6 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
     $links = [];
     $seen  = [];
 
-    // Classes on ANY ancestor that disqualify a link as junk
-    $badAncestors = [
-        'wp-block-navigation', 'nav-', 'navigation', 'menu-',
-        'sidebar', 'widget',
-        'yarpp', 'related',
-        'cj-widget', 'cj-posts',
-        'gb-container', 'gb-inside',
-        'author-bio', 'author-box',
-        'button-container', 'games-button',
-        'fja-alert', 'alert-widget',
-        'comment', 'pagination', 'breadcrumb',
-        'footer', 'header',
-    ];
-
     // Generic link texts to skip (they give no useful title)
     $genericTexts = [
         'here', 'link', 'visit', 'read more', 'more', 'view', 'open', 'go', 'see', 'check',
@@ -194,6 +197,21 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
         'form', 'register', 'registration', 'login', 'apply link',
     ];
 
+    // Social media domains — replace with JobOne channels instead of skipping
+    $socialReplace = [
+        'whatsapp.com'  => ['title' => 'Join WhatsApp Channel', 'url' => 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22'],
+        'wa.me'         => ['title' => 'Join WhatsApp Channel', 'url' => 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22'],
+        't.me'          => ['title' => 'Join Telegram Channel', 'url' => 'https://t.me/jobone2026'],
+        'telegram.me'   => ['title' => 'Join Telegram Channel', 'url' => 'https://t.me/jobone2026'],
+    ];
+
+    // Absolute junk domains — completely skip
+    $skipDomains = [
+        'facebook.com', 'twitter.com', 'youtube.com', 'instagram.com',
+        'linkedin.com', 'play.google.com', 'apps.apple.com',
+        'sarkarijobfind.com', 'sarkariresult.com', 'sarkariresult.com.cm', 'arattai',
+    ];
+
     $nodes = $xpath->query('//a[@href]');
 
     foreach ($nodes as $node) {
@@ -205,15 +223,7 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
         if (!$text || strlen($text) > 160) continue;
         if (is_numeric($text)) continue;
 
-        // Skip absolute social/junk domains
-        $skipDomains = ['facebook.com', 'twitter.com', 'youtube.com', 'instagram.com', 'linkedin.com', 'play.google.com', 'apps.apple.com', 'sarkarijobfind.com', 'sarkariresult.com', 'arattai'];
-        $skipThis = false;
-        foreach ($skipDomains as $d) {
-            if (str_contains($href, $d)) { $skipThis = true; break; }
-        }
-        if ($skipThis) continue;
-
-        // Resolve absolute URL immediately safely
+        // Resolve absolute URL
         $abs = $href;
         if (!str_starts_with($abs, 'http') && !str_starts_with($abs, '//')) {
             $parsed = parse_url($baseUrl);
@@ -221,31 +231,142 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
             $abs = $root . '/' . ltrim($href, '/');
         }
 
-        // Context search: find previous sibling text if this link is a placeholder like "Click Here"
-        $row = $node->parentNode;
-        while ($row && !in_array($row->nodeName, ['tr', 'p', 'div'])) {
-            $row = $row->parentNode;
+        // Handle social media links — replace with JobOne channels
+        $isSocial = false;
+        foreach ($socialReplace as $domain => $replacement) {
+            if (str_contains($abs, $domain)) {
+                $socialAlreadyAdded = false;
+                foreach ($links as $existing) {
+                    if ($existing['url'] === $replacement['url']) { $socialAlreadyAdded = true; break; }
+                }
+                if (!$socialAlreadyAdded && !in_array($replacement['url'], $seen)) {
+                    $links[] = $replacement;
+                    $seen[]  = $replacement['url'];
+                }
+                $isSocial = true;
+                break;
+            }
         }
+        if ($isSocial) continue;
+
+        // Skip absolute junk domains (case-insensitive)
+        $skipThis = false;
+        $absLower = strtolower($abs);
+        foreach ($skipDomains as $d) {
+            if (str_contains($absLower, $d)) { $skipThis = true; break; }
+        }
+        if ($skipThis) continue;
+
+        // Walk up the DOM to find the nearest <tr> first (best context)
+        $trNode = $node->parentNode;
+        while ($trNode && $trNode->nodeName !== 'tr' && $trNode->nodeName !== 'body') {
+            $trNode = $trNode->parentNode;
+        }
+        // If we found a TR, use it; otherwise fallback to nearest p/div/li
+        if ($trNode && $trNode->nodeName === 'tr') {
+            $row = $trNode;
+        } else {
+            $row = $node->parentNode;
+            while ($row && !in_array($row->nodeName, ['p', 'div', 'li', 'body'])) {
+                $row = $row->parentNode;
+            }
+        }
+
         $rowText = $row ? strtolower($row->textContent) : '';
 
+        // Label resolution for generic texts like "Click Here"
         if (in_array(strtolower($text), $genericTexts) || strtolower($text) === 'click here') {
-            // Try to find a label in the row
-            if ($row) {
-                // If it's a table row, look at the first TD if we are in another TD
+            $resolved = false;
+
+            if ($row && $row->nodeName === 'tr') {
+                // Grab text from the FIRST cell of this table row (the label column)
                 $cells = $xpath->query('.//td|.//th', $row);
-                if ($cells->length > 1) {
+                if ($cells->length >= 2) {
                     $potentialTitle = cleanText($cells->item(0)->textContent);
-                    if (strlen($potentialTitle) > 3) $text = $potentialTitle;
+                    if (strlen($potentialTitle) > 2 && !in_array(strtolower($potentialTitle), $genericTexts)) {
+                        $text = $potentialTitle;
+                        $resolved = true;
+                    }
                 }
+            }
+
+            if (!$resolved) {
+                // Look for preceding text sibling in the same parent
+                $parent = $node->parentNode;
+                if ($parent) {
+                    $prevText = '';
+                    foreach ($parent->childNodes as $child) {
+                        if ($child === $node) break;
+                        if ($child->nodeType === XML_TEXT_NODE || $child->nodeType === XML_ELEMENT_NODE) {
+                            $t = cleanText($child->textContent);
+                            if (strlen($t) > 2) $prevText = $t;
+                        }
+                    }
+                    if ($prevText && !in_array(strtolower($prevText), $genericTexts)) {
+                        $text = $prevText;
+                        $resolved = true;
+                    }
+                }
+            }
+
+            // Strategy 3: preceding sibling ELEMENT (h1-h6, p, strong, div)
+            // Handles sites like sarkariresult.com.cm where labels are in sibling headings:
+            // <h5>Apply Online</h5> <h5><a>Click Here</a></h5> <a>Click Here</a>
+            if (!$resolved) {
+                // Walk up to the link's heading/block parent first
+                $linkBlock = $node->parentNode;
+                while ($linkBlock && !in_array($linkBlock->nodeName, ['h1','h2','h3','h4','h5','h6','p','div','li','td','body'])) {
+                    $linkBlock = $linkBlock->parentNode;
+                }
+                if ($linkBlock && $linkBlock->nodeName !== 'body') {
+                    // Walk backwards through preceding siblings, skip generic ones
+                    $prevSib = $linkBlock->previousSibling;
+                    $attempts = 0;
+                    while ($prevSib && $attempts < 5) {
+                        // Skip text nodes (whitespace)
+                        if ($prevSib->nodeType !== XML_ELEMENT_NODE) {
+                            $prevSib = $prevSib->previousSibling;
+                            continue;
+                        }
+                        $sibText = cleanText($prevSib->textContent);
+                        $sibLower = strtolower($sibText);
+                        // Skip if this sibling itself has generic text (e.g. another "Click Here" heading)
+                        if (in_array($sibLower, $genericTexts) || $sibLower === 'click here') {
+                            $prevSib = $prevSib->previousSibling;
+                            $attempts++;
+                            continue;
+                        }
+                        // Found a meaningful label
+                        if (strlen($sibText) > 2 && strlen($sibText) < 80) {
+                            $text = $sibText;
+                            $resolved = true;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Last resort — infer label from URL structure
+            if (!$resolved || in_array(strtolower($text), $genericTexts)) {
+                $lowerAbs = strtolower($abs);
+                if (str_contains($lowerAbs, '.pdf')) $text = 'Download Notification PDF';
+                elseif (str_contains($lowerAbs, 'apply') || str_contains($lowerAbs, 'register') || str_contains($lowerAbs, 'ibps') || str_contains($lowerAbs, 'iibf') || preg_match('/reg\d+/', $lowerAbs)) $text = 'Apply Online';
+                elseif (str_contains($lowerAbs, 'admit') || str_contains($lowerAbs, 'hallticket')) $text = 'Download Admit Card';
+                elseif (str_contains($lowerAbs, 'result') || str_contains($lowerAbs, 'merit')) $text = 'View Result';
+                elseif (str_contains($lowerAbs, 'notification') || str_contains($lowerAbs, 'advt') || str_contains($lowerAbs, 'advertisement')) $text = 'Download Notification';
+                elseif (str_contains($lowerAbs, 'syllabus') || str_contains($lowerAbs, 'pattern')) $text = 'Download Syllabus';
+                else continue; // truly can't resolve — skip
             }
         }
 
         // Final keyword match in title, URL, or surrounding row context
-        $lower = strtolower($text . ' ' . $href . ' ' . $rowText);
+        $lower = strtolower($text . ' ' . $abs . ' ' . $rowText);
         $matched = false;
         foreach ($keywords as $kw) {
             if (str_contains($lower, $kw)) { $matched = true; break; }
         }
+        // Also match "official website" by text
+        if (!$matched && str_contains(strtolower($text), 'official')) $matched = true;
         if (!$matched) continue;
 
         if (in_array($abs, $seen)) continue;
@@ -262,15 +383,17 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
 
 function guessCategory($text) {
     $text = strtolower($text);
+    // Order matters — check SPECIFIC orgs before generic keywords
+    // e.g. 'upsssc' must match 'State Govt' before 'ssc' matches 'SSC'
     $map = [
-        ['name' => 'Banking',   'keywords' => ['bank', 'sbi', 'rbi', 'ibps', 'nabard', 'rrb bank', 'idbi']],
-        ['name' => 'Railways',  'keywords' => ['railway', 'rrb', 'rlwl', 'indian rail', 'metro rail', 'ntpc', 'dfccil']],
+        ['name' => 'State Govt','keywords' => ['upsssc', 'uksssc', 'ukpsc', 'uppsc', 'bssc', 'bpsc', 'mppsc', 'rpsc', 'rsmssb', 'hssc', 'hpsc', 'jssc', 'cgpsc', 'osssc', 'wbssc', 'dsssb', 'teacher cadre', 'teacher', 'tet ', 'ctet', 'high court', 'district court', 'panchayat', 'state govt', 'anganwadi', 'gram sevak', 'patwari', 'lekhpal']],
+        ['name' => 'State PSC', 'keywords' => ['psc', 'state public service', 'appsc', 'tnpsc', 'kpsc', 'hppsc', 'gpsc', 'jkpsc', 'ppsc']],
+        ['name' => 'Banking',   'keywords' => ['bank', 'sbi', 'rbi', 'ibps', 'nabard', 'idbi']],
+        ['name' => 'Railways',  'keywords' => ['railway', 'rrb ', 'rlwl', 'indian rail', 'metro rail', 'ntpc', 'dfccil']],
         ['name' => 'UPSC',      'keywords' => ['upsc', 'civil service', 'ias ', 'ips ', 'ifs ', 'nda ', 'cds ']],
-        ['name' => 'SSC',       'keywords' => ['ssc', 'staff selection', 'chsl', 'cgl', 'mts']],
+        ['name' => 'SSC',       'keywords' => [' ssc ', 'staff selection', 'chsl', 'cgl', 'ssc mts']],
         ['name' => 'Defence',   'keywords' => ['army', 'navy', 'airforce', 'air force', 'coast guard', 'defence', 'military', 'agniveer', 'drdo', 'beml', 'hal', 'bel']],
         ['name' => 'Police',    'keywords' => ['police', 'constable', 'sub-inspector', 'si ', 'crpf', 'cisf', 'bsf', 'ssc gd']],
-        ['name' => 'State PSC', 'keywords' => ['psc', 'state public service', 'bpsc', 'mpsc', 'uppsc', 'rpsc', 'appsc', 'tnpsc', 'kpsc', 'hppsc']],
-        ['name' => 'State Govt','keywords' => ['state govt', 'teacher', 'tet', 'ctet', 'high court', 'district court', 'panchayat']],
     ];
     foreach ($map as $cat) {
         foreach ($cat['keywords'] as $kw) {
@@ -291,8 +414,38 @@ function guessState($text) {
         'Uttarakhand', 'West Bengal'
     ];
     
-    // First, look for "All India" level organizations
-    $allIndiaKeywords = ['upsc', 'ssc', 'rrb', 'railway', 'bank', 'sbi', 'ibps', 'army', 'navy', 'airforce', 'drdo', 'aiims delhi'];
+    // First, check state-specific organization abbreviations
+    // These MUST be checked BEFORE allIndia to avoid 'ssc' catching 'upsssc' etc.
+    $stateOrgs = [
+        'Uttar Pradesh'   => ['upsssc', 'uppsc', 'uppcl', 'upsrtc', 'up police', 'uttar pradesh'],
+        'Bihar'           => ['bpsc', 'bssc', 'bsphcl', 'bihar'],
+        'Madhya Pradesh'  => ['mppsc', 'mppeb', 'mp police', 'madhya pradesh'],
+        'Rajasthan'       => ['rpsc', 'rsmssb', 'rssb', 'rajasthan'],
+        'Haryana'         => ['hssc', 'hpsc', 'haryana'],
+        'Jharkhand'       => ['jssc', 'jpsc', 'jharkhand'],
+        'Chhattisgarh'    => ['cgpsc', 'cgvyapam', 'chhattisgarh'],
+        'Uttarakhand'     => ['uksssc', 'ukpsc', 'uttarakhand'],
+        'West Bengal'     => ['wbpsc', 'wbssc', 'west bengal'],
+        'Odisha'          => ['osssc', 'opsc', 'odisha', 'orissa'],
+        'Tamil Nadu'      => ['tnpsc', 'mrb', 'tamil nadu'],
+        'Karnataka'       => ['kpsc', 'kea', 'karnataka'],
+        'Kerala'          => ['kpsc kerala', 'kerala'],
+        'Andhra Pradesh'  => ['appsc', 'andhra pradesh'],
+        'Telangana'       => ['tspsc', 'telangana'],
+        'Gujarat'         => ['gpsc', 'gsssb', 'gujarat'],
+        'Punjab'          => ['ppsc', 'psssb', 'punjab'],
+        'Delhi'           => ['dsssb', 'delhi'],
+        'Maharashtra'     => ['mpsc', 'maharashtra'],
+        'Assam'           => ['apsc assam', 'assam'],
+    ];
+    foreach ($stateOrgs as $state => $orgKws) {
+        foreach ($orgKws as $orgKw) {
+            if (str_contains($text, $orgKw)) return $state;
+        }
+    }
+
+    // Then check "All India" level organizations
+    $allIndiaKeywords = ['upsc', ' ssc ', 'rrb ', 'railway', 'bank', 'sbi', 'ibps', 'army', 'navy', 'airforce', 'drdo', 'aiims'];
     foreach ($allIndiaKeywords as $kw) {
         if (str_contains($text, $kw)) return 'All India';
     }
@@ -394,6 +547,7 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
         'script','style','nav','footer','header','noscript',
         'iframe','form','aside','button','svg',
         'video','audio','canvas','select','input','textarea',
+        'img','picture','figure',
     ];
     foreach ($removeTags as $tag) {
         $els = $xpath->query('.//' . $tag, $node);
@@ -427,7 +581,6 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
         'comment', 'disqus', 'respond',
         // Games / misc clutter
         'games-button', 'play-games', 'button-container',
-        'gb-container', 'gb-inside',
     ];
 
     $allElements = $xpath->query('.//*[@class or @id]', $node);
@@ -455,7 +608,7 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
             str_contains($val, 'download mobile') ||
             str_contains($val, 'arattai channel') ||
             str_contains($val, 'join arattai') ||
-            str_contains($val, 'satisfied by')) {
+            str_contains($val, 'satisfied by') || str_contains($val, 'sarkari result') || str_contains($val, 'sarkariresult')) {
             $nodesToDelete[] = $textNode;
         }
     }
@@ -465,9 +618,42 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
         
         $target = $textNode->parentNode;
         // Only remove the immediate parent if it's a small container
-        if ($target && in_array($target->nodeName, ['p', 'span', 'a', 'li']) && $target->parentNode) {
-            $target->parentNode->removeChild($target);
+        if ($target && in_array(strtolower($target->nodeName), ['p', 'span', 'a', 'li']) && $target->parentNode) {
+            try {
+                $target->parentNode->removeChild($target);
+            } catch (\DOMException $e) {}
         }
+    }
+
+    // ── Remove "Related Posts" & "Latest Posts" and their containing tables ──
+    $headings = $xpath->query('.//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::strong or self::b]', $node);
+    foreach (iterator_to_array($headings) as $heading) {
+        try {
+            if (!$heading->parentNode) continue;
+            $val = strtolower(trim($heading->textContent));
+            if ($val === 'related posts' || $val === 'latest posts' || $val === 'recent posts') {
+                $parent = $heading->parentNode;
+                $tableFound = false;
+                while ($parent && $parent->nodeName !== 'body') {
+                    if ($parent->nodeName === 'table') {
+                        if ($parent->parentNode) {
+                            $parent->parentNode->removeChild($parent);
+                            $tableFound = true;
+                        }
+                        break;
+                    }
+                    $parent = $parent->parentNode;
+                }
+                if (!$tableFound && $heading->parentNode) {
+                    $container = $heading->parentNode;
+                    if (in_array(strtolower($container->nodeName), ['div', 'td']) && $container->parentNode) {
+                        $container->parentNode->removeChild($container);
+                    } else {
+                        $heading->parentNode->removeChild($heading);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
     }
 }
 
@@ -508,9 +694,6 @@ function cleanHtml($html) {
 
     // ── Remove promotional spam links and text ────────────────────────────────
     // Remove specific promotional links with their text
-    $html = preg_replace('/<a[^>]*>.*?(Join Arattai Channel|Arattai Channel).*?<\/a>/is', '', $html);
-    $html = preg_replace('/<a[^>]*>.*?(Sarkari Result).*?<\/a>/is', '', $html);
-    $html = preg_replace('/<a[^>]*>.*?(Download Mobile App|Mobile App).*?<\/a>/is', '', $html);
     
     // Remove ALL internal website links (competitor sites)
     $competitorDomains = [
@@ -526,7 +709,8 @@ function cleanHtml($html) {
         'pdfjobsjankari\.com',
         'sarkariexam\.com',
         'sarkarihelp\.com',
-        'sarkari-naukri\.com'
+        'sarkari-naukri\.com',
+        'sarkariresult\.com\.cm'
     ];
     
     foreach ($competitorDomains as $domain) {
@@ -538,12 +722,24 @@ function cleanHtml($html) {
     // Pattern: <a href="...organization/...", "...states/...", "...qualification/...">Text</a> -> Text
     $html = preg_replace('/<a[^>]*href="[^"]*(\/organization\/|\/states\/|\/qualification\/|\/category\/|\/tag\/)[^"]*"[^>]*>(.*?)<\/a>/is', '$2', $html);
     
-    // Remove standalone text mentions
-    $html = str_ireplace('SARKARIJOBFIND.COM', '', $html);
-    $html = str_ireplace('SARKARIJOBFIND', '', $html);
+    // Replace standalone text mentions with our brand
+    $brandKeywords = [
+        'sarkari result.com.cm', 'sarkariresult.com.cm',
+        'sarkari result.com', 'sarkariresult.com',
+        'sarkari result', 'sarkariresult',
+        'sarkari exam', 'sarkariexam',
+        'freejobalert.com', 'freejobalert', 'free job alert',
+        'sarkari job find', 'sarkarijobfind.com', 'sarkarijobfind',
+        'sarkari help', 'sarkarihelp.com', 'sarkarihelp',
+        'sarkari naukri', 'sarkari-naukri.com'
+    ];
+    $html = str_ireplace($brandKeywords, 'JobOne', $html);
+    
+    // Nuke promotional chatter texts entirely
     $html = str_ireplace('Join Arattai Channel:', '', $html);
-    $html = str_ireplace('Sarkari Result:', '', $html);
+    $html = str_ireplace('Join Arattai Channel', '', $html);
     $html = str_ireplace('Download Mobile App:', '', $html);
+    $html = str_ireplace('Download Mobile App', '', $html);
     
     // Remove "IF You Satisfied By..." spam
     $html = preg_replace('/IF You Satisfied By\s+[A-Za-z0-9.]+\s+\(Website\).*?\(Thanks\)\.?/i', '', $html);
@@ -594,9 +790,10 @@ function enrichWithAI($data) {
     // Deepseek endpoint via AgentRouter
     $url = 'https://agentrouter.org/v1/chat/completions';
 
-    // Strip too much raw text to avoid maxing out tokens
-    $rawContent = strip_tags($data['content']);
-    $rawContent = substr($rawContent, 0, 4000); 
+    // Preserve structural tags but remove span, div, strong, etc to save tokens
+    $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br>');
+    // Increase limit to 25000 chars (approx 5000-7000 tokens) to ensure complete data extraction
+    $rawContent = substr($rawContent, 0, 25000); 
 
     // Use custom system prompt from config or default
     $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert SEO copywriter and HTML formatter for a government job portal. Review the provided job details and return a strictly valid JSON object with:
@@ -681,7 +878,8 @@ function cleanAIContent($html) {
         'pdfjobsjankari\.com',
         'sarkariexam\.com',
         'sarkarihelp\.com',
-        'sarkari-naukri\.com'
+        'sarkari-naukri\.com',
+        'sarkariresult\.com\.cm'
     ];
     
     foreach ($competitorDomains as $domain) {
@@ -692,8 +890,27 @@ function cleanAIContent($html) {
     // Remove internal category/tag/state/district/qualification links (keep only text)
     $html = preg_replace('/<a[^>]*href="[^"]*(\/organization\/|\/states\/|\/qualification\/|\/category\/|\/tag\/|\/districts\/|\/qualifications\/)[^"]*"[^>]*>(.*?)<\/a>/is', '$2', $html);
     
+    // Replace standalone text mentions with our brand
+    $brandKeywords = [
+        'sarkari result.com.cm', 'sarkariresult.com.cm',
+        'sarkari result.com', 'sarkariresult.com',
+        'sarkari result', 'sarkariresult',
+        'sarkari exam', 'sarkariexam',
+        'freejobalert.com', 'freejobalert', 'free job alert',
+        'sarkari job find', 'sarkarijobfind.com', 'sarkarijobfind',
+        'sarkari help', 'sarkarihelp.com', 'sarkarihelp',
+        'sarkari naukri', 'sarkari-naukri.com'
+    ];
+    $html = str_ireplace($brandKeywords, 'JobOne', $html);
+    
+    // Nuke promotional chatter texts entirely
+    $html = str_ireplace('Join Arattai Channel:', '', $html);
+    $html = str_ireplace('Join Arattai Channel', '', $html);
+    $html = str_ireplace('Download Mobile App:', '', $html);
+    $html = str_ireplace('Download Mobile App', '', $html);
+
     // Remove type="qualification" or similar attributes
-    $html = preg_replace('/\s+type="[^"]*"/i', '', $html);
+    $html = preg_replace('/\s+type="[^\"]*"/i', '', $html);
     
     return $html;
 }
