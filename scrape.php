@@ -763,7 +763,143 @@ function cleanHtml($html) {
     $html = preg_replace('/\s+/m', ' ', $html);
     $html = preg_replace('/>\s+</m', '><', $html);
 
+    // ── Inject modern inline styles for premium UI ───────────────────────────
+    $html = styleContent($html);
+
     return trim($html);
+}
+
+// ─── Premium inline styling for content rendered on jobone.in ─────────────────
+function styleContent($html) {
+    // ── Style tables: gradient headers, rounded corners, alternating rows ─────
+    // Style ALL table tags with modern look
+    $html = preg_replace(
+        '/<table[^>]*>/i',
+        '<table style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin:20px 0;font-size:15px;">',
+        $html
+    );
+
+    // First row of each table: gradient header
+    $html = preg_replace_callback(
+        '/<table([^>]*)>(.*?)<\/table>/is',
+        function($m) {
+            $tableAttrs = $m[1];
+            $inner = $m[2];
+            
+            // Style the FIRST <tr> as the header row with gradient
+            $firstRow = true;
+            $rowIndex = 0;
+            $inner = preg_replace_callback('/<tr[^>]*>(.*?)<\/tr>/is', function($rm) use (&$firstRow, &$rowIndex) {
+                $rowContent = $rm[1];
+                
+                // Check if this row contains th or has header-like content
+                $isHeaderRow = $firstRow || preg_match('/<th/i', $rowContent);
+                
+                if ($isHeaderRow && $firstRow) {
+                    $firstRow = false;
+                    // Style header cells
+                    $rowContent = preg_replace(
+                        '/<(td|th)[^>]*>/i',
+                        '<$1 style="background:linear-gradient(135deg,#1e3a5f 0%,#2d4a7a 100%);color:#fff;font-weight:700;padding:14px 16px;text-align:center;font-size:14px;letter-spacing:0.3px;border-bottom:2px solid #1a3050;">',
+                        $rowContent
+                    );
+                    return '<tr>' . $rowContent . '</tr>';
+                } else {
+                    $firstRow = false;
+                    $rowIndex++;
+                    $bgColor = ($rowIndex % 2 === 0) ? '#f8fafc' : '#ffffff';
+                    // Style data cells
+                    $rowContent = preg_replace(
+                        '/<(td|th)[^>]*>/i',
+                        '<$1 style="padding:12px 16px;border-bottom:1px solid #e8ecf1;color:#334155;line-height:1.6;background:' . $bgColor . ';">',
+                        $rowContent
+                    );
+                    return '<tr>' . $rowContent . '</tr>';
+                }
+            }, $inner);
+
+            return '<table' . $tableAttrs . '>' . $inner . '</table>';
+        },
+        $html
+    );
+
+    // ── Style section headings (h2-h6) with colored left-accent boxes ─────────
+    // h2 — Primary section header (dark blue accent)
+    $html = preg_replace(
+        '/<h2[^>]*>/i',
+        '<h2 style="margin:28px 0 16px;padding:14px 20px;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-left:5px solid #2563eb;border-radius:0 10px 10px 0;color:#1e3a5f;font-size:20px;font-weight:700;">',
+        $html
+    );
+
+    // h3 — Sub-section header (emerald accent)
+    $html = preg_replace(
+        '/<h3[^>]*>/i',
+        '<h3 style="margin:24px 0 14px;padding:12px 18px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border-left:5px solid #059669;border-radius:0 8px 8px 0;color:#065f46;font-size:18px;font-weight:700;">',
+        $html
+    );
+
+    // h4 — Info header (amber accent)
+    $html = preg_replace(
+        '/<h4[^>]*>/i',
+        '<h4 style="margin:20px 0 12px;padding:11px 16px;background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border-left:4px solid #d97706;border-radius:0 8px 8px 0;color:#92400e;font-size:16px;font-weight:700;">',
+        $html
+    );
+
+    // h5 — Small section header (indigo accent)
+    $html = preg_replace(
+        '/<h5[^>]*>/i',
+        '<h5 style="margin:16px 0 10px;padding:10px 16px;background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);border-left:4px solid #6366f1;border-radius:0 8px 8px 0;color:#3730a3;font-size:15px;font-weight:700;">',
+        $html
+    );
+
+    // h6 — Minor header (rose accent)
+    $html = preg_replace(
+        '/<h6[^>]*>/i',
+        '<h6 style="margin:14px 0 8px;padding:10px 16px;background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);border-left:4px solid #e11d48;border-radius:0 8px 8px 0;color:#9f1239;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">',
+        $html
+    );
+
+    // ── Style unordered lists with colored bullet boxes ───────────────────────
+    $html = preg_replace(
+        '/<ul[^>]*>/i',
+        '<ul style="list-style:none;padding:0;margin:12px 0;">',
+        $html
+    );
+    $html = preg_replace(
+        '/<li[^>]*>/i',
+        '<li style="position:relative;padding:10px 14px 10px 32px;margin:6px 0;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;color:#334155;line-height:1.6;font-size:14.5px;">',
+        $html
+    );
+
+    // ── Style ordered lists ──────────────────────────────────────────────────
+    $html = preg_replace(
+        '/<ol[^>]*>/i',
+        '<ol style="padding-left:20px;margin:12px 0;">',
+        $html
+    );
+
+    // ── Style paragraphs for better readability ──────────────────────────────
+    $html = preg_replace(
+        '/<p[^>]*>/i',
+        '<p style="margin:10px 0;line-height:1.7;color:#374151;font-size:15px;">',
+        $html
+    );
+
+    // ── Style links with brand color ──────────────────────────────────────────
+    $html = preg_replace(
+        '/<a /i',
+        '<a style="color:#2563eb;text-decoration:none;font-weight:600;border-bottom:1px dashed #93c5fd;transition:all 0.2s;" ',
+        $html
+    );
+
+    // ── Style strong/bold for emphasis ─────────────────────────────────────────
+    $html = preg_replace(
+        '/<strong[^>]*>/i',
+        '<strong style="color:#1e293b;font-weight:700;">',
+        $html
+    );
+
+    return $html;
 }
 
 // ─── Main execution ──────────────────────────────────────────────────────────
@@ -926,16 +1062,16 @@ if (!defined('AUTO_ADD_SOCIAL_LINKS') || AUTO_ADD_SOCIAL_LINKS) {
     $whatsappUrl = defined('WHATSAPP_CHANNEL_URL') ? WHATSAPP_CHANNEL_URL : 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22';
     
     $socialLinksHtml = '
-<div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 8px;">
-    <h3 style="color: #0369a1; margin-top: 0;">📢 Stay Updated with JobOne</h3>
-    <p style="margin: 10px 0;">Join our channels for instant job notifications, admit cards, results & exam updates!</p>
-    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
-        <a href="' . htmlspecialchars($telegramUrl) . '" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #0088cc; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
-            <span style="font-size: 20px;">📱</span>
+<div style="margin-top:32px;padding:24px 28px;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 50%,#e0e7ff 100%);border:1px solid #bfdbfe;border-radius:14px;box-shadow:0 4px 16px rgba(37,99,235,0.08);">
+    <h3 style="margin:0 0 8px;padding:0;background:none;border:none;color:#1e3a5f;font-size:18px;font-weight:800;letter-spacing:-0.3px;">📢 Stay Updated with JobOne</h3>
+    <p style="margin:0 0 18px;color:#475569;font-size:14px;line-height:1.5;">Join our channels for instant job notifications, admit cards, results &amp; exam updates!</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="' . htmlspecialchars($telegramUrl) . '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:linear-gradient(135deg,#0088cc 0%,#0077b5 100%);color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 3px 10px rgba(0,136,204,0.3);border-bottom:none;">
+            <span style="font-size:18px;">📱</span>
             <span>Join Telegram Channel</span>
         </a>
-        <a href="' . htmlspecialchars($whatsappUrl) . '" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #25D366; color: white; text-decoration: none; border-radius: 6px; font-weight: 500;">
-            <span style="font-size: 20px;">💬</span>
+        <a href="' . htmlspecialchars($whatsappUrl) . '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;background:linear-gradient(135deg,#25D366 0%,#128C7E 100%);color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 3px 10px rgba(37,211,102,0.3);border-bottom:none;">
+            <span style="font-size:18px;">💬</span>
             <span>Join WhatsApp Channel</span>
         </a>
     </div>
