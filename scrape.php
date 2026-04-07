@@ -748,6 +748,14 @@ function cleanHtml($html) {
     $html = str_ireplace('Join Arattai Channel', '', $html);
     $html = str_ireplace('Download Mobile App:', '', $html);
     $html = str_ireplace('Download Mobile App', '', $html);
+    $html = preg_replace('/JobOne Test App For All Govt\. Exam Test/i', '', $html);
+    $html = preg_replace('/Download JobOne Test App/i', '', $html);
+    
+    // Completely remove any anchor links to the Google Play Store
+    $html = preg_replace('/<a[^>]*href="[^"]*play\.google\.com[^"]*"[^>]*>.*?<\/a>/is', '', $html);
+    
+    // Nuke any full table row that is just promoting an app download
+    $html = preg_replace('/<tr[^>]*>(?:(?!<\/tr>).)*?(play\.google\.com|Test App|Mobile App)(?:(?!<\/tr>).)*?<\/tr>/is', '', $html);
     
     // Remove "IF You Satisfied By..." spam
     $html = preg_replace('/IF You Satisfied By\s+[A-Za-z0-9.]+\s+\(Website\).*?\(Thanks\)\.?/i', '', $html);
