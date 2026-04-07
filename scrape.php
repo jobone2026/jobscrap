@@ -815,14 +815,7 @@ function styleContent($html) {
     .jobone-premium-ui tr:nth-child(even) td { background: #f8fafc; }
     .jobone-premium-ui tr:nth-child(odd) td { background: #ffffff; }
 
-    /* Social CTA */
-    .jobone-social-cta { margin-top: 32px; padding: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0e7ff 100%); border: 1px solid #bfdbfe; border-radius: 12px; }
-    .jobone-social-cta h3 { margin: 0 0 8px; padding: 0; background: none; border: none; color: #1e3a8a; font-size: 18px; font-weight: 800; }
-    .jobone-social-cta p { margin: 0 0 16px; color: #475569; font-size: 14px; }
-    .jobone-social-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
-    .jobone-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; color: #ffffff !important; text-decoration: none !important; border-radius: 8px; font-weight: 600; font-size: 14px; flex: 1; min-width: 180px; max-width: 250px; }
-    .jobone-btn-telegram { background: linear-gradient(135deg, #0088cc 0%, #0077b5 100%); }
-    .jobone-btn-whatsapp { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); }
+
 
     /* Mobile view media queries */
     @media (max-width: 640px) {
@@ -834,10 +827,6 @@ function styleContent($html) {
         .jobone-premium-ui table { font-size: 13px; min-width: 380px; }
         .jobone-premium-ui th { padding: 12px 10px; }
         .jobone-premium-ui td { padding: 10px 12px; }
-        
-        .jobone-social-cta { padding: 16px; margin-top: 24px; }
-        .jobone-social-cta h3 { font-size: 16px; }
-        .jobone-btn { padding: 10px 16px; font-size: 13px; max-width: 100%; flex: 1 1 100%; }
     }
     </style>';
 
@@ -1003,32 +992,7 @@ $extracted = extractData($html, $url);
 // Pass through AI enrichment
 $extracted = enrichWithAI($extracted);
 
-// ─── Add JobOne social media links at the end of content ──────────────────────
-if (!defined('AUTO_ADD_SOCIAL_LINKS') || AUTO_ADD_SOCIAL_LINKS) {
-    $telegramUrl = defined('TELEGRAM_CHANNEL_URL') ? TELEGRAM_CHANNEL_URL : 'https://t.me/jobone2026';
-    $whatsappUrl = defined('WHATSAPP_CHANNEL_URL') ? WHATSAPP_CHANNEL_URL : 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22';
-    
-    $socialLinksHtml = '
-<div class="jobone-social-cta">
-    <h3>📢 Stay Updated with JobOne</h3>
-    <p>Join our channels for instant job notifications, admit cards, results &amp; exam updates!</p>
-    <div class="jobone-social-buttons">
-        <a href="' . htmlspecialchars($telegramUrl) . '" target="_blank" rel="noopener" class="jobone-btn jobone-btn-telegram">
-            <span>📱</span>
-            <span>Join Telegram</span>
-        </a>
-        <a href="' . htmlspecialchars($whatsappUrl) . '" target="_blank" rel="noopener" class="jobone-btn jobone-btn-whatsapp">
-            <span>💬</span>
-            <span>Join WhatsApp</span>
-        </a>
-    </div>
-</div>';
 
-    // To ensure the CTA looks exactly as intended, we append it inside the premium UI wrapper if it exists,
-    // or just append it (since the CSS rules are global).
-    // Actually, appending it directly works perfectly because the CSS classes aren\'t strict children of .jobone-premium-ui.
-    $extracted['content'] = $extracted['content'] . $socialLinksHtml;
-}
 
 $type = $forcedType ?: detectType($url, $extracted['title'], $html);
 $extracted['type'] = $type;
