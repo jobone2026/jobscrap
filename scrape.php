@@ -771,97 +771,7 @@ function cleanHtml($html) {
 
 // ─── Premium inline styling for content rendered on jobone.in ─────────────────
 function styleContent($html) {
-    // ── Wrap every table in a mobile-scroll container ─────────────────────────
-    // This is the KEY mobile fix: allows horizontal scroll on small screens
-    $html = preg_replace(
-        '/(<table)/i',
-        '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:16px 0;border-radius:10px;border:1px solid #e2e8f0;">$1',
-        $html
-    );
-    $html = preg_replace(
-        '/(<\/table>)/i',
-        '$1</div>',
-        $html
-    );
-
-    // ── Style tables: gradient headers, alternating rows ──────────────────────
-    $html = preg_replace(
-        '/<table[^>]*>/i',
-        '<table style="width:100%;min-width:320px;border-collapse:collapse;font-size:14px;">',
-        $html
-    );
-
-    // First row of each table: gradient header + style data rows
-    $html = preg_replace_callback(
-        '/<table([^>]*)>(.*?)<\/table>/is',
-        function($m) {
-            $tableAttrs = $m[1];
-            $inner = $m[2];
-            
-            $firstRow = true;
-            $rowIndex = 0;
-            $inner = preg_replace_callback('/<tr[^>]*>(.*?)<\/tr>/is', function($rm) use (&$firstRow, &$rowIndex) {
-                $rowContent = $rm[1];
-                
-                if ($firstRow) {
-                    $firstRow = false;
-                    // Header cells: dark gradient, white text, compact padding
-                    $rowContent = preg_replace(
-                        '/<(td|th)[^>]*>/i',
-                        '<$1 style="background:linear-gradient(135deg,#1e3a5f 0%,#2d4a7a 100%);color:#fff;font-weight:700;padding:10px 12px;text-align:center;font-size:13px;letter-spacing:0.3px;border-bottom:2px solid #1a3050;white-space:nowrap;">',
-                        $rowContent
-                    );
-                    return '<tr>' . $rowContent . '</tr>';
-                } else {
-                    $rowIndex++;
-                    $bgColor = ($rowIndex % 2 === 0) ? '#f8fafc' : '#ffffff';
-                    // Data cells: compact padding, word-break for mobile
-                    $rowContent = preg_replace(
-                        '/<(td|th)[^>]*>/i',
-                        '<$1 style="padding:10px 12px;border-bottom:1px solid #e8ecf1;color:#334155;line-height:1.5;background:' . $bgColor . ';word-break:break-word;font-size:13px;vertical-align:top;">',
-                        $rowContent
-                    );
-                    return '<tr>' . $rowContent . '</tr>';
-                }
-            }, $inner);
-
-            return '<table' . $tableAttrs . '>' . $inner . '</table>';
-        },
-        $html
-    );
-
-    // ── Style section headings — mobile-friendly sizes ────────────────────────
-    $html = preg_replace(
-        '/<h2[^>]*>/i',
-        '<h2 style="margin:20px 0 12px;padding:10px 14px;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%);border-left:4px solid #2563eb;border-radius:0 8px 8px 0;color:#1e3a5f;font-size:17px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h3[^>]*>/i',
-        '<h3 style="margin:18px 0 10px;padding:10px 14px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border-left:4px solid #059669;border-radius:0 8px 8px 0;color:#065f46;font-size:16px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h4[^>]*>/i',
-        '<h4 style="margin:16px 0 8px;padding:9px 12px;background:linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%);border-left:4px solid #d97706;border-radius:0 8px 8px 0;color:#92400e;font-size:15px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h5[^>]*>/i',
-        '<h5 style="margin:14px 0 8px;padding:8px 12px;background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);border-left:4px solid #6366f1;border-radius:0 8px 8px 0;color:#3730a3;font-size:14px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h6[^>]*>/i',
-        '<h6 style="margin:12px 0 6px;padding:8px 12px;background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);border-left:4px solid #e11d48;border-radius:0 8px 8px 0;color:#9f1239;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    // ── Style lists — compact for mobile ─────────────────────────────────────
+    // ── 1. Base typographic styling (runs first so containers can override) ─────
     $html = preg_replace(
         '/<ul[^>]*>/i',
         '<ul style="list-style:none;padding:0;margin:10px 0;">',
@@ -879,24 +789,111 @@ function styleContent($html) {
         $html
     );
 
-    // ── Style paragraphs ─────────────────────────────────────────────────────
     $html = preg_replace(
         '/<p[^>]*>/i',
         '<p style="margin:8px 0;line-height:1.6;color:#374151;font-size:14px;word-break:break-word;">',
         $html
     );
 
-    // ── Style links ──────────────────────────────────────────────────────────
     $html = preg_replace(
         '/<a /i',
         '<a style="color:#2563eb;text-decoration:none;font-weight:600;border-bottom:1px dashed #93c5fd;word-break:break-all;" ',
         $html
     );
 
-    // ── Style strong/bold ────────────────────────────────────────────────────
     $html = preg_replace(
         '/<strong[^>]*>/i',
-        '<strong style="color:#1e293b;font-weight:700;">',
+        '<strong style="color:inherit;font-weight:700;">',
+        $html
+    );
+
+    // ── 2. Wrap every table in a mobile-scroll container ─────────────────────────
+    $html = preg_replace(
+        '/(<table)/i',
+        '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:16px 0;border-radius:10px;border:1px solid #e2e8f0;">$1',
+        $html
+    );
+    $html = preg_replace(
+        '/(<\/table>)/i',
+        '$1</div>',
+        $html
+    );
+
+    // ── 3. Style tables: solid professional headers, alternating rows ────────────
+    $html = preg_replace(
+        '/<table[^>]*>/i',
+        '<table style="width:100%;min-width:320px;border-collapse:collapse;font-size:14px;">',
+        $html
+    );
+
+    $html = preg_replace_callback(
+        '/<table([^>]*)>(.*?)<\/table>/is',
+        function($m) {
+            $tableAttrs = $m[1];
+            $inner = $m[2];
+            
+            $firstRow = true;
+            $rowIndex = 0;
+            $inner = preg_replace_callback('/<tr[^>]*>(.*?)<\/tr>/is', function($rm) use (&$firstRow, &$rowIndex) {
+                $rowContent = $rm[1];
+                
+                if ($firstRow) {
+                    $firstRow = false;
+                    // Force any children of header cells to inherit color so they become white
+                    $rowContent = preg_replace('/color:[^;"]+;?/i', 'color:inherit;', $rowContent);
+                    
+                    // Header cells: solid navy blue, white text
+                    $rowContent = preg_replace(
+                        '/<(td|th)[^>]*>/i',
+                        '<$1 style="background:#1e3a8a;color:#ffffff;font-weight:700;padding:10px 12px;text-align:center;font-size:13px;letter-spacing:0.3px;border-bottom:2px solid #1e40af;white-space:nowrap;">',
+                        $rowContent
+                    );
+                    return '<tr>' . $rowContent . '</tr>';
+                } else {
+                    $rowIndex++;
+                    $bgColor = ($rowIndex % 2 === 0) ? '#f8fafc' : '#ffffff';
+                    $rowContent = preg_replace(
+                        '/<(td|th)[^>]*>/i',
+                        '<$1 style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#334155;line-height:1.5;background:' . $bgColor . ';word-break:break-word;font-size:13px;vertical-align:top;">',
+                        $rowContent
+                    );
+                    return '<tr>' . $rowContent . '</tr>';
+                }
+            }, $inner);
+
+            return '<table' . $tableAttrs . '>' . $inner . '</table>';
+        },
+        $html
+    );
+
+    // ── 4. Style section headings — strictly professional unified palette ────────
+    $html = preg_replace(
+        '/<h2[^>]*>/i',
+        '<h2 style="margin:20px 0 12px;padding:10px 14px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:0 6px 6px 0;color:#1e3a8a;font-size:17px;font-weight:700;line-height:1.4;word-break:break-word;">',
+        $html
+    );
+
+    $html = preg_replace(
+        '/<h3[^>]*>/i',
+        '<h3 style="margin:18px 0 10px;padding:10px 14px;background:#f1f5f9;border-left:4px solid #475569;border-radius:0 6px 6px 0;color:#0f172a;font-size:16px;font-weight:700;line-height:1.4;word-break:break-word;">',
+        $html
+    );
+
+    $html = preg_replace(
+        '/<h4[^>]*>/i',
+        '<h4 style="margin:16px 0 8px;padding:9px 12px;background:#f8fafc;border-left:4px solid #64748b;border-radius:0 6px 6px 0;color:#1e293b;font-size:15px;font-weight:700;line-height:1.4;word-break:break-word;">',
+        $html
+    );
+
+    $html = preg_replace(
+        '/<h5[^>]*>/i',
+        '<h5 style="margin:14px 0 8px;padding:8px 12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid #94a3b8;border-radius:4px;color:#334155;font-size:14px;font-weight:700;line-height:1.4;word-break:break-word;">',
+        $html
+    );
+
+    $html = preg_replace(
+        '/<h6[^>]*>/i',
+        '<h6 style="margin:12px 0 6px;padding:8px 12px;background:#ffffff;border-left:4px solid #cbd5e1;color:#475569;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4;word-break:break-word;">',
         $html
     );
 
