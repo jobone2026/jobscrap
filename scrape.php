@@ -135,6 +135,13 @@ function extractData($html, $url) {
 }
 
 function cleanText($t) {
+    // Decode HTML entities (run twice to catch double-encoded entities like &amp;amp;)
+    $t = html_entity_decode((string)$t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $t = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    // Also explicitly fix any trailing literal &amp; artifacts that might have bypassed standard decode
+    $t = str_ireplace(['&amp;', '&amp;amp;'], '&', $t);
+    
     $t = trim(preg_replace('/\s+/', ' ', $t));
     // Remove common site branding/spam from titles/descriptions
     $t = preg_replace('/(sarkari\s?job|sarkari\s?result|sarkari\s?exam|sarkarijobfind|sarkari\s?job\s?find|sarkariexam|sarkari\s?alert)/i', '', $t);

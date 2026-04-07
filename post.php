@@ -45,11 +45,22 @@ if (!in_array($input['type'], $validTypes)) {
 }
 
 // ─── Build payload ────────────────────────────────────────────────────────────
+
+function getRawText($str) {
+    if (!is_string($str)) return '';
+    // Decode twice to catch double-encoded entities
+    $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    // Forcibly fix any dangling literal &amp; artifacts
+    $str = str_ireplace(['&amp;amp;', '&amp;'], '&', $str);
+    return trim($str);
+}
+
 $payload = [
-    'title'             => substr(trim($input['title']), 0, 255),
+    'title'             => substr(getRawText($input['title']), 0, 255),
     'type'              => $input['type'],
-    'short_description' => trim($input['short_description']),
-    'content'           => $input['content'],
+    'short_description' => getRawText($input['short_description']),
+    'content'           => $input['content'], // content remains HTML
     'category_id'       => (int) $input['category_id'],
 ];
 
@@ -65,10 +76,10 @@ if (!empty($input['important_links']) && is_array($input['important_links'])) {
     foreach ($input['important_links'] as $l) {
         if (!empty($l['title']) && !empty($l['url'])) {
             $links[] = [
-                'title' => trim($l['title']),
+                'title' => getRawText($l['title']),
                 'url' => trim($l['url']),
-                'name' => trim($l['title']),
-                'label' => trim($l['title']),
+                'name' => getRawText($l['title']),
+                'label' => getRawText($l['title']),
                 'link' => trim($l['url'])
             ];
         }
@@ -78,9 +89,9 @@ if (!empty($input['important_links']) && is_array($input['important_links'])) {
     }
 }
 if (isset($input['is_featured']))          $payload['is_featured']         = (bool) $input['is_featured'];
-if (!empty($input['meta_title']))          $payload['meta_title']          = substr(trim($input['meta_title']), 0, 60);
-if (!empty($input['meta_description']))    $payload['meta_description']    = substr(trim($input['meta_description']), 0, 160);
-if (!empty($input['meta_keywords']))       $payload['meta_keywords']       = substr(trim($input['meta_keywords']), 0, 1000);
+if (!empty($input['meta_title']))          $payload['meta_title']          = substr(getRawText($input['meta_title']), 0, 60);
+if (!empty($input['meta_description']))    $payload['meta_description']    = substr(getRawText($input['meta_description']), 0, 160);
+if (!empty($input['meta_keywords']))       $payload['meta_keywords']       = substr(getRawText($input['meta_keywords']), 0, 1000);
 
 // ─── Call jobone.in API ───────────────────────────────────────────────────────
 $ch = curl_init(API_BASE . '/posts');
