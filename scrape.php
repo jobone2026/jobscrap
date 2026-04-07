@@ -771,133 +771,68 @@ function cleanHtml($html) {
 
 // ─── Premium inline styling for content rendered on jobone.in ─────────────────
 function styleContent($html) {
-    // ── 1. Base typographic styling (runs first so containers can override) ─────
-    $html = preg_replace(
-        '/<ul[^>]*>/i',
-        '<ul style="list-style:none;padding:0;margin:10px 0;">',
-        $html
-    );
-    $html = preg_replace(
-        '/<li[^>]*>/i',
-        '<li style="padding:8px 10px 8px 14px;margin:4px 0;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;color:#334155;line-height:1.5;font-size:13.5px;word-break:break-word;">',
-        $html
-    );
+    // ── Prepend responsive CSS styles using a unique namespace ────────────
+    $css = '<style>
+    .jobone-premium-ui { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #334155; font-size: 16px; line-height: 1.6; }
+    .jobone-premium-ui p { margin: 12px 0; word-break: break-word; }
+    .jobone-premium-ui a { color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 1px dashed #93c5fd; }
+    .jobone-premium-ui strong, .jobone-premium-ui b { color: inherit; font-weight: 700; }
+    
+    .jobone-premium-ui ul { padding: 0 0 0 24px; margin: 16px 0; list-style: none; }
+    .jobone-premium-ui li { position: relative; padding: 10px 14px 10px 18px; margin: 8px 0; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; word-break: break-word; }
+    .jobone-premium-ui li::before { content: "•"; color: #2563eb; font-weight: bold; position: absolute; left: 8px; }
+    .jobone-premium-ui ol { padding-left: 24px; margin: 16px 0; }
+    .jobone-premium-ui ol li { padding: 8px 0; background: transparent; border: none; list-style-type: decimal; }
+    .jobone-premium-ui ol li::before { display: none; }
+    
+    /* Headings strictly professional unified palette */
+    .jobone-premium-ui h2 { margin: 32px 0 16px; padding: 14px 18px; background: #eff6ff; border-left: 5px solid #2563eb; border-radius: 0 6px 6px 0; color: #1e3a8a; font-size: 22px; font-weight: 700; }
+    .jobone-premium-ui h3 { margin: 28px 0 14px; padding: 12px 16px; background: #f1f5f9; border-left: 4px solid #475569; border-radius: 0 6px 6px 0; color: #0f172a; font-size: 20px; font-weight: 700; }
+    .jobone-premium-ui h4 { margin: 24px 0 12px; padding: 10px 14px; background: #f8fafc; border-left: 4px solid #64748b; border-radius: 0 6px 6px 0; color: #1e293b; font-size: 18px; font-weight: 700; }
+    .jobone-premium-ui h5 { margin: 20px 0 10px; padding: 8px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #94a3b8; border-radius: 4px; color: #334155; font-size: 16px; font-weight: 700; }
+    .jobone-premium-ui h6 { margin: 16px 0 8px; padding: 8px 12px; background: #ffffff; border-left: 4px solid #cbd5e1; color: #475569; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    $html = preg_replace(
-        '/<ol[^>]*>/i',
-        '<ol style="padding-left:18px;margin:10px 0;">',
-        $html
-    );
+    /* Tables */
+    .jobone-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 24px 0; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .jobone-premium-ui table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px; }
+    .jobone-premium-ui th { background: #1e3a8a; color: #ffffff !important; font-weight: 700; padding: 14px 16px; text-align: center; border-bottom: 2px solid #1e40af; white-space: nowrap; }
+    .jobone-premium-ui th * { color: inherit !important; }
+    .jobone-premium-ui td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; line-height: 1.5; vertical-align: top; word-break: break-word; }
+    .jobone-premium-ui tr:nth-child(even) td { background: #f8fafc; }
+    .jobone-premium-ui tr:nth-child(odd) td { background: #ffffff; }
 
-    $html = preg_replace(
-        '/<p[^>]*>/i',
-        '<p style="margin:8px 0;line-height:1.6;color:#374151;font-size:14px;word-break:break-word;">',
-        $html
-    );
+    /* Social CTA */
+    .jobone-social-cta { margin-top: 32px; padding: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0e7ff 100%); border: 1px solid #bfdbfe; border-radius: 12px; }
+    .jobone-social-cta h3 { margin: 0 0 8px; padding: 0; background: none; border: none; color: #1e3a8a; font-size: 18px; font-weight: 800; }
+    .jobone-social-cta p { margin: 0 0 16px; color: #475569; font-size: 14px; }
+    .jobone-social-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+    .jobone-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; color: #ffffff !important; text-decoration: none !important; border-radius: 8px; font-weight: 600; font-size: 14px; flex: 1; min-width: 180px; max-width: 250px; }
+    .jobone-btn-telegram { background: linear-gradient(135deg, #0088cc 0%, #0077b5 100%); }
+    .jobone-btn-whatsapp { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); }
 
-    $html = preg_replace(
-        '/<a /i',
-        '<a style="color:#2563eb;text-decoration:none;font-weight:600;border-bottom:1px dashed #93c5fd;word-break:break-all;" ',
-        $html
-    );
+    /* Mobile view media queries */
+    @media (max-width: 640px) {
+        .jobone-premium-ui { font-size: 14px; }
+        .jobone-premium-ui h2 { font-size: 18px; margin: 24px 0 12px; padding: 12px 14px; }
+        .jobone-premium-ui h3 { font-size: 17px; margin: 20px 0 10px; padding: 10px 12px; }
+        .jobone-premium-ui h4 { font-size: 16px; margin: 18px 0 8px; padding: 10px 12px; }
+        .jobone-premium-ui h5 { font-size: 15px; }
+        .jobone-premium-ui table { font-size: 13px; min-width: 380px; }
+        .jobone-premium-ui th { padding: 12px 10px; }
+        .jobone-premium-ui td { padding: 10px 12px; }
+        
+        .jobone-social-cta { padding: 16px; margin-top: 24px; }
+        .jobone-social-cta h3 { font-size: 16px; }
+        .jobone-btn { padding: 10px 16px; font-size: 13px; max-width: 100%; flex: 1 1 100%; }
+    }
+    </style>';
 
-    $html = preg_replace(
-        '/<strong[^>]*>/i',
-        '<strong style="color:inherit;font-weight:700;">',
-        $html
-    );
+    // Wrap tables in responsive wrapper
+    $html = preg_replace('/(<table[^>]*>)/i', '<div class="jobone-table-wrapper">$1', $html);
+    $html = preg_replace('/(<\/table>)/i', '$1</div>', $html);
 
-    // ── 2. Wrap every table in a mobile-scroll container ─────────────────────────
-    $html = preg_replace(
-        '/(<table)/i',
-        '<div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:16px 0;border-radius:10px;border:1px solid #e2e8f0;">$1',
-        $html
-    );
-    $html = preg_replace(
-        '/(<\/table>)/i',
-        '$1</div>',
-        $html
-    );
-
-    // ── 3. Style tables: solid professional headers, alternating rows ────────────
-    $html = preg_replace(
-        '/<table[^>]*>/i',
-        '<table style="width:100%;min-width:320px;border-collapse:collapse;font-size:14px;">',
-        $html
-    );
-
-    $html = preg_replace_callback(
-        '/<table([^>]*)>(.*?)<\/table>/is',
-        function($m) {
-            $tableAttrs = $m[1];
-            $inner = $m[2];
-            
-            $firstRow = true;
-            $rowIndex = 0;
-            $inner = preg_replace_callback('/<tr[^>]*>(.*?)<\/tr>/is', function($rm) use (&$firstRow, &$rowIndex) {
-                $rowContent = $rm[1];
-                
-                if ($firstRow) {
-                    $firstRow = false;
-                    // Force any children of header cells to inherit color so they become white
-                    $rowContent = preg_replace('/color:[^;"]+;?/i', 'color:inherit;', $rowContent);
-                    
-                    // Header cells: solid navy blue, white text
-                    $rowContent = preg_replace(
-                        '/<(td|th)[^>]*>/i',
-                        '<$1 style="background:#1e3a8a;color:#ffffff;font-weight:700;padding:10px 12px;text-align:center;font-size:13px;letter-spacing:0.3px;border-bottom:2px solid #1e40af;white-space:nowrap;">',
-                        $rowContent
-                    );
-                    return '<tr>' . $rowContent . '</tr>';
-                } else {
-                    $rowIndex++;
-                    $bgColor = ($rowIndex % 2 === 0) ? '#f8fafc' : '#ffffff';
-                    $rowContent = preg_replace(
-                        '/<(td|th)[^>]*>/i',
-                        '<$1 style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:#334155;line-height:1.5;background:' . $bgColor . ';word-break:break-word;font-size:13px;vertical-align:top;">',
-                        $rowContent
-                    );
-                    return '<tr>' . $rowContent . '</tr>';
-                }
-            }, $inner);
-
-            return '<table' . $tableAttrs . '>' . $inner . '</table>';
-        },
-        $html
-    );
-
-    // ── 4. Style section headings — strictly professional unified palette ────────
-    $html = preg_replace(
-        '/<h2[^>]*>/i',
-        '<h2 style="margin:20px 0 12px;padding:10px 14px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:0 6px 6px 0;color:#1e3a8a;font-size:17px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h3[^>]*>/i',
-        '<h3 style="margin:18px 0 10px;padding:10px 14px;background:#f1f5f9;border-left:4px solid #475569;border-radius:0 6px 6px 0;color:#0f172a;font-size:16px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h4[^>]*>/i',
-        '<h4 style="margin:16px 0 8px;padding:9px 12px;background:#f8fafc;border-left:4px solid #64748b;border-radius:0 6px 6px 0;color:#1e293b;font-size:15px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h5[^>]*>/i',
-        '<h5 style="margin:14px 0 8px;padding:8px 12px;background:#ffffff;border:1px solid #e2e8f0;border-left:4px solid #94a3b8;border-radius:4px;color:#334155;font-size:14px;font-weight:700;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    $html = preg_replace(
-        '/<h6[^>]*>/i',
-        '<h6 style="margin:12px 0 6px;padding:8px 12px;background:#ffffff;border-left:4px solid #cbd5e1;color:#475569;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;line-height:1.4;word-break:break-word;">',
-        $html
-    );
-
-    return $html;
+    // Provide the content wrapped in generic div
+    return $css . '<div class="jobone-premium-ui">' . $html . '</div>';
 }
 
 // ─── Main execution ──────────────────────────────────────────────────────────
@@ -1060,22 +995,24 @@ if (!defined('AUTO_ADD_SOCIAL_LINKS') || AUTO_ADD_SOCIAL_LINKS) {
     $whatsappUrl = defined('WHATSAPP_CHANNEL_URL') ? WHATSAPP_CHANNEL_URL : 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22';
     
     $socialLinksHtml = '
-<div style="margin-top:24px;padding:16px;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 50%,#e0e7ff 100%);border:1px solid #bfdbfe;border-radius:10px;">
-    <h3 style="margin:0 0 6px;padding:0;background:none;border:none;color:#1e3a5f;font-size:16px;font-weight:800;">📢 Stay Updated with JobOne</h3>
-    <p style="margin:0 0 14px;color:#475569;font-size:13px;line-height:1.4;">Join our channels for instant job notifications, admit cards, results &amp; exam updates!</p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <a href="' . htmlspecialchars($telegramUrl) . '" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:linear-gradient(135deg,#0088cc 0%,#0077b5 100%);color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;border-bottom:none;flex:1;min-width:140px;">
+<div class="jobone-social-cta">
+    <h3>📢 Stay Updated with JobOne</h3>
+    <p>Join our channels for instant job notifications, admit cards, results &amp; exam updates!</p>
+    <div class="jobone-social-buttons">
+        <a href="' . htmlspecialchars($telegramUrl) . '" target="_blank" rel="noopener" class="jobone-btn jobone-btn-telegram">
             <span>📱</span>
             <span>Join Telegram</span>
         </a>
-        <a href="' . htmlspecialchars($whatsappUrl) . '" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:linear-gradient(135deg,#25D366 0%,#128C7E 100%);color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;border-bottom:none;flex:1;min-width:140px;">
+        <a href="' . htmlspecialchars($whatsappUrl) . '" target="_blank" rel="noopener" class="jobone-btn jobone-btn-whatsapp">
             <span>💬</span>
             <span>Join WhatsApp</span>
         </a>
     </div>
 </div>';
 
-    // Append social links to content
+    // To ensure the CTA looks exactly as intended, we append it inside the premium UI wrapper if it exists,
+    // or just append it (since the CSS rules are global).
+    // Actually, appending it directly works perfectly because the CSS classes aren\'t strict children of .jobone-premium-ui.
     $extracted['content'] = $extracted['content'] . $socialLinksHtml;
 }
 
