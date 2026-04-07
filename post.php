@@ -61,9 +61,21 @@ if (isset($input['total_posts']) && $input['total_posts'] !== '' && $input['tota
     $payload['total_posts'] = (int) $input['total_posts'];
 }
 if (!empty($input['important_links']) && is_array($input['important_links'])) {
-    // Filter out empty ones
-    $links = array_values(array_filter($input['important_links'], fn($l) => !empty($l['title']) && !empty($l['url'])));
-    if ($links) $payload['important_links'] = $links;
+    $links = [];
+    foreach ($input['important_links'] as $l) {
+        if (!empty($l['title']) && !empty($l['url'])) {
+            $links[] = [
+                'title' => trim($l['title']),
+                'url' => trim($l['url']),
+                'name' => trim($l['title']),
+                'label' => trim($l['title']),
+                'link' => trim($l['url'])
+            ];
+        }
+    }
+    if (!empty($links)) {
+        $payload['important_links'] = $links;
+    }
 }
 if (isset($input['is_featured']))          $payload['is_featured']         = (bool) $input['is_featured'];
 if (!empty($input['meta_title']))          $payload['meta_title']          = substr(trim($input['meta_title']), 0, 60);

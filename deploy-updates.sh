@@ -6,7 +6,7 @@
 echo "🚀 Deploying updates to jobone.in server..."
 
 # Files to update
-FILES="scrape.php config.php"
+FILES="scrape.php config.php post.php"
 
 echo "📤 Uploading files..."
 for file in $FILES; do
@@ -17,7 +17,7 @@ done
 echo "📋 Copying to public directory on server..."
 ssh ubuntu@jobone.in << 'ENDSSH'
 cd ~/jobscrap
-sudo cp scrape.php config.php /var/www/jobone/public/jobscrap/
+sudo cp scrape.php config.php post.php /var/www/jobone/public/jobscrap/
 sudo chown ubuntu:www-data /var/www/jobone/public/jobscrap/*
 sudo chmod 755 /var/www/jobone/public/jobscrap/*.php
 echo "✅ Files updated successfully!"
