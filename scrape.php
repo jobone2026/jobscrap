@@ -376,10 +376,11 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
         if (!$matched && str_contains(strtolower($text), 'official')) $matched = true;
         if (!$matched) continue;
 
-        if (in_array($abs, $seen)) continue;
+        $uniqueKey = $abs . '|' . strtolower(trim($text));
+        if (in_array($uniqueKey, $seen)) continue;
 
         $links[] = ['title' => $text, 'url' => $abs];
-        $seen[]  = $abs;
+        $seen[]  = $uniqueKey;
 
         if (count($links) >= 10) break;
     }
@@ -755,9 +756,7 @@ function cleanHtml($html) {
     $html = preg_replace('/<p>\s*[\d\s]+\s*<\/p>/i', '', $html);
     $html = preg_replace('/^[\d\s]+$/m', '', $html);
     
-    // Remove "Click Here" links that don't have meaningful context
-    $html = preg_replace('/<a[^>]*>\s*Click Here\s*<\/a>/i', '', $html);
-
+    // Remove specific spam links if needed, but DO NOT remove "Click Here" as those are the actual action links!
     // Swap ALL social media / share links to JobOne standard channels
     $html = preg_replace('/href="[^"]*(telegram|t\.me)[^"]*"/i', 'href="https://t.me/jobone2026"', $html);
     $html = preg_replace('/href="[^"]*(whatsapp\.com|wa\.me)[^"]*"/i', 'href="https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22"', $html);
