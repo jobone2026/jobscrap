@@ -19,6 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('urlInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') startScrape();
   });
+
+  // Visual editor: paste & drop image support
+  const veEditor = document.getElementById('veEditor');
+  if (veEditor) {
+    veEditor.addEventListener('paste', veHandlePaste);
+    veEditor.addEventListener('drop', veHandleDrop);
+    veEditor.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
+  }
 });
 
 // ── API Status ──────────────────────────────────────────────────
@@ -163,8 +171,9 @@ function populateForm(d, sourceUrl) {
     d.important_links.forEach(l => addLink(l.title, l.url));
   }
 
-  // Switch to edit tab
-  switchTab('edit');
+  // Load content into visual editor and switch to visual tab
+  veLoadContent(d.content || '');
+  switchTab('visual');
 }
 
 function autoSelectCategory(guess) {
@@ -192,25 +201,256 @@ function autoSelectState(guess) {
 }
 
 // ── Content tab switcher ────────────────────────────────────────
-function switchTab(tab) {
-  const editPane = document.getElementById('editPane');
-  const previewPane = document.getElementById('previewPane');
-  const tabEdit = document.getElementById('tabEdit');
-  const tabPreview = document.getElementById('tabPreview');
+let currentTab = 'visual';
 
-  if (tab === 'edit') {
-    show('editPane');
-    hide('previewPane');
-    tabEdit.classList.add('active');
-    tabPreview.classList.remove('active');
-  } else {
-    const html = document.getElementById('fContent').value;
-    document.getElementById('htmlPreview').innerHTML = html;
-    hide('editPane');
-    show('previewPane');
-    tabEdit.classList.remove('active');
-    tabPreview.classList.add('active');
+function switchTab(tab) {
+  const tabs = ['tabVisual', 'tabCode', 'tabPreview'];
+  tabs.forEach(t => document.getElementById(t)?.classList.remove('active'));
+  hide('visualPane'); hide('codePane'); hide('previewPane');
+
+  // Sync content between editors when switching
+  if (currentTab === 'visual' && tab !== 'visual') {
+    syncVisualToCode();
+  } else if (currentTab === 'code' && tab !== 'code') {
+    syncCodeToVisual();
   }
+
+  if (tab === 'visual') {
+    show('visualPane');
+    document.getElementById('tabVisual').classList.add('active');
+  } else if (tab === 'code') {
+    show('codePane');
+    document.getElementById('tabCode').classList.add('active');
+  } else {
+    const html = currentTab === 'visual' ? getEditorHtml() : getVal('fContent');
+    document.getElementById('htmlPreview').innerHTML = html;
+    show('previewPane');
+    document.getElementById('tabPreview').classList.add('active');
+  }
+
+  currentTab = tab;
+}
+
+function syncVisualToCode() {
+  const html = getEditorHtml();
+  setVal('fContent', html);
+}
+
+function syncCodeToVisual() {
+  const html = getVal('fContent');
+  veLoadContent(html);
+}
+
+function getEditorHtml() {
+  const editor = document.getElementById('veEditor');
+  if (!editor) return '';
+  const clone = editor.cloneNode(true);
+  clone.querySelectorAll('.ve-img-delete').forEach(btn => btn.remove());
+  clone.querySelectorAll('.ve-img-wrapper').forEach(wrapper => {
+    const img = wrapper.querySelector('img');
+    if (img) {
+      img.classList.remove('ve-img-selected');
+      wrapper.replaceWith(img);
+    } else {
+      wrapper.remove();
+    }
+  });
+  return clone.innerHTML;
+}
+
+// ── Visual Editor Functions ─────────────────────────────────────
+function veLoadContent(html) {
+  const editor = document.getElementById('veEditor');
+  if (!editor) return;
+  let cleanHtml = html;
+  cleanHtml = cleanHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  cleanHtml = cleanHtml.replace(/<div class="jobone-premium-ui">/gi, '');
+  cleanHtml = cleanHtml.replace(/<div class="jobone-blog-ui">/gi, '');
+  cleanHtml = cleanHtml.replace(/<\/div>\s*$/i, '');
+  cleanHtml = cleanHtml.replace(/<div class="jobone-table-wrapper">/gi, '');
+  cleanHtml = cleanHtml.replace(/<div class="jobone-blog-table-wrap">/gi, '');
+  editor.innerHTML = cleanHtml;
+  veWrapImages();
+}
+
+function veWrapImages() {
+  const editor = document.getElementById('veEditor');
+  if (!editor) return;
+  editor.querySelectorAll('img').forEach(img => {
+    if (img.parentElement?.classList?.contains('ve-img-wrapper')) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 've-img-wrapper';
+    wrapper.contentEditable = 'false';
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 've-img-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.innerHTML = '✕';
+    deleteBtn.title = 'Delete this image';
+    deleteBtn.onclick = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (confirm('Delete this image?')) {
+        wrapper.remove();
+        showToast('Image deleted', 'success');
+      }
+    };
+    img.parentNode.insertBefore(wrapper, img);
+    wrapper.appendChild(deleteBtn);
+    wrapper.appendChild(img);
+  });
+}
+
+function veCmd(command, value = null) {
+  document.getElementById('veEditor')?.focus();
+  document.execCommand(command, false, value);
+}
+
+function veHeading(tag) {
+  document.getElementById('veEditor')?.focus();
+  document.execCommand('formatBlock', false, `<${tag}>`);
+}
+
+function veRemoveFormat() {
+  document.getElementById('veEditor')?.focus();
+  document.execCommand('removeFormat', false, null);
+  document.execCommand('formatBlock', false, '<p>');
+}
+
+function veDeleteSelected() {
+  const editor = document.getElementById('veEditor');
+  if (!editor) return;
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed) {
+    document.execCommand('delete', false, null);
+    showToast('Selection deleted', 'success');
+    return;
+  }
+  const anchor = selection?.anchorNode;
+  if (anchor) {
+    let target = anchor.nodeType === 3 ? anchor.parentElement : anchor;
+    while (target && target !== editor) {
+      if (['IMG', 'TABLE', 'FIGURE', 'BLOCKQUOTE', 'HR'].includes(target.tagName)) {
+        if (confirm(`Delete this ${target.tagName.toLowerCase()}?`)) {
+          target.remove();
+          showToast('Element deleted', 'success');
+        }
+        return;
+      }
+      if (['P', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'DIV'].includes(target.tagName) && target.parentElement === editor) {
+        if (confirm('Delete this block?')) {
+          target.remove();
+          showToast('Block deleted', 'success');
+        }
+        return;
+      }
+      target = target.parentElement;
+    }
+  }
+  showToast('Click on content or select text to delete', 'info');
+}
+
+function veInsertLink() {
+  const selection = window.getSelection();
+  const text = selection?.toString() || '';
+  const url = prompt('Enter URL:', 'https://');
+  if (!url) return;
+  if (text) {
+    document.execCommand('createLink', false, url);
+  } else {
+    const linkText = prompt('Link text:', 'Click here');
+    if (!linkText) return;
+    const editor = document.getElementById('veEditor');
+    editor.focus();
+    document.execCommand('insertHTML', false, `<a href="${escHtml(url)}" target="_blank">${escHtml(linkText)}</a>`);
+  }
+}
+
+function veInsertImageModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 've-modal-overlay';
+  overlay.id = 'veImageModal';
+  overlay.innerHTML = `
+    <div class="ve-modal">
+      <h3>🖼️ Insert Image</h3>
+      <div class="form-group">
+        <label class="form-label" for="veImgUrl">Image URL *</label>
+        <input type="url" id="veImgUrl" class="form-input" placeholder="https://example.com/image.jpg" autofocus />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="veImgAlt">Alt Text (optional)</label>
+        <input type="text" id="veImgAlt" class="form-input" placeholder="Describe the image…" />
+      </div>
+      <div class="ve-modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('veImageModal')?.remove()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="veDoInsertImage()">Insert Image</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('veImgUrl')?.focus(), 100);
+}
+
+function veDoInsertImage() {
+  const url = document.getElementById('veImgUrl')?.value.trim();
+  const alt = document.getElementById('veImgAlt')?.value.trim() || '';
+  if (!url) { showToast('Please enter an image URL', 'error'); return; }
+  document.getElementById('veImageModal')?.remove();
+  const editor = document.getElementById('veEditor');
+  editor.focus();
+  const imgHtml = `<img src="${escHtml(url)}" alt="${escHtml(alt)}" style="max-width:100%;height:auto;border-radius:8px;margin:16px 0;display:block;" />`;
+  document.execCommand('insertHTML', false, imgHtml);
+  setTimeout(() => veWrapImages(), 100);
+  showToast('Image inserted', 'success');
+}
+
+// ── Clipboard paste & drag-drop image support ──────────────────
+function veHandlePaste(e) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      if (file) veInsertImageFile(file);
+      return;
+    }
+  }
+  // Also handle pasted HTML with images (from web pages)
+  const html = e.clipboardData?.getData('text/html');
+  if (html && html.includes('<img')) {
+    e.preventDefault();
+    document.execCommand('insertHTML', false, html);
+    setTimeout(() => veWrapImages(), 150);
+    return;
+  }
+}
+
+function veHandleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      veInsertImageFile(file);
+    }
+  }
+}
+
+function veInsertImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const editor = document.getElementById('veEditor');
+    if (!editor) return;
+    editor.focus();
+    const imgHtml = `<img src="${dataUrl}" alt="Pasted image" style="max-width:100%;height:auto;border-radius:8px;margin:16px 0;display:block;" />`;
+    document.execCommand('insertHTML', false, imgHtml);
+    setTimeout(() => veWrapImages(), 150);
+    showToast('Image pasted ✓', 'success');
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── Important links management ──────────────────────────────────
@@ -265,7 +505,7 @@ async function submitPost() {
     title:             getVal('fTitle'),
     type:              getVal('fType'),
     short_description: getVal('fShortDesc'),
-    content:           getVal('fContent'),
+    content:           currentTab === 'visual' ? getEditorHtml() : getVal('fContent'),
     category_id:       getVal('fCategory'),
     state_id:          getVal('fState') || null,
     last_date:         getVal('fLastDate') || null,
@@ -356,7 +596,10 @@ function resetForm() {
   document.getElementById('linksContainer').innerHTML = '';
   document.getElementById('urlInput').value = '';
   document.getElementById('forcedType').value = '';
+  const editor = document.getElementById('veEditor');
+  if (editor) editor.innerHTML = '';
   currentType = '';
+  currentTab = 'visual';
   linkIndex = 0;
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
 
@@ -364,6 +607,7 @@ function resetForm() {
   hide('resultCard');
   hide('loadingCard');
   show('urlCard');
+  switchTab('visual');
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }

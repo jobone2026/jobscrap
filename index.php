@@ -202,18 +202,61 @@ $states = apiGet('/states');
           <textarea id="fShortDesc" name="short_description" class="form-input form-textarea" rows="3" placeholder="Brief one-liner description…" required></textarea>
         </div>
 
-        <!-- Content (HTML) -->
+        <!-- Content Editor -->
         <div class="form-group">
           <div class="label-row">
-            <label class="form-label" for="fContent">Content (HTML) *</label>
+            <label class="form-label">Content *</label>
             <div class="content-tabs">
-              <button type="button" class="ctab active" id="tabEdit" onclick="switchTab('edit')">✏️ Edit</button>
+              <button type="button" class="ctab active" id="tabVisual" onclick="switchTab('visual')">🎨 Visual</button>
+              <button type="button" class="ctab" id="tabCode" onclick="switchTab('code')">💻 Code</button>
               <button type="button" class="ctab" id="tabPreview" onclick="switchTab('preview')">👁️ Preview</button>
             </div>
           </div>
-          <div id="editPane">
+
+          <!-- Visual Editor -->
+          <div id="visualPane">
+            <div class="ve-toolbar" id="veToolbar">
+              <button type="button" class="ve-btn" onclick="veCmd('undo')" title="Undo">↶</button>
+              <button type="button" class="ve-btn" onclick="veCmd('redo')" title="Redo">↷</button>
+              <div class="ve-sep"></div>
+              <button type="button" class="ve-btn" onclick="veCmd('bold')" title="Bold"><b>B</b></button>
+              <button type="button" class="ve-btn" onclick="veCmd('italic')" title="Italic"><i>I</i></button>
+              <button type="button" class="ve-btn" onclick="veCmd('underline')" title="Underline"><u>U</u></button>
+              <button type="button" class="ve-btn" onclick="veCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+              <div class="ve-sep"></div>
+              <button type="button" class="ve-btn ve-btn-wide" onclick="veHeading('H2')" title="Heading 2">H2</button>
+              <button type="button" class="ve-btn ve-btn-wide" onclick="veHeading('H3')" title="Heading 3">H3</button>
+              <button type="button" class="ve-btn ve-btn-wide" onclick="veHeading('H4')" title="Heading 4">H4</button>
+              <button type="button" class="ve-btn ve-btn-wide" onclick="veHeading('P')" title="Paragraph">¶</button>
+              <div class="ve-sep"></div>
+              <button type="button" class="ve-btn" onclick="veCmd('insertUnorderedList')" title="Bullet List">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
+              </button>
+              <button type="button" class="ve-btn" onclick="veCmd('insertOrderedList')" title="Numbered List">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="2" y="8" fill="currentColor" font-size="7" font-weight="600" stroke="none">1</text><text x="2" y="14" fill="currentColor" font-size="7" font-weight="600" stroke="none">2</text><text x="2" y="20" fill="currentColor" font-size="7" font-weight="600" stroke="none">3</text></svg>
+              </button>
+              <div class="ve-sep"></div>
+              <button type="button" class="ve-btn" onclick="veInsertLink()" title="Insert Link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+              <button type="button" class="ve-btn" onclick="veInsertImageModal()" title="Insert Image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </button>
+              <button type="button" class="ve-btn ve-btn-wide" onclick="document.getElementById('veEditor')?.focus(); showToast('Press Ctrl+V to paste image from clipboard', 'info')" title="Paste Image (Ctrl+V)">📋</button>
+              <button type="button" class="ve-btn" onclick="veCmd('insertHorizontalRule')" title="Horizontal Line">―</button>
+              <div class="ve-sep"></div>
+              <button type="button" class="ve-btn" onclick="veRemoveFormat()" title="Clear Formatting">🧹</button>
+              <button type="button" class="ve-btn ve-btn-wide btn-danger" onclick="veDeleteSelected()" title="Delete Selected" style="color:var(--danger);">🗑️ Del</button>
+            </div>
+            <div class="ve-editor" id="veEditor" contenteditable="true"></div>
+          </div>
+
+          <!-- Code Editor -->
+          <div id="codePane" class="hidden">
             <textarea id="fContent" name="content" class="form-input form-textarea code-area" rows="18" required></textarea>
           </div>
+
+          <!-- Preview -->
           <div id="previewPane" class="preview-pane hidden">
             <div id="htmlPreview" class="html-preview-area"></div>
           </div>
