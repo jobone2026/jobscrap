@@ -12,24 +12,41 @@ if (file_exists('config.php')) {
     require_once 'config.php';
 } else {
     define('JOBONE_API_TOKEN', 'YOUR_TOKEN_HERE');
-    define('AGENTROUTER_API_KEY', 'YOUR_KEY_HERE');
 }
 
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { return; }
-$input = json_decode(file_get_contents('php://input'), true);
-$url = trim($input['url'] ?? '');
-$forcedType = trim($input['forced_type'] ?? '');
+$url = '';
+$forcedType = '';
 
-if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid URL provided.']);
-    exit;
+if (php_sapi_name() !== 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERVER['PHP_SELF']) === 'scrape.php')) {
+    if (php_sapi_name() !== 'cli') {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
+        $input = json_decode(file_get_contents('php://input'), true);
+    } else {
+        $input = [];
+    }
+
+    $url = trim($input['url'] ?? '');
+    $forcedType = trim($input['forced_type'] ?? '');
+
+    if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid URL provided.']);
+        exit;
+    }
+
+    if (basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php' && !$url) {
+        echo json_encode(['success' => false, 'message' => 'URL is required.']);
+        exit;
+    }
 }
 
 // ─── 1. Fetch the page ───────────────────────────────────────────────────────
-function fetchPage($url) {
+function fetchPage($url)
+{
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -54,7 +71,8 @@ function fetchPage($url) {
 }
 
 // ─── 2. Detect post type ─────────────────────────────────────────────────────
-function detectType($url, $title, $html) {
+function detectType($url, $title, $html)
+{
     // Use only title + body text — exclude domain to avoid false positives
     // (e.g. sarkariresult.com.cm triggering "result" for a recruitment post)
     $haystack = strtolower($title . ' ' . substr($html, 0, 5000));
@@ -67,29 +85,31 @@ function detectType($url, $title, $html) {
     $map = [
         'admit_card' => ['admit card', 'admit-card', 'admitcard', 'hall ticket', 'hall-ticket', 'call letter'],
         'answer_key' => ['answer key', 'answer-key', 'answerkey', 'answer sheet', 'official key'],
-        'syllabus'   => ['syllabus', 'exam pattern', 'curriculum'],
-        'job'        => ['recruitment', 'vacancy', 'notification', 'apply online', 'application', 'job', 'bharti', 'online form'],
-        'result'     => ['result', 'merit list', 'cutoff', 'cut-off', 'final result', 'scorecard'],
+        'syllabus' => ['syllabus', 'exam pattern', 'curriculum'],
+        'job' => ['recruitment', 'vacancy', 'notification', 'apply online', 'application', 'job', 'bharti', 'online form'],
+        'result' => ['result', 'merit list', 'cutoff', 'cut-off', 'final result', 'scorecard'],
     ];
     foreach ($map as $type => $keywords) {
         foreach ($keywords as $kw) {
-            if (str_contains($haystack, $kw)) return $type;
+            if (str_contains($haystack, $kw))
+                return $type;
         }
     }
     return 'job';
 }
 
 // ─── 3. Extract key data ─────────────────────────────────────────────────────
-function extractData($html, $url) {
+function extractData($html, $url)
+{
     libxml_use_internal_errors(true);
-    
+
     // Pre-strip scripts, styles, and noscript blocks via regex before DOM parsing.
     // This prevents DOMDocument from misinterpreting HTML tags inside JS strings or template literals,
     // which causes raw JS code to bleed into the text/HTML output.
     $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
     $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
     $html = preg_replace('/<noscript\b[^>]*>(.*?)<\/noscript>/is', '', $html);
-    
+
     $doc = new DOMDocument();
     $doc->loadHTML('<?xml encoding="utf-8"?>' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
     $xpath = new DOMXPath($doc);
@@ -120,7 +140,7 @@ function extractData($html, $url) {
 
     // Category guess
     $data['category_guess'] = guessCategory($data['title'] . ' ' . $fullText);
-    
+
     // State guess
     $data['state_guess'] = guessState($data['title'] . ' ' . $fullText);
 
@@ -134,21 +154,23 @@ function extractData($html, $url) {
     return $data;
 }
 
-function cleanText($t) {
+function cleanText($t)
+{
     // Decode HTML entities (run twice to catch double-encoded entities like &amp;amp;)
-    $t = html_entity_decode((string)$t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $t = html_entity_decode((string) $t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $t = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    
+
     // Also explicitly fix any trailing literal &amp; artifacts that might have bypassed standard decode
     $t = str_ireplace(['&amp;', '&amp;amp;'], '&', $t);
-    
+
     $t = trim(preg_replace('/\s+/', ' ', $t));
     // Remove common site branding/spam from titles/descriptions
     $t = preg_replace('/(sarkari\s?job|sarkari\s?result|sarkari\s?exam|sarkarijobfind|sarkari\s?job\s?find|sarkariexam|sarkari\s?alert)/i', '', $t);
     return trim($t, " \t\n\r\0\x0B|,-");
 }
 
-function extractDate($text, array $labels) {
+function extractDate($text, array $labels)
+{
     foreach ($labels as $label) {
         // Pattern: label followed by a date-like string
         $pattern = '/' . preg_quote($label, '/') . '[^\d]{0,20}(\d{1,2}[\s\-\/\.]+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{1,2})[\s\-\/\.]+\d{2,4})/i';
@@ -164,7 +186,8 @@ function extractDate($text, array $labels) {
     return '';
 }
 
-function normalizeDate($raw) {
+function normalizeDate($raw)
+{
     $raw = trim($raw);
     $ts = strtotime($raw);
     if ($ts && $ts > 0) {
@@ -173,7 +196,8 @@ function normalizeDate($raw) {
     return '';
 }
 
-function extractNumber($text, array $labels) {
+function extractNumber($text, array $labels)
+{
     foreach ($labels as $label) {
         $pattern = '/' . preg_quote($label, '/') . '[^\d]{0,20}([\d,]+)/i';
         if (preg_match($pattern, $text, $m)) {
@@ -183,40 +207,81 @@ function extractNumber($text, array $labels) {
     return null;
 }
 
-function extractLinks(DOMXPath $xpath, $baseUrl) {
+function extractLinks(DOMXPath $xpath, $baseUrl)
+{
     $links = [];
-    $seen  = [];
+    $seen = [];
 
     // Generic link texts to skip (they give no useful title)
     $genericTexts = [
-        'here', 'link', 'visit', 'read more', 'more', 'view', 'open', 'go', 'see', 'check',
-        'download mobile app', 'mobile app', 'click here',
-        'join arattai channel', 'arattai channel', 'arattai',
-        'sarkari result', 'sarkarijobfind',
+        'here',
+        'link',
+        'visit',
+        'read more',
+        'more',
+        'view',
+        'open',
+        'go',
+        'see',
+        'check',
+        'download mobile app',
+        'mobile app',
+        'click here',
+        'join arattai channel',
+        'arattai channel',
+        'arattai',
+        'sarkari result',
+        'sarkarijobfind',
     ];
 
     // Keywords to match (in link text OR href OR row context)
     $keywords = [
-        'apply', 'application', 'notification', 'advertisement', 'advt',
-        'download', 'pdf', 'official', 'website', 'portal',
-        'admit', 'hall ticket', 'result', 'merit list',
-        'syllabus', 'exam pattern', 'vacancy', 'recruitment',
-        'form', 'register', 'registration', 'login', 'apply link',
+        'apply',
+        'application',
+        'notification',
+        'advertisement',
+        'advt',
+        'download',
+        'pdf',
+        'official',
+        'website',
+        'portal',
+        'admit',
+        'hall ticket',
+        'result',
+        'merit list',
+        'syllabus',
+        'exam pattern',
+        'vacancy',
+        'recruitment',
+        'form',
+        'register',
+        'registration',
+        'login',
+        'apply link',
     ];
 
     // Social media domains — replace with JobOne channels instead of skipping
     $socialReplace = [
-        'whatsapp.com'  => ['title' => 'Join WhatsApp Channel', 'url' => 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22'],
-        'wa.me'         => ['title' => 'Join WhatsApp Channel', 'url' => 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22'],
-        't.me'          => ['title' => 'Join Telegram Channel', 'url' => 'https://t.me/jobone2026'],
-        'telegram.me'   => ['title' => 'Join Telegram Channel', 'url' => 'https://t.me/jobone2026'],
+        'whatsapp.com' => ['title' => 'Join WhatsApp Channel', 'url' => 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22'],
+        'wa.me' => ['title' => 'Join WhatsApp Channel', 'url' => 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22'],
+        't.me' => ['title' => 'Join Telegram Channel', 'url' => 'https://t.me/jobone2026'],
+        'telegram.me' => ['title' => 'Join Telegram Channel', 'url' => 'https://t.me/jobone2026'],
     ];
 
     // Absolute junk domains — completely skip
     $skipDomains = [
-        'facebook.com', 'twitter.com', 'youtube.com', 'instagram.com',
-        'linkedin.com', 'play.google.com', 'apps.apple.com',
-        'sarkarijobfind.com', 'sarkariresult.com', 'sarkariresult.com.cm', 'arattai',
+        'facebook.com',
+        'twitter.com',
+        'youtube.com',
+        'instagram.com',
+        'linkedin.com',
+        'play.google.com',
+        'apps.apple.com',
+        'sarkarijobfind.com',
+        'sarkariresult.com',
+        'sarkariresult.com.cm',
+        'arattai',
     ];
 
     $nodes = $xpath->query('//a[@href]');
@@ -226,9 +291,12 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
         $text = cleanText($node->textContent);
 
         // Basic quality filters
-        if (!$href || $href === '#' || str_starts_with($href, 'javascript:')) continue;
-        if (!$text || strlen($text) > 160) continue;
-        if (is_numeric($text)) continue;
+        if (!$href || $href === '#' || str_starts_with($href, 'javascript:'))
+            continue;
+        if (!$text || strlen($text) > 160)
+            continue;
+        if (is_numeric($text))
+            continue;
 
         // Resolve absolute URL
         $abs = $href;
@@ -244,25 +312,33 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
             if (str_contains($abs, $domain)) {
                 $socialAlreadyAdded = false;
                 foreach ($links as $existing) {
-                    if ($existing['url'] === $replacement['url']) { $socialAlreadyAdded = true; break; }
+                    if ($existing['url'] === $replacement['url']) {
+                        $socialAlreadyAdded = true;
+                        break;
+                    }
                 }
                 if (!$socialAlreadyAdded && !in_array($replacement['url'], $seen)) {
                     $links[] = $replacement;
-                    $seen[]  = $replacement['url'];
+                    $seen[] = $replacement['url'];
                 }
                 $isSocial = true;
                 break;
             }
         }
-        if ($isSocial) continue;
+        if ($isSocial)
+            continue;
 
         // Skip absolute junk domains (case-insensitive)
         $skipThis = false;
         $absLower = strtolower($abs);
         foreach ($skipDomains as $d) {
-            if (str_contains($absLower, $d)) { $skipThis = true; break; }
+            if (str_contains($absLower, $d)) {
+                $skipThis = true;
+                break;
+            }
         }
-        if ($skipThis) continue;
+        if ($skipThis)
+            continue;
 
         // Walk up the DOM to find the nearest <tr> first (best context)
         $trNode = $node->parentNode;
@@ -303,10 +379,12 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
                 if ($parent) {
                     $prevText = '';
                     foreach ($parent->childNodes as $child) {
-                        if ($child === $node) break;
+                        if ($child === $node)
+                            break;
                         if ($child->nodeType === XML_TEXT_NODE || $child->nodeType === XML_ELEMENT_NODE) {
                             $t = cleanText($child->textContent);
-                            if (strlen($t) > 2) $prevText = $t;
+                            if (strlen($t) > 2)
+                                $prevText = $t;
                         }
                     }
                     if ($prevText && !in_array(strtolower($prevText), $genericTexts)) {
@@ -322,7 +400,7 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
             if (!$resolved) {
                 // Walk up to the link's heading/block parent first
                 $linkBlock = $node->parentNode;
-                while ($linkBlock && !in_array($linkBlock->nodeName, ['h1','h2','h3','h4','h5','h6','p','div','li','td','body'])) {
+                while ($linkBlock && !in_array($linkBlock->nodeName, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div', 'li', 'td', 'body'])) {
                     $linkBlock = $linkBlock->parentNode;
                 }
                 if ($linkBlock && $linkBlock->nodeName !== 'body') {
@@ -356,13 +434,20 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
             // Last resort — infer label from URL structure
             if (!$resolved || in_array(strtolower($text), $genericTexts)) {
                 $lowerAbs = strtolower($abs);
-                if (str_contains($lowerAbs, '.pdf')) $text = 'Download Notification PDF';
-                elseif (str_contains($lowerAbs, 'apply') || str_contains($lowerAbs, 'register') || str_contains($lowerAbs, 'ibps') || str_contains($lowerAbs, 'iibf') || preg_match('/reg\d+/', $lowerAbs)) $text = 'Apply Online';
-                elseif (str_contains($lowerAbs, 'admit') || str_contains($lowerAbs, 'hallticket')) $text = 'Download Admit Card';
-                elseif (str_contains($lowerAbs, 'result') || str_contains($lowerAbs, 'merit')) $text = 'View Result';
-                elseif (str_contains($lowerAbs, 'notification') || str_contains($lowerAbs, 'advt') || str_contains($lowerAbs, 'advertisement')) $text = 'Download Notification';
-                elseif (str_contains($lowerAbs, 'syllabus') || str_contains($lowerAbs, 'pattern')) $text = 'Download Syllabus';
-                else continue; // truly can't resolve — skip
+                if (str_contains($lowerAbs, '.pdf'))
+                    $text = 'Download Notification PDF';
+                elseif (str_contains($lowerAbs, 'apply') || str_contains($lowerAbs, 'register') || str_contains($lowerAbs, 'ibps') || str_contains($lowerAbs, 'iibf') || preg_match('/reg\d+/', $lowerAbs))
+                    $text = 'Apply Online';
+                elseif (str_contains($lowerAbs, 'admit') || str_contains($lowerAbs, 'hallticket'))
+                    $text = 'Download Admit Card';
+                elseif (str_contains($lowerAbs, 'result') || str_contains($lowerAbs, 'merit'))
+                    $text = 'View Result';
+                elseif (str_contains($lowerAbs, 'notification') || str_contains($lowerAbs, 'advt') || str_contains($lowerAbs, 'advertisement'))
+                    $text = 'Download Notification';
+                elseif (str_contains($lowerAbs, 'syllabus') || str_contains($lowerAbs, 'pattern'))
+                    $text = 'Download Syllabus';
+                else
+                    continue; // truly can't resolve — skip
             }
         }
 
@@ -370,101 +455,138 @@ function extractLinks(DOMXPath $xpath, $baseUrl) {
         $lower = strtolower($text . ' ' . $abs . ' ' . $rowText);
         $matched = false;
         foreach ($keywords as $kw) {
-            if (str_contains($lower, $kw)) { $matched = true; break; }
+            if (str_contains($lower, $kw)) {
+                $matched = true;
+                break;
+            }
         }
         // Also match "official website" by text
-        if (!$matched && str_contains(strtolower($text), 'official')) $matched = true;
-        if (!$matched) continue;
+        if (!$matched && str_contains(strtolower($text), 'official'))
+            $matched = true;
+        if (!$matched)
+            continue;
 
         $uniqueKey = $abs . '|' . strtolower(trim($text));
-        if (in_array($uniqueKey, $seen)) continue;
+        if (in_array($uniqueKey, $seen))
+            continue;
 
         $links[] = ['title' => $text, 'url' => $abs];
-        $seen[]  = $uniqueKey;
+        $seen[] = $uniqueKey;
 
-        if (count($links) >= 10) break;
+        if (count($links) >= 10)
+            break;
     }
 
     return $links;
 }
 
 
-function guessCategory($text) {
+function guessCategory($text)
+{
     $text = strtolower($text);
     // Order matters — check SPECIFIC orgs before generic keywords
     // e.g. 'upsssc' must match 'State Govt' before 'ssc' matches 'SSC'
     $map = [
-        ['name' => 'State Govt','keywords' => ['upsssc', 'uksssc', 'ukpsc', 'uppsc', 'bssc', 'bpsc', 'mppsc', 'rpsc', 'rsmssb', 'hssc', 'hpsc', 'jssc', 'cgpsc', 'osssc', 'wbssc', 'dsssb', 'teacher cadre', 'teacher', 'tet ', 'ctet', 'high court', 'district court', 'panchayat', 'state govt', 'anganwadi', 'gram sevak', 'patwari', 'lekhpal']],
+        ['name' => 'State Govt', 'keywords' => ['upsssc', 'uksssc', 'ukpsc', 'uppsc', 'bssc', 'bpsc', 'mppsc', 'rpsc', 'rsmssb', 'hssc', 'hpsc', 'jssc', 'cgpsc', 'osssc', 'wbssc', 'dsssb', 'teacher cadre', 'teacher', 'tet ', 'ctet', 'high court', 'district court', 'panchayat', 'state govt', 'anganwadi', 'gram sevak', 'patwari', 'lekhpal']],
         ['name' => 'State PSC', 'keywords' => ['psc', 'state public service', 'appsc', 'tnpsc', 'kpsc', 'hppsc', 'gpsc', 'jkpsc', 'ppsc']],
-        ['name' => 'Banking',   'keywords' => ['bank', 'sbi', 'rbi', 'ibps', 'nabard', 'idbi']],
-        ['name' => 'Railways',  'keywords' => ['railway', 'rrb ', 'rlwl', 'indian rail', 'metro rail', 'ntpc', 'dfccil']],
-        ['name' => 'UPSC',      'keywords' => ['upsc', 'civil service', 'ias ', 'ips ', 'ifs ', 'nda ', 'cds ']],
-        ['name' => 'SSC',       'keywords' => [' ssc ', 'staff selection', 'chsl', 'cgl', 'ssc mts']],
-        ['name' => 'Defence',   'keywords' => ['army', 'navy', 'airforce', 'air force', 'coast guard', 'defence', 'military', 'agniveer', 'drdo', 'beml', 'hal', 'bel']],
-        ['name' => 'Police',    'keywords' => ['police', 'constable', 'sub-inspector', 'si ', 'crpf', 'cisf', 'bsf', 'ssc gd']],
+        ['name' => 'Banking', 'keywords' => ['bank', 'sbi', 'rbi', 'ibps', 'nabard', 'idbi']],
+        ['name' => 'Railways', 'keywords' => ['railway', 'rrb ', 'rlwl', 'indian rail', 'metro rail', 'ntpc', 'dfccil']],
+        ['name' => 'UPSC', 'keywords' => ['upsc', 'civil service', 'ias ', 'ips ', 'ifs ', 'nda ', 'cds ']],
+        ['name' => 'SSC', 'keywords' => [' ssc ', 'staff selection', 'chsl', 'cgl', 'ssc mts']],
+        ['name' => 'Defence', 'keywords' => ['army', 'navy', 'airforce', 'air force', 'coast guard', 'defence', 'military', 'agniveer', 'drdo', 'beml', 'hal', 'bel']],
+        ['name' => 'Police', 'keywords' => ['police', 'constable', 'sub-inspector', 'si ', 'crpf', 'cisf', 'bsf', 'ssc gd']],
     ];
     foreach ($map as $cat) {
         foreach ($cat['keywords'] as $kw) {
-            if (str_contains($text, $kw)) return $cat['name'];
+            if (str_contains($text, $kw))
+                return $cat['name'];
         }
     }
     return ''; // empty means no guess, let user decide or leave blank
 }
 
-function guessState($text) {
+function guessState($text)
+{
     $text = strtolower($text);
     $states = [
-        'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 
-        'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 
-        'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 
-        'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 
-        'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
-        'Uttarakhand', 'West Bengal'
+        'Andhra Pradesh',
+        'Arunachal Pradesh',
+        'Assam',
+        'Bihar',
+        'Chhattisgarh',
+        'Delhi',
+        'Goa',
+        'Gujarat',
+        'Haryana',
+        'Himachal Pradesh',
+        'Jharkhand',
+        'Karnataka',
+        'Kerala',
+        'Madhya Pradesh',
+        'Maharashtra',
+        'Manipur',
+        'Meghalaya',
+        'Mizoram',
+        'Nagaland',
+        'Odisha',
+        'Punjab',
+        'Rajasthan',
+        'Sikkim',
+        'Tamil Nadu',
+        'Telangana',
+        'Tripura',
+        'Uttar Pradesh',
+        'Uttarakhand',
+        'West Bengal'
     ];
-    
+
     // First, check state-specific organization abbreviations
     // These MUST be checked BEFORE allIndia to avoid 'ssc' catching 'upsssc' etc.
     $stateOrgs = [
-        'Uttar Pradesh'   => ['upsssc', 'uppsc', 'uppcl', 'upsrtc', 'up police', 'uttar pradesh'],
-        'Bihar'           => ['bpsc', 'bssc', 'bsphcl', 'bihar'],
-        'Madhya Pradesh'  => ['mppsc', 'mppeb', 'mp police', 'madhya pradesh'],
-        'Rajasthan'       => ['rpsc', 'rsmssb', 'rssb', 'rajasthan'],
-        'Haryana'         => ['hssc', 'hpsc', 'haryana'],
-        'Jharkhand'       => ['jssc', 'jpsc', 'jharkhand'],
-        'Chhattisgarh'    => ['cgpsc', 'cgvyapam', 'chhattisgarh'],
-        'Uttarakhand'     => ['uksssc', 'ukpsc', 'uttarakhand'],
-        'West Bengal'     => ['wbpsc', 'wbssc', 'west bengal'],
-        'Odisha'          => ['osssc', 'opsc', 'odisha', 'orissa'],
-        'Tamil Nadu'      => ['tnpsc', 'mrb', 'tamil nadu'],
-        'Karnataka'       => ['kpsc', 'kea', 'karnataka'],
-        'Kerala'          => ['kpsc kerala', 'kerala'],
-        'Andhra Pradesh'  => ['appsc', 'andhra pradesh'],
-        'Telangana'       => ['tspsc', 'telangana'],
-        'Gujarat'         => ['gpsc', 'gsssb', 'gujarat'],
-        'Punjab'          => ['ppsc', 'psssb', 'punjab'],
-        'Delhi'           => ['dsssb', 'delhi'],
-        'Maharashtra'     => ['mpsc', 'maharashtra'],
-        'Assam'           => ['apsc assam', 'assam'],
+        'Uttar Pradesh' => ['upsssc', 'uppsc', 'uppcl', 'upsrtc', 'up police', 'uttar pradesh'],
+        'Bihar' => ['bpsc', 'bssc', 'bsphcl', 'bihar'],
+        'Madhya Pradesh' => ['mppsc', 'mppeb', 'mp police', 'madhya pradesh'],
+        'Rajasthan' => ['rpsc', 'rsmssb', 'rssb', 'rajasthan'],
+        'Haryana' => ['hssc', 'hpsc', 'haryana'],
+        'Jharkhand' => ['jssc', 'jpsc', 'jharkhand'],
+        'Chhattisgarh' => ['cgpsc', 'cgvyapam', 'chhattisgarh'],
+        'Uttarakhand' => ['uksssc', 'ukpsc', 'uttarakhand'],
+        'West Bengal' => ['wbpsc', 'wbssc', 'west bengal'],
+        'Odisha' => ['osssc', 'opsc', 'odisha', 'orissa'],
+        'Tamil Nadu' => ['tnpsc', 'mrb', 'tamil nadu'],
+        'Karnataka' => ['kpsc', 'kea', 'karnataka'],
+        'Kerala' => ['kpsc kerala', 'kerala'],
+        'Andhra Pradesh' => ['appsc', 'andhra pradesh'],
+        'Telangana' => ['tspsc', 'telangana'],
+        'Gujarat' => ['gpsc', 'gsssb', 'gujarat'],
+        'Punjab' => ['ppsc', 'psssb', 'punjab'],
+        'Delhi' => ['dsssb', 'delhi'],
+        'Maharashtra' => ['mpsc', 'maharashtra'],
+        'Assam' => ['apsc assam', 'assam'],
     ];
     foreach ($stateOrgs as $state => $orgKws) {
         foreach ($orgKws as $orgKw) {
-            if (str_contains($text, $orgKw)) return $state;
+            if (str_contains($text, $orgKw))
+                return $state;
         }
     }
 
     // Then check "All India" level organizations
     $allIndiaKeywords = ['upsc', ' ssc ', 'rrb ', 'railway', 'bank', 'sbi', 'ibps', 'army', 'navy', 'airforce', 'drdo', 'aiims'];
     foreach ($allIndiaKeywords as $kw) {
-        if (str_contains($text, $kw)) return 'All India';
+        if (str_contains($text, $kw))
+            return 'All India';
     }
 
     foreach ($states as $state) {
-        if (str_contains($text, strtolower($state))) return $state;
+        if (str_contains($text, strtolower($state)))
+            return $state;
     }
     return 'All India'; // default
 }
 
-function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
+function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl)
+{
     // Priority selectors — most specific content containers first
     $selectors = [
         '//*[contains(@class,"entry-content")]',
@@ -489,13 +611,14 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
     $contentHtml = '';
     foreach ($selectors as $sel) {
         $nodes = $xpath->query($sel);
-        if (!$nodes || $nodes->length === 0) continue;
+        if (!$nodes || $nodes->length === 0)
+            continue;
 
         $node = $nodes->item(0);
 
         // Deep-clone so we don't mutate the real DOM across iterations
         $clone = $node->cloneNode(true);
-        
+
         // Create a new DOMXPath for the cloned node's document
         $cloneDoc = new DOMDocument();
         $cloneDoc->appendChild($cloneDoc->importNode($clone, true));
@@ -525,12 +648,12 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
             $tempDoc = new DOMDocument();
             $tempDiv = $tempDoc->createElement('div');
             $tempDoc->appendChild($tempDiv);
-            
+
             foreach ($contentElements as $elem) {
                 $clone = $tempDoc->importNode($elem, true);
                 $tempDiv->appendChild($clone);
             }
-            
+
             $inner = '';
             foreach ($tempDiv->childNodes as $child) {
                 $inner .= $tempDoc->saveHTML($child);
@@ -549,13 +672,30 @@ function buildContent(DOMXPath $xpath, DOMDocument $doc, $pageUrl) {
     return $contentHtml;
 }
 
-function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
+function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc)
+{
     // ── HTML tags to nuke entirely ────────────────────────────────────
     $removeTags = [
-        'script','style','nav','footer','header','noscript',
-        'iframe','form','aside','button','svg',
-        'video','audio','canvas','select','input','textarea',
-        'img','picture','figure',
+        'script',
+        'style',
+        'nav',
+        'footer',
+        'header',
+        'noscript',
+        'iframe',
+        'form',
+        'aside',
+        'button',
+        'svg',
+        'video',
+        'audio',
+        'canvas',
+        'select',
+        'input',
+        'textarea',
+        'img',
+        'picture',
+        'figure',
     ];
     foreach ($removeTags as $tag) {
         $els = $xpath->query('.//' . $tag, $node);
@@ -570,25 +710,54 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
     // These match elements that are NOT article content
     $junkPatterns = [
         // Social / share
-        'facebook', 'twitter', 'share-btn',
-        'social-', 'share-', 'animatic',
+        'facebook',
+        'twitter',
+        'share-btn',
+        'social-',
+        'share-',
+        'animatic',
         // Ads / promos
-        'ad-', '-ad-', 'ad_', 'banner', 'promo', 'sponsor',
-        'google-preferred', 'dfp-', 'adsense',
+        'ad-',
+        '-ad-',
+        'ad_',
+        'banner',
+        'promo',
+        'sponsor',
+        'google-preferred',
+        'dfp-',
+        'adsense',
         // Widgets / sidebars
-        'widget', 'sidebar', 'yarpp', 'cj-widget',
-        'fja-alert', 'alert-widget',
+        'widget',
+        'sidebar',
+        'yarpp',
+        'cj-widget',
+        'fja-alert',
+        'alert-widget',
         // Navigation
-        'breadcrumb', 'pagination', 'nav-', 'menu-',
+        'breadcrumb',
+        'pagination',
+        'nav-',
+        'menu-',
         // Author / meta
-        'author-bio', 'author-box', 'article-meta-bar', 'meta-bar',
-        'byline', 'post-author',
+        'author-bio',
+        'author-box',
+        'article-meta-bar',
+        'meta-bar',
+        'byline',
+        'post-author',
         // Newsletter / subscription
-        'newsletter', 'subscribe', 'signup', 'opt-in',
+        'newsletter',
+        'subscribe',
+        'signup',
+        'opt-in',
         // Comments
-        'comment', 'disqus', 'respond',
+        'comment',
+        'disqus',
+        'respond',
         // Games / misc clutter
-        'games-button', 'play-games', 'button-container',
+        'games-button',
+        'play-games',
+        'button-container',
     ];
 
     $allElements = $xpath->query('.//*[@class or @id]', $node);
@@ -611,25 +780,29 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
     $nodesToDelete = [];
     foreach (iterator_to_array($textNodes) as $textNode) {
         $val = strtolower($textNode->nodeValue);
-        if (str_contains($val, 'android app') || 
+        if (
+            str_contains($val, 'android app') ||
             str_contains($val, 'mobile app') ||
             str_contains($val, 'download mobile') ||
             str_contains($val, 'arattai channel') ||
             str_contains($val, 'join arattai') ||
-            str_contains($val, 'satisfied by') || str_contains($val, 'sarkari result') || str_contains($val, 'sarkariresult')) {
+            str_contains($val, 'satisfied by') || str_contains($val, 'sarkari result') || str_contains($val, 'sarkariresult')
+        ) {
             $nodesToDelete[] = $textNode;
         }
     }
 
     foreach ($nodesToDelete as $textNode) {
-        if (!$textNode->parentNode) continue;
-        
+        if (!$textNode->parentNode)
+            continue;
+
         $target = $textNode->parentNode;
         // Only remove the immediate parent if it's a small container
         if ($target && in_array(strtolower($target->nodeName), ['p', 'span', 'a', 'li']) && $target->parentNode) {
             try {
                 $target->parentNode->removeChild($target);
-            } catch (\DOMException $e) {}
+            } catch (\DOMException $e) {
+            }
         }
     }
 
@@ -637,7 +810,8 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
     $headings = $xpath->query('.//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::strong or self::b]', $node);
     foreach (iterator_to_array($headings) as $heading) {
         try {
-            if (!$heading->parentNode) continue;
+            if (!$heading->parentNode)
+                continue;
             $val = strtolower(trim($heading->textContent));
             if ($val === 'related posts' || $val === 'latest posts' || $val === 'recent posts') {
                 $parent = $heading->parentNode;
@@ -661,11 +835,13 @@ function removeUnwanted(DOMXPath $xpath, DOMNode $node, DOMDocument $doc) {
                     }
                 }
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
     }
 }
 
-function cleanHtml($html) {
+function cleanHtml($html)
+{
     // Remove class, id, style, data-* attributes — keep only semantic HTML
     $html = preg_replace('/\s+class="[^"]*"/i', '', $html);
     $html = preg_replace('/\s+id="[^"]*"/i', '', $html);
@@ -686,10 +862,10 @@ function cleanHtml($html) {
     $html = preg_replace('/<(p|div|span|li|td|th)[^>]*>\s*<\/\1>/i', '', $html);
     // Unwrap divs that only wrap a single table (e.g. table-container remnants)
     $html = preg_replace('/<div>\s*(<table[^>]*>.*?<\/table>)\s*<\/div>/si', '$1', $html);
-    
+
     // Remove HTML comments (often contain ad markers)
     $html = preg_replace('/<!--.*?-->/s', '', $html);
-    
+
     // Remove ad placeholder divs
     $html = preg_replace('/<div[^>]*><!--[^>]*--><ins[^>]*><\/ins><\/div>/is', '', $html);
     $html = preg_replace('/<ins[^>]*><\/ins>/is', '', $html);
@@ -702,7 +878,7 @@ function cleanHtml($html) {
 
     // ── Remove promotional spam links and text ────────────────────────────────
     // Remove specific promotional links with their text
-    
+
     // Remove ALL internal website links (competitor sites)
     $competitorDomains = [
         'sarkarijobfind\.com',
@@ -720,29 +896,40 @@ function cleanHtml($html) {
         'sarkari-naukri\.com',
         'sarkariresult\.com\.cm'
     ];
-    
+
     foreach ($competitorDomains as $domain) {
         // Remove links to competitor domains
         $html = preg_replace('/<a[^>]*href="[^"]*' . $domain . '[^"]*"[^>]*>.*?<\/a>/is', '', $html);
     }
-    
+
     // Remove internal category/tag/state links (keep only text)
     // Pattern: <a href="...organization/...", "...states/...", "...qualification/...">Text</a> -> Text
     $html = preg_replace('/<a[^>]*href="[^"]*(\/organization\/|\/states\/|\/qualification\/|\/category\/|\/tag\/)[^"]*"[^>]*>(.*?)<\/a>/is', '$2', $html);
-    
+
     // Replace standalone text mentions with our brand
     $brandKeywords = [
-        'sarkari result.com.cm', 'sarkariresult.com.cm',
-        'sarkari result.com', 'sarkariresult.com',
-        'sarkari result', 'sarkariresult',
-        'sarkari exam', 'sarkariexam',
-        'freejobalert.com', 'freejobalert', 'free job alert',
-        'sarkari job find', 'sarkarijobfind.com', 'sarkarijobfind',
-        'sarkari help', 'sarkarihelp.com', 'sarkarihelp',
-        'sarkari naukri', 'sarkari-naukri.com'
+        'sarkari result.com.cm',
+        'sarkariresult.com.cm',
+        'sarkari result.com',
+        'sarkariresult.com',
+        'sarkari result',
+        'sarkariresult',
+        'sarkari exam',
+        'sarkariexam',
+        'freejobalert.com',
+        'freejobalert',
+        'free job alert',
+        'sarkari job find',
+        'sarkarijobfind.com',
+        'sarkarijobfind',
+        'sarkari help',
+        'sarkarihelp.com',
+        'sarkarihelp',
+        'sarkari naukri',
+        'sarkari-naukri.com'
     ];
     $html = str_ireplace($brandKeywords, 'JobOne', $html);
-    
+
     // Nuke promotional chatter texts entirely
     $html = str_ireplace('Join Arattai Channel:', '', $html);
     $html = str_ireplace('Join Arattai Channel', '', $html);
@@ -750,20 +937,20 @@ function cleanHtml($html) {
     $html = str_ireplace('Download Mobile App', '', $html);
     $html = preg_replace('/JobOne Test App For All Govt\. Exam Test/i', '', $html);
     $html = preg_replace('/Download JobOne Test App/i', '', $html);
-    
+
     // Completely remove any anchor links to the Google Play Store
     $html = preg_replace('/<a[^>]*href="[^"]*play\.google\.com[^"]*"[^>]*>.*?<\/a>/is', '', $html);
-    
+
     // Nuke any full table row that is just promoting an app download
     $html = preg_replace('/<tr[^>]*>(?:(?!<\/tr>).)*?(play\.google\.com|Test App|Mobile App)(?:(?!<\/tr>).)*?<\/tr>/is', '', $html);
-    
+
     // Remove "IF You Satisfied By..." spam
     $html = preg_replace('/IF You Satisfied By\s+[A-Za-z0-9.]+\s+\(Website\).*?\(Thanks\)\.?/i', '', $html);
-    
+
     // Remove standalone numbers (like 0 1 2 3 4 5 6 7 8 9 10)
     $html = preg_replace('/<p>\s*[\d\s]+\s*<\/p>/i', '', $html);
     $html = preg_replace('/^[\d\s]+$/m', '', $html);
-    
+
     // Remove specific spam links if needed, but DO NOT remove "Click Here" as those are the actual action links!
     // Swap ALL social media / share links to JobOne standard channels
     $html = preg_replace('/href="[^"]*(telegram|t\.me)[^"]*"/i', 'href="https://t.me/jobone2026"', $html);
@@ -772,7 +959,7 @@ function cleanHtml($html) {
     // Strip remaining bare <div> / <span> wrappers that add no meaning
     $html = preg_replace('/<div>\s*<\/div>/i', '', $html);
     $html = preg_replace('/<span>\s*<\/span>/i', '', $html);
-    
+
     // Clean up multiple spaces and empty lines
     $html = preg_replace('/\s+/m', ' ', $html);
     $html = preg_replace('/>\s+</m', '><', $html);
@@ -784,7 +971,8 @@ function cleanHtml($html) {
 }
 
 // ─── Premium inline styling for content rendered on jobone.in ─────────────────
-function styleContent($html) {
+function styleContent($html)
+{
     // ── Prepend responsive CSS styles using a unique namespace ────────────
     $css = '<style>
     .jobone-premium-ui { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #334155; font-size: 16px; line-height: 1.7; }
@@ -849,46 +1037,67 @@ function styleContent($html) {
     return $css . '<div class="jobone-premium-ui">' . $html . '</div>';
 }
 
-// ─── Main execution ──────────────────────────────────────────────────────────
-$result = fetchPage($url);
-if ($result['error']) {
-    echo json_encode(['success' => false, 'message' => 'Could not fetch page: ' . $result['error']]);
-    exit;
-}
-
-$html = $result['html'];
-if (!$html) {
-    echo json_encode(['success' => false, 'message' => 'Empty response from URL.']);
-    exit;
-}
 
 // ─── AI Auto-Generation ────────────────────────────────────────────────────────
-function enrichWithAI($data) {
+function enrichWithAI($data)
+{
     if (!defined('AI_ENHANCEMENT_ENABLED') || !AI_ENHANCEMENT_ENABLED) {
         return $data;
     }
-    
-    $provider = defined('AI_PROVIDER') ? AI_PROVIDER : 'agentrouter';
-    
-    if ($provider === 'gemini') {
-        return enrichWithGemini($data);
-    }
-    
-    // Default to AgentRouter (existing logic)
-    $apiKey = AGENTROUTER_API_KEY;
-    $url = 'https://agentrouter.org/v1/chat/completions';
 
-    $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br>');
-    $rawContent = substr($rawContent, 0, 25000); 
-
-    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert SEO copywriter and HTML formatter for a government job portal. Review the provided job details and return a strictly valid JSON object with: 1. \"title\": A concise SEO title (max 60 chars). 2. \"short_description\": A crisp summary of the job (max 150 chars). 3. \"content\": A rewritten, beautifully structured HTML version of the job details using <h3>, <p>, <ul>, <li>, and <table border=\"1\" cellpadding=\"8\" cellspacing=\"0\">. Make it professional, easy to read, and highlight important dates and vacancies.";
-    if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
-        $systemPrompt .= "\n\nAdditional Requirements:" . AI_ADDITIONAL_INSTRUCTIONS;
+    // Use AgentRouter API if available
+    if (defined('AGENTROUTER_API_KEY') && !empty(AGENTROUTER_API_KEY)) {
+        return enrichWithAgentRouter($data);
     }
 
-    $userPrompt = "Job Info: \nTitle: {$data['title']}\nContent: {$rawContent}";
-    $model = defined('AI_MODEL') ? AI_MODEL : 'deepseek-v3.2';
+    // Fallback to Groq if available
+    if (defined('GROQ_API_KEY') && !empty(GROQ_API_KEY)) {
+        return enrichWithGroq($data);
+    }
+
+    return $data;
+}
+
+// ─── AgentRouter Integration (DeepSeek v3.2) ───────────────────────────────────
+function enrichWithAgentRouter($data)
+{
+    if (!defined('AGENTROUTER_API_KEY') || empty(AGENTROUTER_API_KEY)) {
+        return $data;
+    }
+
+    $url = "https://agentrouter.org/v1/chat/completions";
+    $model = defined('AI_MODEL') ? AI_MODEL : "deepseek-v3.2";
     $temperature = defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3;
+
+    // Prepare content - strip styling but keep structure
+    $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br><strong><b>');
+    $rawContent = substr($rawContent, 0, 20000); // Increase limit for better context
+
+    // Build comprehensive system prompt
+    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert content writer for JobOne.in government job portal.";
+    
+    if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
+        $systemPrompt .= "\n\n" . AI_ADDITIONAL_INSTRUCTIONS;
+    }
+
+    $systemPrompt .= "\n\nIMPORTANT: You MUST return ONLY a valid JSON object with these exact fields:
+{
+  \"title\": \"SEO-optimized title (50-60 chars)\",
+  \"short_description\": \"Brief summary (120-160 chars)\",
+  \"content\": \"Full HTML content with proper formatting using <h3>, <p>, <ul>, <li>, <table> tags\"
+}
+
+CONTENT REQUIREMENTS:
+- Rewrite content in clear, professional, human-readable language
+- Use proper headings (<h3>, <h4>) to organize sections
+- Format important dates and details in tables
+- Use bullet points (<ul><li>) for lists
+- Make it easy to read and understand
+- Remove all promotional content and spam
+- Keep ONLY job-related information
+- Minimum 300 words of actual content";
+
+    $userPrompt = "Rewrite this job posting in professional, human-readable format:\n\nTitle: {$data['title']}\n\nContent:\n{$rawContent}\n\nMake it clear, well-organized, and easy to understand. Use proper HTML formatting.";
 
     $payload = [
         'model' => $model,
@@ -896,8 +1105,8 @@ function enrichWithAI($data) {
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'user', 'content' => $userPrompt]
         ],
-        'response_format' => ['type' => 'json_object'],
-        'temperature' => $temperature
+        'temperature' => $temperature,
+        'max_tokens' => 4000
     ];
 
     $ch = curl_init($url);
@@ -907,73 +1116,79 @@ function enrichWithAI($data) {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
-            'Authorization: Bearer ' . $apiKey,
-            'User-Agent: JobOne/1.0 (https://jobone.in)',
-            'X-Title: JobOne Aggregator'
+            'Authorization: Bearer ' . AGENTROUTER_API_KEY
         ],
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT => 45
+        CURLOPT_TIMEOUT => 60
     ]);
 
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($code == 200 && $response) {
-        $json = json_decode($response, true);
-        if (isset($json['choices'][0]['message']['content'])) {
-            $aiData = json_decode($json['choices'][0]['message']['content'], true);
-            if ($aiData) {
-                if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
-                if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
-                if (!empty($aiData['category'])) $data['category_guess'] = $aiData['category'];
-                if (!empty($aiData['state'])) $data['state_guess'] = $aiData['state'];
-                if (!empty($aiData['last_date'])) $data['last_date'] = $aiData['last_date'];
-                if (isset($aiData['total_posts'])) $data['total_posts'] = (int)$aiData['total_posts'];
-                
-                if (!empty($aiData['content'])) {
-                    $data['content'] = cleanAIContent($aiData['content']);
-                }
-                $data['ai_enhanced'] = true;
-            }
+    if ($code !== 200 || !$response) {
+        error_log("AgentRouter API failed: HTTP $code");
+        return $data; // Return original data on failure
+    }
+
+    $result = json_decode($response, true);
+    if (!isset($result['choices'][0]['message']['content'])) {
+        error_log("AgentRouter API: Invalid response structure");
+        return $data;
+    }
+
+    $aiContent = $result['choices'][0]['message']['content'];
+    
+    // Try to parse as JSON first
+    $parsed = json_decode($aiContent, true);
+    if (json_last_error() === JSON_ERROR_NONE && isset($parsed['content'])) {
+        // Successfully parsed JSON response
+        if (!empty($parsed['title'])) {
+            $data['title'] = $parsed['title'];
+        }
+        if (!empty($parsed['short_description'])) {
+            $data['short_description'] = $parsed['short_description'];
+        }
+        if (!empty($parsed['content'])) {
+            $data['content'] = $parsed['content'];
         }
     } else {
-        $data['ai_error'] = "AgentRouter Error: HTTP $code - " . $response;
+        // If not JSON, treat as direct HTML content
+        $data['content'] = $aiContent;
     }
 
     return $data;
 }
 
-// ─── Google Gemini Integration ───────────────────────────────────────────
-function enrichWithGemini($data) {
-    if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
-        $data['ai_error'] = "Gemini API Key missing.";
+// ─── Groq Cloud Integration ───────────────────────────────────────────
+function enrichWithGroq($data)
+{
+    if (!defined('GROQ_API_KEY') || empty(GROQ_API_KEY)) {
         return $data;
     }
 
-    $model = defined('AI_MODEL') ? AI_MODEL : 'gemini-2.5-flash';
-    $apiKey = GEMINI_API_KEY;
-    $url = "https://generativelanguage.googleapis.com/v1/models/{$model}:generateContent?key=" . $apiKey;
+    $url = "https://api.groq.com/openai/v1/chat/completions";
+    $model = "llama-3.3-70b-versatile";
 
     $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br>');
-    $rawContent = substr($rawContent, 0, 30000); 
+    $rawContent = substr($rawContent, 0, 15000);
 
-    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert content formatter.";
+    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert content blogger.";
+    $systemPrompt .= "\n\nYou MUST return the response as a valid JSON object.";
     if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
-        $systemPrompt .= "\n\nAdditional Requirements:" . AI_ADDITIONAL_INSTRUCTIONS;
+        $systemPrompt .= "\n\n" . AI_ADDITIONAL_INSTRUCTIONS;
     }
 
     $userPrompt = "Job Info: \nTitle: {$data['title']}\nContent: {$rawContent}";
-    $fullPrompt = $systemPrompt . "\n\nInput Content:\n" . $userPrompt . "\n\nIMPORTANT: Return only a JSON object.";
 
     $payload = [
-        'contents' => [
-            ['parts' => [['text' => $fullPrompt]]]
+        'model' => $model,
+        'messages' => [
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $userPrompt]
         ],
-        'generationConfig' => [
-            'temperature' => defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3,
-            'maxOutputTokens' => 8000
-        ]
+        'temperature' => 0.6,
+        'response_format' => ['type' => 'json_object']
     ];
 
     $ch = curl_init($url);
@@ -981,9 +1196,12 @@ function enrichWithGemini($data) {
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($payload),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . GROQ_API_KEY
+        ],
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT => 45
+        CURLOPT_TIMEOUT => 30
     ]);
 
     $response = curl_exec($ch);
@@ -992,41 +1210,37 @@ function enrichWithGemini($data) {
 
     if ($code == 200 && $response) {
         $json = json_decode($response, true);
-        if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
-            $rawText = $json['candidates'][0]['content']['parts'][0]['text'];
-            
-            // Strip markdown JSON blocks if present
-            $cleanText = preg_replace('/^```json\s*|\s*```$/i', '', trim($rawText));
-            $aiData = json_decode($cleanText, true);
-            
+        $rawText = $json['choices'][0]['message']['content'] ?? '';
+        if ($rawText) {
+            $aiData = json_decode($rawText, true);
             if ($aiData) {
                 if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
                 if (!empty($aiData['meta_title'])) $data['meta_title'] = $aiData['meta_title'];
                 if (!empty($aiData['meta_description'])) $data['meta_description'] = $aiData['meta_description'];
                 if (!empty($aiData['meta_keywords'])) $data['meta_keywords'] = $aiData['meta_keywords'];
-                
                 if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
                 if (!empty($aiData['category'])) $data['category_guess'] = $aiData['category'];
                 if (!empty($aiData['state'])) $data['state_guess'] = $aiData['state'];
                 if (!empty($aiData['last_date'])) $data['last_date'] = $aiData['last_date'];
-                if (isset($aiData['total_posts'])) $data['total_posts'] = (int)$aiData['total_posts'];
-                
+                if (isset($aiData['total_posts'])) $data['total_posts'] = (int) $aiData['total_posts'];
+
                 if (!empty($aiData['content'])) {
                     $data['content'] = cleanAIContent($aiData['content']);
                 }
                 $data['ai_enhanced'] = true;
-                $data['ai_provider'] = 'gemini';
+                $data['ai_provider'] = 'groq';
             }
         }
     } else {
-        $data['ai_error'] = "Gemini Error: HTTP $code - " . $response;
+        $data['ai_error'] = "Groq Error: HTTP $code - " . $response;
     }
 
     return $data;
 }
 
 // Clean AI-generated content to remove competitor links
-function cleanAIContent($html) {
+function cleanAIContent($html)
+{
     // Remove ALL competitor website links
     $competitorDomains = [
         'sarkarijobfind\.com',
@@ -1044,28 +1258,39 @@ function cleanAIContent($html) {
         'sarkari-naukri\.com',
         'sarkariresult\.com\.cm'
     ];
-    
+
     foreach ($competitorDomains as $domain) {
         // Remove entire <a> tag with competitor links, keep only the text
         $html = preg_replace('/<a[^>]*href="[^"]*' . $domain . '[^"]*"[^>]*>(.*?)<\/a>/is', '$1', $html);
     }
-    
+
     // Remove internal category/tag/state/district/qualification links (keep only text)
     $html = preg_replace('/<a[^>]*href="[^"]*(\/organization\/|\/states\/|\/qualification\/|\/category\/|\/tag\/|\/districts\/|\/qualifications\/)[^"]*"[^>]*>(.*?)<\/a>/is', '$2', $html);
-    
+
     // Replace standalone text mentions with our brand
     $brandKeywords = [
-        'sarkari result.com.cm', 'sarkariresult.com.cm',
-        'sarkari result.com', 'sarkariresult.com',
-        'sarkari result', 'sarkariresult',
-        'sarkari exam', 'sarkariexam',
-        'freejobalert.com', 'freejobalert', 'free job alert',
-        'sarkari job find', 'sarkarijobfind.com', 'sarkarijobfind',
-        'sarkari help', 'sarkarihelp.com', 'sarkarihelp',
-        'sarkari naukri', 'sarkari-naukri.com'
+        'sarkari result.com.cm',
+        'sarkariresult.com.cm',
+        'sarkari result.com',
+        'sarkariresult.com',
+        'sarkari result',
+        'sarkariresult',
+        'sarkari exam',
+        'sarkariexam',
+        'freejobalert.com',
+        'freejobalert',
+        'free job alert',
+        'sarkari job find',
+        'sarkarijobfind.com',
+        'sarkarijobfind',
+        'sarkari help',
+        'sarkarihelp.com',
+        'sarkarihelp',
+        'sarkari naukri',
+        'sarkari-naukri.com'
     ];
     $html = str_ireplace($brandKeywords, 'JobOne', $html);
-    
+
     // Nuke promotional chatter texts entirely
     $html = str_ireplace('Join Arattai Channel:', '', $html);
     $html = str_ireplace('Join Arattai Channel', '', $html);
@@ -1074,67 +1299,67 @@ function cleanAIContent($html) {
 
     // Remove type="qualification" or similar attributes
     $html = preg_replace('/\s+type="[^\"]*"/i', '', $html);
-    
+
     return $html;
 }
 
-$extracted = extractData($html, $url);
-
-// Pass through AI enrichment
-$extracted = enrichWithAI($extracted);
-
-
-
-$type = $forcedType ?: detectType($url, $extracted['title'], $html);
-$extracted['type'] = $type;
-
-// Auto-generate short_description if empty or AI failed
-if (empty($extracted['short_description'])) {
-    $extracted['short_description'] = $extracted['title'] . ' — Notification, Eligibility, Application & Important Dates.';
-}
-
-// Auto meta title — max 60 chars (Skip if AI handled it)
-if (empty($extracted['meta_title'])) {
-    $rawMetaTitle = $extracted['title'];
-    if (!str_contains(strtolower($rawMetaTitle), 'jobone')) {
-        $rawMetaTitle .= ' | JobOne.in';
+if (php_sapi_name() !== 'cli' || basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php') {
+    $result = fetchPage($url);
+    if ($result['error']) {
+        echo json_encode(['success' => false, 'message' => 'Could not fetch page: ' . $result['error']]);
+        exit;
     }
-    $extracted['meta_title'] = strlen($rawMetaTitle) > 60
-        ? substr($rawMetaTitle, 0, 54) . '… | J'  
-        : $rawMetaTitle;
-    $extracted['meta_title'] = substr($extracted['meta_title'], 0, 60);
-}
 
-// Auto meta description (Skip if AI handled it)
-if (empty($extracted['meta_description'])) {
-    if (!empty($extracted['short_description'])) {
-        $extracted['meta_description'] = substr($extracted['short_description'], 0, 160);
+    $html = $result['html'];
+    if (!$html) {
+        echo json_encode(['success' => false, 'message' => 'Empty response from URL.']);
+        exit;
     }
-}
 
-// Ensure keywords exist
-if (empty($extracted['meta_keywords'])) {
-    $extracted['meta_keywords'] = "govt jobs, latest recruitment, sarkari result, 2026 jobs, " . $extracted['title'];
-}
+    $extracted = extractData($html, $url);
+    $extracted = enrichWithAI($extracted);
+    $type = $forcedType ?: detectType($url, $extracted['title'], $html);
+    $extracted['type'] = $type;
 
-// Add Social Buttons if enabled
-if (defined('AUTO_ADD_SOCIAL_LINKS') && AUTO_ADD_SOCIAL_LINKS) {
-    $socialHtml = '<div class="box-info" style="flex-direction: column; align-items: stretch; text-align: center;">';
-    $socialHtml .= '<p><strong>🚀 Never Miss an Update!</strong> Join our community for instant 2026 job alerts directly on your phone.</p>';
-    $socialHtml .= '<div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">';
-    
-    if (defined('TELEGRAM_CHANNEL_URL') && !empty(TELEGRAM_CHANNEL_URL)) {
-        $socialHtml .= '<a href="'.TELEGRAM_CHANNEL_URL.'" target="_blank" style="background: #229ED9; color: white !important; padding: 10px 20px; border-radius: 50px; text-decoration: none; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">✈️ Join Telegram</a>';
+    if (empty($extracted['short_description'])) {
+        $extracted['short_description'] = $extracted['title'] . ' — Notification, Eligibility, Application & Important Dates.';
     }
-    
-    if (defined('WHATSAPP_CHANNEL_URL') && !empty(WHATSAPP_CHANNEL_URL)) {
-        $socialHtml .= '<a href="'.WHATSAPP_CHANNEL_URL.'" target="_blank" style="background: #25D366; color: white !important; padding: 10px 20px; border-radius: 50px; text-decoration: none; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">💬 Follow WhatsApp</a>';
-    }
-    
-    $socialHtml .= '</div>';
-    $socialHtml .= '</div>';
-    
-    $extracted['content'] .= $socialHtml;
-}
 
-echo json_encode(['success' => true, 'data' => $extracted]);
+    if (empty($extracted['meta_title'])) {
+        $rawMetaTitle = $extracted['title'];
+        if (!str_contains(strtolower($rawMetaTitle), 'jobone')) {
+            $rawMetaTitle .= ' | JobOne.in';
+        }
+        $extracted['meta_title'] = strlen($rawMetaTitle) > 60
+            ? substr($rawMetaTitle, 0, 54) . '… | J'
+            : $rawMetaTitle;
+        $extracted['meta_title'] = substr($extracted['meta_title'], 0, 60);
+    }
+
+    if (empty($extracted['meta_description'])) {
+        if (!empty($extracted['short_description'])) {
+            $extracted['meta_description'] = substr($extracted['short_description'], 0, 160);
+        }
+    }
+
+    if (empty($extracted['meta_keywords'])) {
+        $extracted['meta_keywords'] = "govt jobs, latest recruitment, sarkari result, 2026 jobs, " . $extracted['title'];
+    }
+
+    if (defined('AUTO_ADD_SOCIAL_LINKS') && AUTO_ADD_SOCIAL_LINKS) {
+        $socialHtml = '<div class="box-info" style="flex-direction: column; align-items: stretch; text-align: center;">';
+        $socialHtml .= '<p><strong>🚀 Never Miss an Update!</strong> Join our community for instant 2026 job alerts directly on your phone.</p>';
+        $socialHtml .= '<div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">';
+        if (defined('TELEGRAM_CHANNEL_URL') && !empty(TELEGRAM_CHANNEL_URL)) {
+            $socialHtml .= '<a href="' . TELEGRAM_CHANNEL_URL . '" target="_blank" style="background: #229ED9; color: white !important; padding: 10px 20px; border-radius: 50px; text-decoration: none; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">✈️ Join Telegram</a>';
+        }
+        if (defined('WHATSAPP_CHANNEL_URL') && !empty(WHATSAPP_CHANNEL_URL)) {
+            $socialHtml .= '<a href="' . WHATSAPP_CHANNEL_URL . '" target="_blank" style="background: #25D366; color: white !important; padding: 10px 20px; border-radius: 50px; text-decoration: none; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">💬 Follow WhatsApp</a>';
+        }
+        $socialHtml .= '</div>';
+        $socialHtml .= '</div>';
+        $extracted['content'] .= $socialHtml;
+    }
+
+    echo json_encode(['success' => true, 'data' => $extracted]);
+}
