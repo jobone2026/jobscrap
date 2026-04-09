@@ -787,35 +787,47 @@ function cleanHtml($html) {
 function styleContent($html) {
     // ── Prepend responsive CSS styles using a unique namespace ────────────
     $css = '<style>
-    .jobone-premium-ui { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #334155; font-size: 16px; line-height: 1.6; }
-    .jobone-premium-ui p { margin: 12px 0; word-break: break-word; }
-    .jobone-premium-ui a { color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 1px dashed #93c5fd; }
-    .jobone-premium-ui strong, .jobone-premium-ui b { color: inherit; font-weight: 700; }
+    .jobone-premium-ui { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #334155; font-size: 16px; line-height: 1.7; }
+    .jobone-premium-ui p { margin: 16px 0; word-break: break-word; }
+    .jobone-premium-ui a { color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 2px solid #e2e8f0; transition: all 0.2s; }
+    .jobone-premium-ui a:hover { color: #1d4ed8; border-color: #2563eb; }
+    .jobone-premium-ui strong, .jobone-premium-ui b { color: #0f172a; font-weight: 700; }
     
-    .jobone-premium-ui ul { padding: 0 0 0 24px; margin: 16px 0; list-style: none; }
-    .jobone-premium-ui li { position: relative; padding: 10px 14px 10px 18px; margin: 8px 0; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; word-break: break-word; }
-    .jobone-premium-ui li::before { content: "•"; color: #2563eb; font-weight: bold; position: absolute; left: 8px; }
-    .jobone-premium-ui ol { padding-left: 24px; margin: 16px 0; }
-    .jobone-premium-ui ol li { padding: 8px 0; background: transparent; border: none; list-style-type: decimal; }
-    .jobone-premium-ui ol li::before { display: none; }
+    .jobone-premium-ui ul { padding: 0; margin: 20px 0; list-style: none; }
+    .jobone-premium-ui li { position: relative; padding: 12px 16px; margin: 10px 0; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; align-items: start; }
+    .jobone-premium-ui li span { margin-right: 10px; }
+    
+    .jobone-premium-ui ol { padding-left: 24px; margin: 20px 0; }
+    .jobone-premium-ui ol li { padding: 8px 0; background: transparent; border: none; list-style-type: decimal; box-shadow: none; display: list-item; }
     
     /* Headings strictly professional unified palette */
-    .jobone-premium-ui h2 { margin: 32px 0 16px; padding: 14px 18px; background: #eff6ff; border-left: 5px solid #2563eb; border-radius: 0 6px 6px 0; color: #1e3a8a; font-size: 22px; font-weight: 700; }
-    .jobone-premium-ui h3 { margin: 28px 0 14px; padding: 12px 16px; background: #f1f5f9; border-left: 4px solid #475569; border-radius: 0 6px 6px 0; color: #0f172a; font-size: 20px; font-weight: 700; }
-    .jobone-premium-ui h4 { margin: 24px 0 12px; padding: 10px 14px; background: #f8fafc; border-left: 4px solid #64748b; border-radius: 0 6px 6px 0; color: #1e293b; font-size: 18px; font-weight: 700; }
-    .jobone-premium-ui h5 { margin: 20px 0 10px; padding: 8px 12px; background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #94a3b8; border-radius: 4px; color: #334155; font-size: 16px; font-weight: 700; }
-    .jobone-premium-ui h6 { margin: 16px 0 8px; padding: 8px 12px; background: #ffffff; border-left: 4px solid #cbd5e1; color: #475569; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-
+    .jobone-premium-ui h2 { margin: 36px 0 20px; padding: 14px 20px; background: #eff6ff; border-left: 6px solid #2563eb; border-radius: 4px; color: #1e3a8a; font-size: 24px; font-weight: 800; }
+    .jobone-premium-ui h3 { margin: 32px 0 16px; padding: 12px 18px; background: #f8fafc; border-left: 5px solid #3b82f6; border-radius: 4px; color: #1e40af; font-size: 21px; font-weight: 700; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .jobone-premium-ui h4 { margin: 24px 0 12px; padding: 10px 14px; background: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; color: #1e293b; font-size: 19px; font-weight: 700; }
+    
     /* Tables */
-    .jobone-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 24px 0; border-radius: 8px; border: 1px solid #e2e8f0; }
-    .jobone-premium-ui table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px; }
-    .jobone-premium-ui th { background: #1e3a8a; color: #ffffff !important; font-weight: 700; padding: 14px 16px; text-align: center; border-bottom: 2px solid #1e40af; white-space: nowrap; }
-    .jobone-premium-ui th * { color: inherit !important; }
-    .jobone-premium-ui td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; line-height: 1.5; vertical-align: top; word-break: break-word; }
-    .jobone-premium-ui tr:nth-child(even) td { background: #f8fafc; }
-    .jobone-premium-ui tr:nth-child(odd) td { background: #ffffff; }
+    .jobone-table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 24px 0; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .jobone-premium-ui table { width: 100%; min-width: 500px; border-collapse: collapse; font-size: 15px; background: #ffffff; }
+    .jobone-premium-ui th { background: #1e3a8a; color: #ffffff !important; font-weight: 700; padding: 16px; text-align: left; border-bottom: 3px solid #1e40af; }
+    .jobone-premium-ui td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; line-height: 1.6; vertical-align: middle; }
+    .jobone-premium-ui tr:last-child td { border-bottom: none; }
+    .jobone-premium-ui tr:nth-child(even) td { background: #f9fafb; }
+    .jobone-premium-ui tr:hover td { background: #f1f5f9; }
 
-
+    /* Modern Color Boxes */
+    .box-info, .box-success, .box-warning, .box-danger { margin: 24px 0; padding: 20px; border-radius: 12px; border: 1px solid; display: flex; align-items: start; }
+    
+    .box-info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .box-info::before { content: "ℹ️"; margin-right: 12px; font-size: 20px; }
+    
+    .box-success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .box-success::before { content: "✅"; margin-right: 12px; font-size: 20px; }
+    
+    .box-warning { background: #fffbeb; border-color: #fef3c7; color: #92400e; }
+    .box-warning::before { content: "⚠️"; margin-right: 12px; font-size: 20px; }
+    
+    .box-danger { background: #fef2f2; border-color: #fee2e2; color: #991b1b; }
+    .box-danger::before { content: "🚨"; margin-right: 12px; font-size: 20px; }
 
     /* Mobile view media queries */
     @media (max-width: 640px) {
@@ -823,7 +835,6 @@ function styleContent($html) {
         .jobone-premium-ui h2 { font-size: 18px; margin: 24px 0 12px; padding: 12px 14px; }
         .jobone-premium-ui h3 { font-size: 17px; margin: 20px 0 10px; padding: 10px 12px; }
         .jobone-premium-ui h4 { font-size: 16px; margin: 18px 0 8px; padding: 10px 12px; }
-        .jobone-premium-ui h5 { font-size: 15px; }
         .jobone-premium-ui table { font-size: 13px; min-width: 380px; }
         .jobone-premium-ui th { padding: 12px 10px; }
         .jobone-premium-ui td { padding: 10px 12px; }
@@ -853,34 +864,29 @@ if (!$html) {
 
 // ─── AI Auto-Generation ────────────────────────────────────────────────────────
 function enrichWithAI($data) {
-    // Check if AI enhancement is enabled
     if (!defined('AI_ENHANCEMENT_ENABLED') || !AI_ENHANCEMENT_ENABLED) {
-        return $data; // Skip AI enhancement
+        return $data;
     }
     
+    $provider = defined('AI_PROVIDER') ? AI_PROVIDER : 'agentrouter';
+    
+    if ($provider === 'gemini') {
+        return enrichWithGemini($data);
+    }
+    
+    // Default to AgentRouter (existing logic)
     $apiKey = AGENTROUTER_API_KEY;
-    // Deepseek endpoint via AgentRouter
     $url = 'https://agentrouter.org/v1/chat/completions';
 
-    // Preserve structural tags but remove span, div, strong, etc to save tokens
     $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br>');
-    // Increase limit to 25000 chars (approx 5000-7000 tokens) to ensure complete data extraction
     $rawContent = substr($rawContent, 0, 25000); 
 
-    // Use custom system prompt from config or default
-    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert SEO copywriter and HTML formatter for a government job portal. Review the provided job details and return a strictly valid JSON object with:
-1. \"title\": A concise SEO title (max 60 chars).
-2. \"short_description\": A crisp summary of the job (max 150 chars).
-3. \"content\": A rewritten, beautifully structured HTML version of the job details using <h3>, <p>, <ul>, <li>, and <table border=\"1\" cellpadding=\"8\" cellspacing=\"0\">. Make it professional, easy to read, and highlight important dates and vacancies.";
-
-    // Add additional instructions if defined
+    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert SEO copywriter and HTML formatter for a government job portal. Review the provided job details and return a strictly valid JSON object with: 1. \"title\": A concise SEO title (max 60 chars). 2. \"short_description\": A crisp summary of the job (max 150 chars). 3. \"content\": A rewritten, beautifully structured HTML version of the job details using <h3>, <p>, <ul>, <li>, and <table border=\"1\" cellpadding=\"8\" cellspacing=\"0\">. Make it professional, easy to read, and highlight important dates and vacancies.";
     if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
         $systemPrompt .= "\n\nAdditional Requirements:" . AI_ADDITIONAL_INSTRUCTIONS;
     }
 
     $userPrompt = "Job Info: \nTitle: {$data['title']}\nContent: {$rawContent}";
-
-    // Get model and temperature from config or use defaults
     $model = defined('AI_MODEL') ? AI_MODEL : 'deepseek-v3.2';
     $temperature = defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3;
 
@@ -902,8 +908,8 @@ function enrichWithAI($data) {
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apiKey,
-            'Origin: https://agentrouter.org',
-            'Referer: https://agentrouter.org/'
+            'User-Agent: JobOne/1.0 (https://jobone.in)',
+            'X-Title: JobOne Aggregator'
         ],
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_TIMEOUT => 45
@@ -920,15 +926,100 @@ function enrichWithAI($data) {
             if ($aiData) {
                 if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
                 if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
+                if (!empty($aiData['category'])) $data['category_guess'] = $aiData['category'];
+                if (!empty($aiData['state'])) $data['state_guess'] = $aiData['state'];
+                if (!empty($aiData['last_date'])) $data['last_date'] = $aiData['last_date'];
+                if (isset($aiData['total_posts'])) $data['total_posts'] = (int)$aiData['total_posts'];
+                
                 if (!empty($aiData['content'])) {
-                    // Post-process AI content to remove any remaining competitor links
                     $data['content'] = cleanAIContent($aiData['content']);
                 }
                 $data['ai_enhanced'] = true;
             }
         }
     } else {
-        $data['ai_error'] = "HTTP $code - " . $response;
+        $data['ai_error'] = "AgentRouter Error: HTTP $code - " . $response;
+    }
+
+    return $data;
+}
+
+// ─── Google Gemini Integration ───────────────────────────────────────────
+function enrichWithGemini($data) {
+    if (!defined('GEMINI_API_KEY') || empty(GEMINI_API_KEY)) {
+        $data['ai_error'] = "Gemini API Key missing.";
+        return $data;
+    }
+
+    $model = defined('AI_MODEL') ? AI_MODEL : 'gemini-2.5-flash';
+    $apiKey = GEMINI_API_KEY;
+    $url = "https://generativelanguage.googleapis.com/v1/models/{$model}:generateContent?key=" . $apiKey;
+
+    $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br>');
+    $rawContent = substr($rawContent, 0, 30000); 
+
+    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert content formatter.";
+    if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
+        $systemPrompt .= "\n\nAdditional Requirements:" . AI_ADDITIONAL_INSTRUCTIONS;
+    }
+
+    $userPrompt = "Job Info: \nTitle: {$data['title']}\nContent: {$rawContent}";
+    $fullPrompt = $systemPrompt . "\n\nInput Content:\n" . $userPrompt . "\n\nIMPORTANT: Return only a JSON object.";
+
+    $payload = [
+        'contents' => [
+            ['parts' => [['text' => $fullPrompt]]]
+        ],
+        'generationConfig' => [
+            'temperature' => defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3,
+            'maxOutputTokens' => 8000
+        ]
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_TIMEOUT => 45
+    ]);
+
+    $response = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code == 200 && $response) {
+        $json = json_decode($response, true);
+        if (isset($json['candidates'][0]['content']['parts'][0]['text'])) {
+            $rawText = $json['candidates'][0]['content']['parts'][0]['text'];
+            
+            // Strip markdown JSON blocks if present
+            $cleanText = preg_replace('/^```json\s*|\s*```$/i', '', trim($rawText));
+            $aiData = json_decode($cleanText, true);
+            
+            if ($aiData) {
+                if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
+                if (!empty($aiData['meta_title'])) $data['meta_title'] = $aiData['meta_title'];
+                if (!empty($aiData['meta_description'])) $data['meta_description'] = $aiData['meta_description'];
+                if (!empty($aiData['meta_keywords'])) $data['meta_keywords'] = $aiData['meta_keywords'];
+                
+                if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
+                if (!empty($aiData['category'])) $data['category_guess'] = $aiData['category'];
+                if (!empty($aiData['state'])) $data['state_guess'] = $aiData['state'];
+                if (!empty($aiData['last_date'])) $data['last_date'] = $aiData['last_date'];
+                if (isset($aiData['total_posts'])) $data['total_posts'] = (int)$aiData['total_posts'];
+                
+                if (!empty($aiData['content'])) {
+                    $data['content'] = cleanAIContent($aiData['content']);
+                }
+                $data['ai_enhanced'] = true;
+                $data['ai_provider'] = 'gemini';
+            }
+        }
+    } else {
+        $data['ai_error'] = "Gemini Error: HTTP $code - " . $response;
     }
 
     return $data;
@@ -1002,19 +1093,48 @@ if (empty($extracted['short_description'])) {
     $extracted['short_description'] = $extracted['title'] . ' — Notification, Eligibility, Application & Important Dates.';
 }
 
-// Auto meta title — max 60 chars
-$rawMetaTitle = $extracted['title'];
-if (!str_contains(strtolower($rawMetaTitle), 'jobone')) {
-    $rawMetaTitle .= ' | JobOne.in';
+// Auto meta title — max 60 chars (Skip if AI handled it)
+if (empty($extracted['meta_title'])) {
+    $rawMetaTitle = $extracted['title'];
+    if (!str_contains(strtolower($rawMetaTitle), 'jobone')) {
+        $rawMetaTitle .= ' | JobOne.in';
+    }
+    $extracted['meta_title'] = strlen($rawMetaTitle) > 60
+        ? substr($rawMetaTitle, 0, 54) . '… | J'  
+        : $rawMetaTitle;
+    $extracted['meta_title'] = substr($extracted['meta_title'], 0, 60);
 }
-$extracted['meta_title'] = strlen($rawMetaTitle) > 60
-    ? substr($rawMetaTitle, 0, 57 - 3) . '… | J'  
-    : $rawMetaTitle;
-$extracted['meta_title'] = substr($extracted['meta_title'], 0, 60);
 
-// Auto meta description — max 160 chars
-if (!empty($extracted['short_description'])) {
-    $extracted['short_description_seo'] = substr($extracted['short_description'], 0, 160);
+// Auto meta description (Skip if AI handled it)
+if (empty($extracted['meta_description'])) {
+    if (!empty($extracted['short_description'])) {
+        $extracted['meta_description'] = substr($extracted['short_description'], 0, 160);
+    }
+}
+
+// Ensure keywords exist
+if (empty($extracted['meta_keywords'])) {
+    $extracted['meta_keywords'] = "govt jobs, latest recruitment, sarkari result, 2026 jobs, " . $extracted['title'];
+}
+
+// Add Social Buttons if enabled
+if (defined('AUTO_ADD_SOCIAL_LINKS') && AUTO_ADD_SOCIAL_LINKS) {
+    $socialHtml = '<div class="box-info" style="flex-direction: column; align-items: stretch; text-align: center;">';
+    $socialHtml .= '<p><strong>🚀 Never Miss an Update!</strong> Join our community for instant 2026 job alerts directly on your phone.</p>';
+    $socialHtml .= '<div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">';
+    
+    if (defined('TELEGRAM_CHANNEL_URL') && !empty(TELEGRAM_CHANNEL_URL)) {
+        $socialHtml .= '<a href="'.TELEGRAM_CHANNEL_URL.'" target="_blank" style="background: #229ED9; color: white !important; padding: 10px 20px; border-radius: 50px; text-decoration: none; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">✈️ Join Telegram</a>';
+    }
+    
+    if (defined('WHATSAPP_CHANNEL_URL') && !empty(WHATSAPP_CHANNEL_URL)) {
+        $socialHtml .= '<a href="'.WHATSAPP_CHANNEL_URL.'" target="_blank" style="background: #25D366; color: white !important; padding: 10px 20px; border-radius: 50px; text-decoration: none; border: none; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">💬 Follow WhatsApp</a>';
+    }
+    
+    $socialHtml .= '</div>';
+    $socialHtml .= '</div>';
+    
+    $extracted['content'] .= $socialHtml;
 }
 
 echo json_encode(['success' => true, 'data' => $extracted]);
