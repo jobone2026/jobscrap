@@ -765,38 +765,34 @@ function blogEnrichWithAI($data) {
     if (!defined('AI_ENHANCEMENT_ENABLED') || !AI_ENHANCEMENT_ENABLED) {
         return $data;
     }
-    if (!defined('AGENTROUTER_API_KEY') || !AGENTROUTER_API_KEY) {
+    if ((!defined('AGENTROUTER_API_KEY') || !AGENTROUTER_API_KEY) && (!defined('NVIDIA_API_KEY') || !NVIDIA_API_KEY)) {
         return $data;
     }
 
-    $apiKey = AGENTROUTER_API_KEY;
-    $url = 'https://agentrouter.org/v1/chat/completions';
+    $isNvidia = defined('NVIDIA_API_KEY') && NVIDIA_API_KEY;
+    $apiKey = $isNvidia ? NVIDIA_API_KEY : AGENTROUTER_API_KEY;
+    $url = $isNvidia ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://agentrouter.org/v1/chat/completions';
 
     // For blog, preserve img tags
     $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h2><h3><h4><h5><ul><li><ol><p><br><img><figure><figcaption><a><strong><em><blockquote>');
-    $rawContent = substr($rawContent, 0, 25000);
+    $rawContent = preg_replace('/\s+/u', ' ', $rawContent);
+    $rawContent = substr($rawContent, 0, 7000);
 
-    $systemPrompt = "You are an expert blog content formatter for JobOne.in portal. You rewrite blog articles into beautifully structured, SEO-optimized HTML while PRESERVING all existing <img> tags exactly as they are.
+    $systemPrompt = "You are an expert SEO editor for JobOne.in. 
+    Your goal is to provide high-performance metadata for a blog article.
+    DO NOT rewrite the main content. Only provide the following:
+    1. \"title\": Catchy, high-CTR blog title (max 60 chars)
+    2. \"short_description\": Friendly summary of the article (max 160 chars)
+    3. \"category\": Broad category (e.g. Government Schemes, Education, Finance)
+    4. \"state\": Specific Indian State mention or 'All India'
+    5. \"seo_addition\": A unique 'Pro Tip' or 'Helpful Insight' (in HTML format).
+    6. \"meta_keywords\": Comma-separated SEO keywords (max 500 chars)";
 
-STRICT RULES:
-1. Keep ALL <img> tags with their src, alt attributes - DO NOT REMOVE any images
-2. Rewrite text for better readability and SEO
-3. Use proper headings (h2, h3, h4), paragraphs, lists, tables
-4. REMOVE ALL promotional content, source website names, external channel links
-5. REMOVE comments section content
-6. Add proper section breaks and formatting
-7. Keep the content factual and informative
-8. If content is in regional language (Kannada/Hindi etc), keep it in the same language but improve formatting
+    $userPrompt = "Provide SEO metadata and a catchy title for this blog article. Do not rewrite the content itself.\n\nTitle: {$data['title']}\nContent Snippet: " . substr(strip_tags($rawContent), 0, 3000);
 
-Return strictly valid JSON with:
-1. \"title\": Clean SEO title (max 60 chars)
-2. \"short_description\": Summary (max 160 chars)
-3. \"content\": Beautifully formatted HTML with all images preserved
-4. \"meta_keywords\": Comma-separated SEO keywords (max 500 chars)";
-
-    $userPrompt = "Blog Article:\nTitle: {$data['title']}\nContent:\n{$rawContent}";
-
-    $model = defined('AI_MODEL') ? AI_MODEL : 'deepseek-v3.2';
+    $model = $isNvidia
+        ? (defined('NVIDIA_MODEL') && NVIDIA_MODEL ? NVIDIA_MODEL : 'meta/llama-3.1-70b-instruct')
+        : (defined('AGENTROUTER_MODEL') && AGENTROUTER_MODEL ? AGENTROUTER_MODEL : 'deepseek-v3.2');
     $temperature = defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3;
 
     $payload = [
@@ -806,7 +802,8 @@ Return strictly valid JSON with:
             ['role' => 'user', 'content' => $userPrompt]
         ],
         'response_format' => ['type' => 'json_object'],
-        'temperature' => $temperature
+        'temperature' => $temperature,
+        'max_tokens' => 8000
     ];
 
     $ch = curl_init($url);
@@ -817,8 +814,8 @@ Return strictly valid JSON with:
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apiKey,
-            'Origin: https://agentrouter.org',
-            'Referer: https://agentrouter.org/'
+            'Origin: ' . ($isNvidia ? 'https://integrate.api.nvidia.com' : 'https://agentrouter.org'),
+            'Referer: ' . ($isNvidia ? 'https://integrate.api.nvidia.com/' : 'https://agentrouter.org/')
         ],
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_TIMEOUT => 60
@@ -835,9 +832,11 @@ Return strictly valid JSON with:
             if ($aiData) {
                 if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
                 if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
-                if (!empty($aiData['content'])) {
-                    // Re-apply blog styling to AI content
-                    $data['content'] = blogStyleContent($aiData['content']);
+                if (!empty($aiData['category'])) $data['category_guess'] = $aiData['category'];
+                if (!empty($aiData['state'])) $data['state_guess'] = $aiData['state'];
+                if (!empty($aiData['seo_addition'])) {
+                    // Prepend SEO addition to original blog content
+                    $data['content'] = $aiData['seo_addition'] . "\n\n" . $data['content'];
                 }
                 if (!empty($aiData['meta_keywords'])) $data['meta_keywords'] = $aiData['meta_keywords'];
                 $data['ai_enhanced'] = true;

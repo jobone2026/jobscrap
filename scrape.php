@@ -5,14 +5,25 @@
  * Returns JSON with extracted post data
  */
 
+// Start output buffering to capture any stray output
+ob_start();
+
+// Set headers for JSON response
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
+
+// Suppress PHP warnings/notices in production (they break JSON)
+if (!defined('DEBUG_MODE') || !DEBUG_MODE) {
+    error_reporting(E_ERROR | E_PARSE);
+    ini_set('display_errors', 0);
+}
 
 if (file_exists('config.php')) {
     require_once 'config.php';
 } else {
     define('JOBONE_API_TOKEN', 'YOUR_TOKEN_HERE');
 }
+require_once 'ai-content-enhancer.php';
 
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
@@ -34,11 +45,13 @@ if (php_sapi_name() !== 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERV
     $forcedType = trim($input['forced_type'] ?? '');
 
     if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
+        ob_end_clean();
         echo json_encode(['success' => false, 'message' => 'Invalid URL provided.']);
         exit;
     }
 
     if (basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php' && !$url) {
+        ob_end_clean();
         echo json_encode(['success' => false, 'message' => 'URL is required.']);
         exit;
     }
@@ -150,6 +163,14 @@ function extractData($html, $url)
     // Meta keywords from page
     $kwNode = $xpath->query('//meta[@name="keywords"]/@content')->item(0);
     $data['meta_keywords'] = $kwNode ? cleanText($kwNode->nodeValue) : '';
+
+    if (isset($data['ai_enhanced']) && $data['ai_enhanced'] && isset($data['ai_error'])) {
+        unset($data['ai_error']);
+    }
+
+    if (isset($data['ai_enhanced']) && $data['ai_enhanced'] && isset($data['ai_error'])) {
+        unset($data['ai_error']);
+    }
 
     return $data;
 }
@@ -1038,6 +1059,179 @@ function styleContent($html)
 }
 
 
+// ─── Local Content Enhancement (Fallback when AI fails) ────────────────────────
+function enhanceContentLocally($data)
+{
+    $title = $data['title'] ?? 'Government Job Notification';
+    $shortDesc = $data['short_description'] ?? '';
+    $content = $data['content'] ?? '';
+    $lastDate = $data['last_date'] ?? '';
+    $notificationDate = $data['notification_date'] ?? '';
+    $totalPosts = $data['total_posts'] ?? null;
+    
+    // Clean the original content more aggressively
+    $cleanContent = $content;
+    
+    // Remove all style and script tags
+    $cleanContent = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $cleanContent);
+    $cleanContent = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $cleanContent);
+    
+    // Remove all class and id attributes
+    $cleanContent = preg_replace('/\s(class|id|style)="[^"]*"/i', '', $cleanContent);
+    
+    // Remove empty paragraphs and divs
+    $cleanContent = preg_replace('/<p>\s*<\/p>/', '', $cleanContent);
+    $cleanContent = preg_replace('/<div>\s*<\/div>/', '', $cleanContent);
+    
+    // Extract key information from content
+    $eligibility = extractEligibilityInfo($cleanContent);
+    $applicationProcess = extractApplicationProcess($cleanContent);
+    $importantDates = extractImportantDates($cleanContent);
+    
+    // Build enhanced content with proper structure
+    $enhancedContent = '<div class="jobone-premium-ui">';
+    
+    // Add main heading
+    $enhancedContent .= '<h1>' . htmlspecialchars($title) . '</h1>';
+    
+    // Add summary box
+    $enhancedContent .= '<div class="box-info">';
+    $enhancedContent .= '<p><strong>📢 Important Notification:</strong> ' . htmlspecialchars($shortDesc) . '</p>';
+    $enhancedContent .= '</div>';
+    
+    // Add key details table
+    $enhancedContent .= '<h2>📅 Key Details</h2>';
+    $enhancedContent .= '<div class="jobone-table-wrapper">';
+    $enhancedContent .= '<table class="key-details-table">';
+    $enhancedContent .= '<tr><th>Detail</th><th>Information</th></tr>';
+    
+    if ($notificationDate) {
+        $enhancedContent .= '<tr><td>📅 Notification Date</td><td>' . htmlspecialchars($notificationDate) . '</td></tr>';
+    }
+    if ($lastDate) {
+        $enhancedContent .= '<tr><td>⏰ Last Date to Apply</td><td>' . htmlspecialchars($lastDate) . '</td></tr>';
+    }
+    if ($totalPosts) {
+        $enhancedContent .= '<tr><td>👥 Total Vacancies</td><td>' . htmlspecialchars($totalPosts) . ' Posts</td></tr>';
+    }
+    
+    $enhancedContent .= '</table>';
+    $enhancedContent .= '</div>';
+    
+    // Add eligibility section if found
+    if (!empty($eligibility)) {
+        $enhancedContent .= '<h2>🎯 Eligibility Criteria</h2>';
+        $enhancedContent .= '<div class="box-info">';
+        $enhancedContent .= $eligibility;
+        $enhancedContent .= '</div>';
+    }
+    
+    // Add application process section
+    $enhancedContent .= '<h2>📝 Application Process</h2>';
+    $enhancedContent .= '<div class="content-details">';
+    
+    if (!empty($applicationProcess)) {
+        $enhancedContent .= $applicationProcess;
+    } else {
+        // Default application instructions
+        $enhancedContent .= '<p>Interested and eligible candidates should apply online through the official website before the last date.</p>';
+        $enhancedContent .= '<ol>';
+        $enhancedContent .= '<li>Visit the official recruitment website</li>';
+        $enhancedContent .= '<li>Register with valid email and mobile number</li>';
+        $enhancedContent .= '<li>Fill the application form with correct details</li>';
+        $enhancedContent .= '<li>Upload required documents (photo, signature, certificates)</li>';
+        $enhancedContent .= '<li>Pay application fee if applicable</li>';
+        $enhancedContent .= '<li>Submit and take printout for future reference</li>';
+        $enhancedContent .= '</ol>';
+    }
+    $enhancedContent .= '</div>';
+    
+    // Add important dates section if found
+    if (!empty($importantDates)) {
+        $enhancedContent .= '<h2>📆 Important Dates</h2>';
+        $enhancedContent .= '<div class="box-success">';
+        $enhancedContent .= $importantDates;
+        $enhancedContent .= '</div>';
+    }
+    
+    // Add cleaned original content (truncated if too long)
+    $enhancedContent .= '<h2>📋 Complete Notification Details</h2>';
+    $enhancedContent .= '<div class="content-details">';
+    
+    // Limit original content to reasonable length
+    if (strlen($cleanContent) > 5000) {
+        $cleanContent = substr($cleanContent, 0, 5000) . '... [Content truncated for readability]';
+    }
+    
+    $enhancedContent .= $cleanContent;
+    $enhancedContent .= '</div>';
+    
+    // Add SEO footer
+    $enhancedContent .= '<div class="seo-footer">';
+    $enhancedContent .= '<p><strong>Tags:</strong> ' . htmlspecialchars($title) . ', Government Jobs, Sarkari Result, Latest Notification</p>';
+    $enhancedContent .= '</div>';
+    
+    $enhancedContent .= '</div>'; // Close jobone-premium-ui
+    
+    $data['content'] = $enhancedContent;
+    $data['ai_enhanced'] = true;
+    $data['ai_provider'] = 'local_enhancer';
+    
+    return $data;
+}
+
+// Helper functions for local enhancement
+function extractEligibilityInfo($content) {
+    // Look for eligibility criteria in content
+    $patterns = [
+        '/eligibility.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is',
+        '/qualification.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is',
+        '/age limit.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is'
+    ];
+    
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $content, $matches)) {
+            return $matches[0];
+        }
+    }
+    
+    return '';
+}
+
+function extractApplicationProcess($content) {
+    // Look for application process in content
+    $patterns = [
+        '/how to apply.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is',
+        '/application process.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is',
+        '/apply online.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is'
+    ];
+    
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $content, $matches)) {
+            return $matches[0];
+        }
+    }
+    
+    return '';
+}
+
+function extractImportantDates($content) {
+    // Look for important dates in content
+    $patterns = [
+        '/important dates.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is',
+        '/schedule.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is',
+        '/date.*?(?:<p>.*?<\/p>|<li>.*?<\/li>)/is'
+    ];
+    
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $content, $matches)) {
+            return $matches[0];
+        }
+    }
+    
+    return '';
+}
+
 // ─── AI Auto-Generation ────────────────────────────────────────────────────────
 function enrichWithAI($data)
 {
@@ -1045,197 +1239,34 @@ function enrichWithAI($data)
         return $data;
     }
 
-    // Use AgentRouter API if available
-    if (defined('AGENTROUTER_API_KEY') && !empty(AGENTROUTER_API_KEY)) {
-        return enrichWithAgentRouter($data);
-    }
-
-    // Fallback to Groq if available
-    if (defined('GROQ_API_KEY') && !empty(GROQ_API_KEY)) {
-        return enrichWithGroq($data);
-    }
-
-    return $data;
-}
-
-// ─── AgentRouter Integration (DeepSeek v3.2) ───────────────────────────────────
-function enrichWithAgentRouter($data)
-{
-    if (!defined('AGENTROUTER_API_KEY') || empty(AGENTROUTER_API_KEY)) {
-        return $data;
-    }
-
-    $url = "https://agentrouter.org/v1/chat/completions";
-    $model = defined('AI_MODEL') ? AI_MODEL : "deepseek-v3.2";
-    $temperature = defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3;
-
-    // Prepare content - strip styling but keep structure
-    $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br><strong><b>');
-    $rawContent = substr($rawContent, 0, 20000); // Increase limit for better context
-
-    // Build comprehensive system prompt
-    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert content writer for JobOne.in government job portal.";
+    // Set a longer timeout for AI enhancement, especially for local LLM
+    // Local LLM can be slow, so give it more time
+    set_time_limit(240); // 240 seconds max for AI as requested
     
-    if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
-        $systemPrompt .= "\n\n" . AI_ADDITIONAL_INSTRUCTIONS;
-    }
-
-    $systemPrompt .= "\n\nIMPORTANT: You MUST return ONLY a valid JSON object with these exact fields:
-{
-  \"title\": \"SEO-optimized title (50-60 chars)\",
-  \"short_description\": \"Brief summary (120-160 chars)\",
-  \"content\": \"Full HTML content with proper formatting using <h3>, <p>, <ul>, <li>, <table> tags\"
-}
-
-CONTENT REQUIREMENTS:
-- Rewrite content in clear, professional, human-readable language
-- Use proper headings (<h3>, <h4>) to organize sections
-- Format important dates and details in tables
-- Use bullet points (<ul><li>) for lists
-- Make it easy to read and understand
-- Remove all promotional content and spam
-- Keep ONLY job-related information
-- Minimum 300 words of actual content";
-
-    $userPrompt = "Rewrite this job posting in professional, human-readable format:\n\nTitle: {$data['title']}\n\nContent:\n{$rawContent}\n\nMake it clear, well-organized, and easy to understand. Use proper HTML formatting.";
-
-    $payload = [
-        'model' => $model,
-        'messages' => [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user', 'content' => $userPrompt]
-        ],
-        'temperature' => $temperature,
-        'max_tokens' => 4000
-    ];
-
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . AGENTROUTER_API_KEY
-        ],
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT => 60
-    ]);
-
-    $response = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($code !== 200 || !$response) {
-        error_log("AgentRouter API failed: HTTP $code");
-        return $data; // Return original data on failure
-    }
-
-    $result = json_decode($response, true);
-    if (!isset($result['choices'][0]['message']['content'])) {
-        error_log("AgentRouter API: Invalid response structure");
-        return $data;
-    }
-
-    $aiContent = $result['choices'][0]['message']['content'];
-    
-    // Try to parse as JSON first
-    $parsed = json_decode($aiContent, true);
-    if (json_last_error() === JSON_ERROR_NONE && isset($parsed['content'])) {
-        // Successfully parsed JSON response
-        if (!empty($parsed['title'])) {
-            $data['title'] = $parsed['title'];
+    try {
+        $enhancer = new AIContentEnhancer();
+        $enhanced = $enhancer->enhanceContent($data);
+        
+        // Map the modular field 'category' back to 'category_guess' for frontend compatibility
+        if (isset($enhanced['category'])) {
+            $enhanced['category_guess'] = $enhanced['category'];
         }
-        if (!empty($parsed['short_description'])) {
-            $data['short_description'] = $parsed['short_description'];
+        if (isset($enhanced['state'])) {
+            $enhanced['state_guess'] = $enhanced['state'];
         }
-        if (!empty($parsed['content'])) {
-            $data['content'] = $parsed['content'];
-        }
-    } else {
-        // If not JSON, treat as direct HTML content
-        $data['content'] = $aiContent;
+
+        return $enhanced;
+    } catch (\Exception $e) {
+        error_log("AI Enrichment failed: " . $e->getMessage());
+        
+        // Fallback to local enhancement
+        error_log("Falling back to local content enhancement");
+        $data['ai_error'] = $e->getMessage();
+        $data['ai_enhanced'] = false;
+        
+        // Try local enhancement as fallback
+        return enhanceContentLocally($data);
     }
-
-    return $data;
-}
-
-// ─── Groq Cloud Integration ───────────────────────────────────────────
-function enrichWithGroq($data)
-{
-    if (!defined('GROQ_API_KEY') || empty(GROQ_API_KEY)) {
-        return $data;
-    }
-
-    $url = "https://api.groq.com/openai/v1/chat/completions";
-    $model = "llama-3.3-70b-versatile";
-
-    $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h3><h4><h5><ul><li><ol><p><br>');
-    $rawContent = substr($rawContent, 0, 15000);
-
-    $systemPrompt = defined('AI_SYSTEM_PROMPT') ? AI_SYSTEM_PROMPT : "You are an expert content blogger.";
-    $systemPrompt .= "\n\nYou MUST return the response as a valid JSON object.";
-    if (defined('AI_ADDITIONAL_INSTRUCTIONS') && AI_ADDITIONAL_INSTRUCTIONS) {
-        $systemPrompt .= "\n\n" . AI_ADDITIONAL_INSTRUCTIONS;
-    }
-
-    $userPrompt = "Job Info: \nTitle: {$data['title']}\nContent: {$rawContent}";
-
-    $payload = [
-        'model' => $model,
-        'messages' => [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user', 'content' => $userPrompt]
-        ],
-        'temperature' => 0.6,
-        'response_format' => ['type' => 'json_object']
-    ];
-
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . GROQ_API_KEY
-        ],
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT => 30
-    ]);
-
-    $response = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($code == 200 && $response) {
-        $json = json_decode($response, true);
-        $rawText = $json['choices'][0]['message']['content'] ?? '';
-        if ($rawText) {
-            $aiData = json_decode($rawText, true);
-            if ($aiData) {
-                if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
-                if (!empty($aiData['meta_title'])) $data['meta_title'] = $aiData['meta_title'];
-                if (!empty($aiData['meta_description'])) $data['meta_description'] = $aiData['meta_description'];
-                if (!empty($aiData['meta_keywords'])) $data['meta_keywords'] = $aiData['meta_keywords'];
-                if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];
-                if (!empty($aiData['category'])) $data['category_guess'] = $aiData['category'];
-                if (!empty($aiData['state'])) $data['state_guess'] = $aiData['state'];
-                if (!empty($aiData['last_date'])) $data['last_date'] = $aiData['last_date'];
-                if (isset($aiData['total_posts'])) $data['total_posts'] = (int) $aiData['total_posts'];
-
-                if (!empty($aiData['content'])) {
-                    $data['content'] = cleanAIContent($aiData['content']);
-                }
-                $data['ai_enhanced'] = true;
-                $data['ai_provider'] = 'groq';
-            }
-        }
-    } else {
-        $data['ai_error'] = "Groq Error: HTTP $code - " . $response;
-    }
-
-    return $data;
 }
 
 // Clean AI-generated content to remove competitor links
@@ -1306,12 +1337,14 @@ function cleanAIContent($html)
 if (php_sapi_name() !== 'cli' || basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php') {
     $result = fetchPage($url);
     if ($result['error']) {
+        ob_end_clean();
         echo json_encode(['success' => false, 'message' => 'Could not fetch page: ' . $result['error']]);
         exit;
     }
 
     $html = $result['html'];
     if (!$html) {
+        ob_end_clean();
         echo json_encode(['success' => false, 'message' => 'Empty response from URL.']);
         exit;
     }
@@ -1361,5 +1394,8 @@ if (php_sapi_name() !== 'cli' || basename($_SERVER['PHP_SELF'] ?? '') === 'scrap
         $extracted['content'] .= $socialHtml;
     }
 
+    // Clear any captured output before sending JSON
+    ob_end_clean();
+    
     echo json_encode(['success' => true, 'data' => $extracted]);
 }

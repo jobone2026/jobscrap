@@ -131,6 +131,11 @@ async function startScrape() {
 
 // ── Populate form with scraped data ────────────────────────────
 function populateForm(d, sourceUrl) {
+  // Check for AI failure
+  if (d.ai_status === 'failed') {
+    alert("⚠️ AI Generation Skipped: " + (d.ai_error || "Unknown Error") + "\n\nShowing raw data instead.");
+  }
+
   // Basic fields
   setVal('fTitle', d.title || '');
   setVal('fType', d.type || 'job');
