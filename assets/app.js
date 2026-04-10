@@ -639,13 +639,33 @@ async function loadRecentPosts(page = 1) {
     let html = '<div class="posts-grid">';
     posts.forEach(p => {
       const typeLabel = p.type?.replace('_', ' ') || 'post';
-      const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+      
+      // Try multiple date fields and formats
+      let date = '';
+      const dateValue = p.created_at || p.published_at || p.date || p.updated_at;
+      
+      if (dateValue) {
+        try {
+          const dateObj = new Date(dateValue);
+          if (!isNaN(dateObj.getTime())) {
+            date = dateObj.toLocaleDateString('en-IN', { 
+              day: '2-digit', 
+              month: 'short', 
+              year: 'numeric' 
+            });
+          }
+        } catch (e) {
+          // If date parsing fails, show raw date
+          date = dateValue.split('T')[0]; // Get just the date part if ISO format
+        }
+      }
+      
       html += `
         <div class="post-item">
           <span class="post-type-badge badge-${p.type}">${typeLabel}</span>
           <div class="post-info">
             <div class="post-title" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
-            <div class="post-meta">#${p.id} ${date ? '· ' + date : ''} ${p.category?.name ? '· ' + escHtml(p.category.name) : ''}</div>
+            <div class="post-meta">#${p.id}${date ? ' · ' + date : ''}${p.category?.name ? ' · ' + escHtml(p.category.name) : ''}</div>
           </div>
           <div class="post-actions">
             <a href="https://jobone.in/post/${p.slug || p.id}" target="_blank" class="btn btn-ghost btn-sm" title="View post">↗</a>
@@ -742,11 +762,19 @@ function updateCount(inputId, counterId, max) {
 
 function escHtml(str) {
   if (!str) return '';
-  return String(str)
+  
+  // First, decode entities if they exist (prevents &amp;amp;)
+  let temp = document.createElement('textarea');
+  temp.innerHTML = str;
+  let decoded = temp.value;
+  
+  // Now encode safely for HTML
+  return String(decoded)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function isValidUrl(str) {
