@@ -23,6 +23,9 @@ if (file_exists('config.php')) {
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
 
+// Include scrape.php to access styleContent function
+require_once 'scrape.php';
+
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     echo json_encode(['success' => false, 'message' => 'Invalid request body.']);
@@ -48,19 +51,35 @@ if (!in_array($input['type'], $validTypes)) {
 
 function getRawText($str) {
     if (!is_string($str)) return '';
-    // Decode twice to catch double-encoded entities
-    $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    // Forcibly fix any dangling literal &amp; artifacts
-    $str = str_ireplace(['&amp;amp;', '&amp;'], '&', $str);
-    return trim($str);
+    
+    // Remove carriage returns and line breaks first
+    $str = str_replace(["\r\n", "\r", "\n"], ' ', $str);
+    
+    // Remove HTML entity representations of line breaks
+    $str = preg_replace('/&#13;?|&#10;?|&#x0D;?|&#x0A;?/i', ' ', $str);
+    
+    // Decode HTML entities multiple times to catch double-encoded entities like &amp;amp;
+    $decoded = $str;
+    for ($i = 0; $i < 4; $i++) {
+        $new = html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($new === $decoded) break;
+        $decoded = $new;
+    }
+    
+    // Forcibly fix any dangling literal &amp; artifacts (longer ones first)
+    $decoded = str_ireplace(['&amp;amp;', '&amp;'], '&', $decoded);
+    
+    // Collapse multiple spaces into one
+    $decoded = preg_replace('/\s+/', ' ', $decoded);
+    
+    return trim($decoded);
 }
 
 $payload = [
     'title'             => substr(getRawText($input['title']), 0, 255),
     'type'              => $input['type'],
     'short_description' => getRawText($input['short_description']),
-    'content'           => $input['content'], // content remains HTML
+    'content'           => styleContent($input['content']), // Apply styling before publishing
     'category_id'       => (int) $input['category_id'],
 ];
 

@@ -177,12 +177,21 @@ function extractData($html, $url)
 
 function cleanText($t)
 {
-    // Decode HTML entities (run twice to catch double-encoded entities like &amp;amp;)
-    $t = html_entity_decode((string) $t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $t = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    // Ensure it's a string
+    $t = (string) $t;
+    
+    // Decode HTML entities multiple times to catch double-encoded entities like &amp;amp;
+    for ($i = 0; $i < 4; $i++) {
+        $new = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($new === $t) break;
+        $t = $new;
+    }
 
-    // Also explicitly fix any trailing literal &amp; artifacts that might have bypassed standard decode
-    $t = str_ireplace(['&amp;', '&amp;amp;'], '&', $t);
+    // Forcibly fix any dangling literal &amp; artifacts (longer one first)
+    $t = str_ireplace(['&amp;amp;', '&amp;'], '&', $t);
+    
+    // Final check for the literal string "&amp;" which might have been missed
+    $t = str_replace('&amp;', '&', $t);
 
     $t = trim(preg_replace('/\s+/', ' ', $t));
     // Remove common site branding/spam from titles/descriptions
@@ -985,8 +994,8 @@ function cleanHtml($html)
     $html = preg_replace('/\s+/m', ' ', $html);
     $html = preg_replace('/>\s+</m', '><', $html);
 
-    // ── Inject modern inline styles for premium UI ───────────────────────────
-    $html = styleContent($html);
+    // NOTE: Do NOT inject styles here - they will be added when publishing to API
+    // The editor needs clean HTML without <style> tags
 
     return trim($html);
 }
