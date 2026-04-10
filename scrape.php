@@ -75,21 +75,39 @@ if (php_sapi_name() !== 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERV
 // ─── 1. Fetch the page ───────────────────────────────────────────────────────
 function fetchPage($url)
 {
+    // Log the URL for debugging
+    error_log("fetchPage called with URL: " . $url);
+    
     // Encode URL properly to handle special characters
     $parsedUrl = parse_url($url);
+    
+    // Log parsed URL components
+    error_log("Parsed URL: " . print_r($parsedUrl, true));
+    
     if ($parsedUrl === false) {
-        return ['html' => '', 'error' => 'Malformed URL'];
+        return ['html' => '', 'error' => 'Malformed URL: Unable to parse URL'];
+    }
+    
+    // Check for required components
+    if (empty($parsedUrl['scheme'])) {
+        return ['html' => '', 'error' => 'URL must start with http:// or https://. You entered: ' . $url];
+    }
+    
+    if (empty($parsedUrl['host'])) {
+        return ['html' => '', 'error' => 'No hostname found in URL. You entered: ' . $url . '. Example: https://example.com'];
     }
     
     // Rebuild URL with encoded components
-    $scheme = $parsedUrl['scheme'] ?? 'https';
-    $host = $parsedUrl['host'] ?? '';
+    $scheme = $parsedUrl['scheme'];
+    $host = $parsedUrl['host'];
     $port = isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : '';
     $path = isset($parsedUrl['path']) ? $parsedUrl['path'] : '/';
     $query = isset($parsedUrl['query']) ? '?' . $parsedUrl['query'] : '';
     $fragment = isset($parsedUrl['fragment']) ? '#' . $parsedUrl['fragment'] : '';
     
     $cleanUrl = $scheme . '://' . $host . $port . $path . $query . $fragment;
+    
+    error_log("Clean URL: " . $cleanUrl);
     
     $ch = curl_init($cleanUrl);
     curl_setopt_array($ch, [
@@ -1374,7 +1392,7 @@ function cleanAIContent($html)
     return $html;
 }
 
-if (php_sapi_name() !== 'cli' || basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php') {
+if (!defined('SCRAPE_INCLUDED') && (php_sapi_name() !== 'cli' || basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php')) {
     $result = fetchPage($url);
     if ($result['error']) {
         ob_end_clean();

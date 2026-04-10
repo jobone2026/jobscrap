@@ -327,7 +327,18 @@ $states = apiGet('/states');
         </div>
         <button class="btn btn-ghost btn-sm" onclick="loadRecentPosts()">↻ Refresh</button>
       </div>
-      <div id="recentPosts">
+      
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterPosts('all')">All</button>
+        <button class="filter-tab" onclick="filterPosts('new')">🆕 New</button>
+        <button class="filter-tab" onclick="filterPosts('urgent')">⚡ Urgent</button>
+        <button class="filter-tab" onclick="filterPosts('banking')">🏦 Banking</button>
+        <button class="filter-tab" onclick="filterPosts('allindia')">🇮🇳 All India</button>
+      </div>
+      
+      <!-- Job Cards Grid -->
+      <div id="recentPosts" class="job-cards-grid">
         <div class="empty-state">Loading recent posts…</div>
       </div>
     </div>

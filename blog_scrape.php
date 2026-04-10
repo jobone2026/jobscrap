@@ -157,9 +157,19 @@ function extractBlogData($html, $url) {
 }
 
 function blogCleanText($t) {
-    $t = html_entity_decode((string)$t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $t = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $t = str_ireplace(['&amp;', '&amp;amp;'], '&', $t);
+    // Ensure it's a string
+    $t = (string) $t;
+
+    // Decode HTML entities multiple times to catch double-encoded entities like &amp;amp;
+    for ($i = 0; $i < 4; $i++) {
+        $new = html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($new === $t) break;
+        $t = $new;
+    }
+
+    // Forcibly fix any dangling literal &amp; artifacts (longer one first)
+    $t = str_ireplace(['&amp;amp;', '&amp;'], '&', $t);
+    
     $t = trim(preg_replace('/\s+/', ' ', $t));
     return trim($t, " \t\n\r\0\x0B|,-");
 }
@@ -765,45 +775,40 @@ function blogEnrichWithAI($data) {
     if (!defined('AI_ENHANCEMENT_ENABLED') || !AI_ENHANCEMENT_ENABLED) {
         return $data;
     }
-    if ((!defined('AGENTROUTER_API_KEY') || !AGENTROUTER_API_KEY) && (!defined('NVIDIA_API_KEY') || !NVIDIA_API_KEY)) {
+    if (!defined('SAMBANOVA_API_KEY') || !SAMBANOVA_API_KEY) {
         return $data;
     }
 
-    $isNvidia = defined('NVIDIA_API_KEY') && NVIDIA_API_KEY;
-    $apiKey = $isNvidia ? NVIDIA_API_KEY : AGENTROUTER_API_KEY;
-    $url = $isNvidia ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://agentrouter.org/v1/chat/completions';
+    $url = SAMBANOVA_CHAT_ENDPOINT;
+    $apiKey = SAMBANOVA_API_KEY;
+    $model = SAMBANOVA_MODEL;
 
     // For blog, preserve img tags
     $rawContent = strip_tags($data['content'], '<table><tr><td><th><thead><tbody><h2><h3><h4><h5><ul><li><ol><p><br><img><figure><figcaption><a><strong><em><blockquote>');
     $rawContent = preg_replace('/\s+/u', ' ', $rawContent);
-    $rawContent = substr($rawContent, 0, 7000);
+    $rawContent = substr($rawContent, 0, 4000);
 
-    $systemPrompt = "You are an expert SEO editor for JobOne.in. 
-    Your goal is to provide high-performance metadata for a blog article.
-    DO NOT rewrite the main content. Only provide the following:
-    1. \"title\": Catchy, high-CTR blog title (max 60 chars)
-    2. \"short_description\": Friendly summary of the article (max 160 chars)
-    3. \"category\": Broad category (e.g. Government Schemes, Education, Finance)
-    4. \"state\": Specific Indian State mention or 'All India'
-    5. \"seo_addition\": A unique 'Pro Tip' or 'Helpful Insight' (in HTML format).
-    6. \"meta_keywords\": Comma-separated SEO keywords (max 500 chars)";
+    $systemPrompt = "Create SEO metadata for blog. Return only JSON:
+    {\"title\": \"catchy title\", \"short_description\": \"summary\", \"category\": \"category\", \"meta_keywords\": \"keywords\"}";
 
-    $userPrompt = "Provide SEO metadata and a catchy title for this blog article. Do not rewrite the content itself.\n\nTitle: {$data['title']}\nContent Snippet: " . substr(strip_tags($rawContent), 0, 3000);
+    $userPrompt = "Title: {$data['title']}\nContent: " . substr(strip_tags($rawContent), 0, 800);
 
-    $model = $isNvidia
-        ? (defined('NVIDIA_MODEL') && NVIDIA_MODEL ? NVIDIA_MODEL : 'meta/llama-3.1-70b-instruct')
-        : (defined('AGENTROUTER_MODEL') && AGENTROUTER_MODEL ? AGENTROUTER_MODEL : 'deepseek-v3.2');
-    $temperature = defined('AI_TEMPERATURE') ? AI_TEMPERATURE : 0.3;
+    $temperature = 0.3;
 
     $payload = [
         'model' => $model,
         'messages' => [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user', 'content' => $userPrompt]
+            ['role' => 'user', 'content' => $systemPrompt . "\n\n" . $userPrompt]
         ],
-        'response_format' => ['type' => 'json_object'],
         'temperature' => $temperature,
-        'max_tokens' => 8000
+        'max_tokens' => 200, // Reduced tokens
+        'stream' => false
+    ];
+
+    $headers = [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json',
+        'Accept: application/json'
     ];
 
     $ch = curl_init($url);
@@ -811,24 +816,33 @@ function blogEnrichWithAI($data) {
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($payload),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $apiKey,
-            'Origin: ' . ($isNvidia ? 'https://integrate.api.nvidia.com' : 'https://agentrouter.org'),
-            'Referer: ' . ($isNvidia ? 'https://integrate.api.nvidia.com/' : 'https://agentrouter.org/')
-        ],
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT => 60
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_TIMEOUT => 15, // Reduced timeout
+        CURLOPT_CONNECTTIMEOUT => 10
     ]);
 
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
+
+    if ($error) {
+        error_log("SambaNova API Error: " . $error);
+        return $data;
+    }
 
     if ($code == 200 && $response) {
         $json = json_decode($response, true);
         if (isset($json['choices'][0]['message']['content'])) {
-            $aiData = json_decode($json['choices'][0]['message']['content'], true);
+            $content = $json['choices'][0]['message']['content'];
+            
+            // Try to extract JSON from the response
+            $content = preg_replace('/^```(?:json)?\s*/i', '', $content);
+            $content = preg_replace('/\s*```$/i', '', $content);
+            $content = trim($content);
+            
+            $aiData = json_decode($content, true);
             if ($aiData) {
                 if (!empty($aiData['title'])) $data['title'] = $aiData['title'];
                 if (!empty($aiData['short_description'])) $data['short_description'] = $aiData['short_description'];

@@ -23,6 +23,9 @@ if (file_exists('config.php')) {
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
 
+// Define a flag to prevent scrape.php from executing when included
+define('SCRAPE_INCLUDED', true);
+
 // Include scrape.php to access styleContent function
 require_once 'scrape.php';
 
