@@ -44,10 +44,25 @@ if (php_sapi_name() !== 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERV
     $url = trim($input['url'] ?? '');
     $forcedType = trim($input['forced_type'] ?? '');
 
-    if ($url && !filter_var($url, FILTER_VALIDATE_URL)) {
-        ob_end_clean();
-        echo json_encode(['success' => false, 'message' => 'Invalid URL provided.']);
-        exit;
+    // Clean and validate URL
+    if ($url) {
+        // Remove any whitespace and control characters
+        $url = preg_replace('/[\x00-\x1F\x7F]/', '', $url);
+        $url = trim($url);
+        
+        // Basic URL validation
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Invalid URL format. Please provide a valid HTTP/HTTPS URL.']);
+            exit;
+        }
+        
+        // Ensure URL has a scheme
+        if (!preg_match('/^https?:\/\//i', $url)) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'URL must start with http:// or https://']);
+            exit;
+        }
     }
 
     if (basename($_SERVER['PHP_SELF'] ?? '') === 'scrape.php' && !$url) {
@@ -60,7 +75,23 @@ if (php_sapi_name() !== 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERV
 // ─── 1. Fetch the page ───────────────────────────────────────────────────────
 function fetchPage($url)
 {
-    $ch = curl_init($url);
+    // Encode URL properly to handle special characters
+    $parsedUrl = parse_url($url);
+    if ($parsedUrl === false) {
+        return ['html' => '', 'error' => 'Malformed URL'];
+    }
+    
+    // Rebuild URL with encoded components
+    $scheme = $parsedUrl['scheme'] ?? 'https';
+    $host = $parsedUrl['host'] ?? '';
+    $port = isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : '';
+    $path = isset($parsedUrl['path']) ? $parsedUrl['path'] : '/';
+    $query = isset($parsedUrl['query']) ? '?' . $parsedUrl['query'] : '';
+    $fragment = isset($parsedUrl['fragment']) ? '#' . $parsedUrl['fragment'] : '';
+    
+    $cleanUrl = $scheme . '://' . $host . $port . $path . $query . $fragment;
+    
+    $ch = curl_init($cleanUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
