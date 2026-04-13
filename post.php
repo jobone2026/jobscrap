@@ -23,12 +23,6 @@ if (file_exists('config.php')) {
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
 
-// Define a flag to prevent scrape.php from executing when included
-define('SCRAPE_INCLUDED', true);
-
-// Include scrape.php to access styleContent function
-require_once 'scrape.php';
-
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     echo json_encode(['success' => false, 'message' => 'Invalid request body.']);
@@ -82,7 +76,7 @@ $payload = [
     'title'             => substr(getRawText($input['title']), 0, 255),
     'type'              => $input['type'],
     'short_description' => getRawText($input['short_description']),
-    'content'           => styleContent($input['content']), // Apply styling before publishing
+    'content'           => $input['content'], // Store content as-is, CSS is in the template
     'category_id'       => (int) $input['category_id'],
 ];
 
@@ -109,6 +103,12 @@ if (!empty($input['important_links']) && is_array($input['important_links'])) {
     if (!empty($links)) {
         $payload['important_links'] = $links;
     }
+}
+if (!empty($input['tags']) && is_array($input['tags'])) {
+    $payload['tags'] = array_values(array_filter($input['tags']));
+}
+if (!empty($input['education']) && is_array($input['education'])) {
+    $payload['education'] = array_values(array_filter($input['education']));
 }
 if (isset($input['is_featured']))          $payload['is_featured']         = (bool) $input['is_featured'];
 if (!empty($input['meta_title']))          $payload['meta_title']          = substr(getRawText($input['meta_title']), 0, 60);

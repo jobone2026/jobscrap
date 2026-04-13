@@ -492,6 +492,22 @@ function collectLinks() {
   return links;
 }
 
+function collectTags() {
+  const tags = [];
+  document.querySelectorAll('input[name="tags[]"]:checked').forEach(checkbox => {
+    tags.push(checkbox.value);
+  });
+  return tags;
+}
+
+function collectEducation() {
+  const education = [];
+  document.querySelectorAll('input[name="education[]"]:checked').forEach(checkbox => {
+    education.push(checkbox.value);
+  });
+  return education;
+}
+
 // ── Form init & submit ──────────────────────────────────────────
 function initForm() {
   document.getElementById('postForm').addEventListener('submit', async (e) => {
@@ -521,6 +537,8 @@ async function submitPost() {
     meta_description:  getVal('fMetaDesc') || null,
     meta_keywords:     getVal('fMetaKw') || null,
     important_links:   collectLinks(),
+    tags:              collectTags(),
+    education:         collectEducation(),
   };
 
   // Remove nulls to keep payload clean

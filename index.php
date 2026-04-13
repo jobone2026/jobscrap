@@ -262,6 +262,172 @@ $states = apiGet('/states');
           </div>
         </div>
 
+        <!-- Tags -->
+        <div class="form-group">
+          <label class="form-label">Tags (optional)</label>
+          <div class="tags-select">
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="cutoff"/>
+              <span>📊 Cutoff</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="merit_list"/>
+              <span>🏆 Merit List</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="selection_list"/>
+              <span>✅ Selection List</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="final_result"/>
+              <span>🎯 Final Result</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="provisional_result"/>
+              <span>📋 Provisional Result</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="revised_result"/>
+              <span>🔄 Revised Result</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="scorecard"/>
+              <span>📝 Scorecard</span>
+            </label>
+            <label class="tag-checkbox">
+              <input type="checkbox" name="tags[]" value="marks"/>
+              <span>💯 Marks</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Education -->
+        <div class="form-group">
+          <label class="form-label">Education Qualification (optional)</label>
+          <div class="education-select">
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="10th_pass"/>
+              <span>📚 10th Pass</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="12th_pass"/>
+              <span>📖 12th Pass</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="graduate"/>
+              <span>🎓 Graduate</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="post_graduate"/>
+              <span>🎓 Post Graduate</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="diploma"/>
+              <span>📜 Diploma</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="iti"/>
+              <span>🔧 ITI</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="btech"/>
+              <span>⚙️ B.Tech/B.E</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="mtech"/>
+              <span>⚙️ M.Tech/M.E</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="bsc"/>
+              <span>🔬 B.Sc</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="msc"/>
+              <span>🔬 M.Sc</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="bcom"/>
+              <span>💼 B.Com</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="mcom"/>
+              <span>💼 M.Com</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="ba"/>
+              <span>📖 B.A</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="ma"/>
+              <span>📖 M.A</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="bba"/>
+              <span>💼 BBA</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="mba"/>
+              <span>💼 MBA</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="ca"/>
+              <span>💰 CA</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="cs"/>
+              <span>📋 CS</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="cma"/>
+              <span>💹 CMA</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="llb"/>
+              <span>⚖️ LLB</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="llm"/>
+              <span>⚖️ LLM</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="mbbs"/>
+              <span>🩺 MBBS</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="bds"/>
+              <span>🦷 BDS</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="bpharm"/>
+              <span>💊 B.Pharm</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="mpharm"/>
+              <span>💊 M.Pharm</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="nursing"/>
+              <span>👩‍⚕️ Nursing</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="bed"/>
+              <span>👨‍🏫 B.Ed</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="med"/>
+              <span>👨‍🏫 M.Ed</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="phd"/>
+              <span>🎓 PhD</span>
+            </label>
+            <label class="education-checkbox">
+              <input type="checkbox" name="education[]" value="any_qualification"/>
+              <span>✅ Any Qualification</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Important Links -->
         <div class="form-group">
           <label class="form-label">Important Links</label>
