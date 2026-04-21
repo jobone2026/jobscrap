@@ -127,15 +127,16 @@ Generate SEO metadata and an enhanced title. Return ONLY valid JSON (no markdown
   "last_date": "YYYY-MM-DD",
   "total_posts": 100,
   "education_tags": ["10th_pass", "12th_pass", "graduate", "diploma"],
-  "image_prompt": "A highly descriptive prompt for an AI image generator representing this job (e.g. 'professional Indian banking office, modern styling, 4k')"
+  "image_prompt": "Analyze the specific job role and sector from the content. Write a highly descriptive, contextually accurate visual prompt for an AI image generator representing this exact job environment in India. Focus on the actual work setting (e.g., 'Modern Indian hospital ward with nurses, realistic' or 'Busy Indian railway station with train driver in uniform, 4k'). Specify 'no text, photorealistic'."
 }
 
 STRICT RULES:
-1. short_description → 120-160 chars, complete sentences, ends with period, no ellipsis
-2. meta_description  → 135-150 chars, complete sentences, ends with period, no ellipsis
-3. meta_keywords     → 250-350 chars total
-4. All text must sound human-written, not robotic
-5. Return ONLY the raw JSON object
+1. short_description  → 120-160 chars, complete sentences, ends with period, no ellipsis
+2. meta_description   → 135-150 chars, complete sentences, ends with period, no ellipsis
+3. meta_keywords      → 250-350 chars total
+4. image_prompt       → MUST be specifically based on the actual job role/industry analyzed from the text, highly visual, realistic, and contain NO words or text.
+5. All text must sound human-written, not robotic
+6. Return ONLY the raw JSON object
 PROMPT;
     }
 
