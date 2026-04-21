@@ -28,8 +28,8 @@ require_once 'ai-content-enhancer.php';
 define('API_BASE', 'https://jobone.in/api');
 define('API_TOKEN', JOBONE_API_TOKEN);
 
-$url = '';
-$forcedType = '';
+if (!isset($url)) $url = '';
+if (!isset($forcedType)) $forcedType = '';
 
 if (php_sapi_name() !== 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERVER['PHP_SELF']) === 'scrape.php')) {
     if (php_sapi_name() !== 'cli') {
@@ -147,8 +147,8 @@ function detectType($url, $title, $html)
     $map = [
         'admit_card' => ['admit card', 'admit-card', 'admitcard', 'hall ticket', 'hall-ticket', 'call letter'],
         'answer_key' => ['answer key', 'answer-key', 'answerkey', 'answer sheet', 'official key'],
-        'syllabus' => ['syllabus', 'exam pattern', 'curriculum'],
         'job' => ['recruitment', 'vacancy', 'notification', 'apply online', 'application', 'job', 'bharti', 'online form'],
+        'syllabus' => ['syllabus', 'exam pattern', 'curriculum'],
         'result' => ['result', 'merit list', 'cutoff', 'cut-off', 'final result', 'scorecard'],
     ];
     foreach ($map as $type => $keywords) {

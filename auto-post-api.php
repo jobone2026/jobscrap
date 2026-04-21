@@ -18,60 +18,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['success' => false, 'message' => 'Only POST method allowed']);
-    exit;
-}
-
 // Load dependencies
 require_once 'config.php';
 require_once 'ai-content-enhancer.php';
 
-// Get input
-$input = json_decode(file_get_contents('php://input'), true);
-$url = trim($input['url'] ?? '');
+// Only execute if this is the main script being called
+if (basename($_SERVER['PHP_SELF']) === 'auto-post-api.php') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        echo json_encode(['success' => false, 'message' => 'Only POST method allowed']);
+        exit;
+    }
 
-if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
-    echo json_encode(['success' => false, 'message' => 'Invalid URL provided']);
-    exit;
-}
+    // Get input
+    $input = json_decode(file_get_contents('php://input'), true);
+    $url = trim($input['url'] ?? '');
 
-// Step 1: Scrape the URL
-$scrapedData = scrapeURL($url);
-if (!$scrapedData) {
-    echo json_encode(['success' => false, 'message' => 'Failed to scrape URL']);
-    exit;
-}
+    if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid URL provided']);
+        exit;
+    }
 
-// Step 2: Enhance with AI for 100% SEO score
-$enhancer = new AIContentEnhancer();
-$enhancedData = $enhancer->enhanceContent($scrapedData);
+    // Step 1: Scrape the URL
+    $scrapedData = scrapeURL($url);
+    if (!$scrapedData) {
+        echo json_encode(['success' => false, 'message' => 'Failed to scrape URL']);
+        exit;
+    }
 
-// Step 3: Auto-map category and state
-$enhancedData = autoMapCategoryAndState($enhancedData);
+    // Step 2: Enhance with AI for 100% SEO score
+    $enhancer = new AIContentEnhancer();
+    $enhancedData = $enhancer->enhanceContent($scrapedData);
 
-// Step 4: Post to JobOne API
-$result = postToJobOne($enhancedData);
+    // Step 3: Auto-map category and state
+    $enhancedData = autoMapCategoryAndState($enhancedData);
 
-if ($result['success']) {
-    echo json_encode([
-        'success' => true,
-        'message' => 'Post created successfully with 100% SEO score',
-        'post_id' => $result['post_id'],
-        'seo_score' => 100,
-        'data' => [
-            'title' => $enhancedData['title'],
-            'category' => $enhancedData['category'],
-            'state' => $enhancedData['state'],
-            'url' => $result['post_url'] ?? null,
-        ]
-    ]);
-} else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Failed to post: ' . ($result['message'] ?? 'Unknown error'),
-        'enhanced_data' => $enhancedData // Return data for manual posting
-    ]);
+    // Step 4: Post to JobOne API
+    $result = postToJobOne($enhancedData);
+
+    if ($result['success']) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Post created successfully with 100% SEO score',
+            'post_id' => $result['post_id'],
+            'seo_score' => 100,
+            'data' => [
+                'title' => $enhancedData['title'],
+                'category' => $enhancedData['category'],
+                'state' => $enhancedData['state'],
+                'url' => $result['post_url'] ?? null,
+            ]
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to post: ' . ($result['message'] ?? 'Unknown error'),
+            'enhanced_data' => $enhancedData // Return data for manual posting
+        ]);
+    }
 }
 
 // ============================================================================

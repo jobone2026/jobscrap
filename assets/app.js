@@ -163,6 +163,15 @@ function populateForm(d, sourceUrl) {
     autoSelectState(d.state_guess);
   }
 
+  // Auto-select education tags
+  if (d.education_tags && Array.isArray(d.education_tags)) {
+    document.querySelectorAll('input[name="education[]"]').forEach(cb => {
+      if (d.education_tags.includes(cb.value)) {
+        cb.checked = true;
+      }
+    });
+  }
+
   // Important links
   const linksContainer = document.getElementById('linksContainer');
   linksContainer.innerHTML = '';
