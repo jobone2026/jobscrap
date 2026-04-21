@@ -126,7 +126,8 @@ Generate SEO metadata and an enhanced title. Return ONLY valid JSON (no markdown
   "notification_date": "YYYY-MM-DD",
   "last_date": "YYYY-MM-DD",
   "total_posts": 100,
-  "education_tags": ["10th_pass", "12th_pass", "graduate", "diploma"]
+  "education_tags": ["10th_pass", "12th_pass", "graduate", "diploma"],
+  "image_prompt": "A highly descriptive prompt for an AI image generator representing this job (e.g. 'professional Indian banking office, modern styling, 4k')"
 }
 
 STRICT RULES:
@@ -186,6 +187,18 @@ PROMPT;
                 // No HTML at all — convert plain text to simple HTML
                 $rewritten = '<div class="job-content"><p>' . nl2br(htmlspecialchars($rewritten)) . '</p></div>';
             }
+            
+            // Build image tag from prompt
+            $promptStr = !empty($aiData['image_prompt']) ? $aiData['image_prompt'] : "Indian Government Job, " . $cleanTitle . " office background";
+            $imageUrl = "https://image.pollinations.ai/prompt/" . urlencode($promptStr) . "?width=1200&height=630&nologo=true";
+            
+            $imgTag = '<div class="job-featured-image" style="margin-bottom: 24px; text-align: center;">' . 
+                      '<img src="' . htmlspecialchars($imageUrl) . '" alt="' . htmlspecialchars($cleanTitle) . '" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">' .
+                      '</div>';
+            
+            // Inject image tag right after <div class="job-content">
+            $rewritten = preg_replace('/(<div[^>]*class=["\']job-content["\'][^>]*>)/is', '$1' . "\n" . $imgTag . "\n", $rewritten);
+
             return $rewritten . "\n<!-- GEMINI_AI_REWRITTEN -->";
         } catch (Exception $e) {
             error_log("[Gemini Content Rewrite] Failed: " . $e->getMessage());
@@ -303,6 +316,7 @@ PROMPT;
                 return trim($kw, " \t\n\r\0\x0B\"'");
             }, explode(',', $m[1])));
         }
+        if (preg_match('/"image_prompt"\s*:\s*"([^"]+)"/', $text, $m)) $extracted['image_prompt'] = $m[1];
 
         if (!empty($extracted)) {
             error_log("[Gemini] Extracted " . count($extracted) . " fields via regex fallback");
