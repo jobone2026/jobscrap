@@ -170,6 +170,11 @@ Requirements:
 IMPORTANT: The output must be highly detailed and comprehensive. Do not leave out any details or sections from the original content, EXCEPT for the social links mentioned above.
 PROMPT;
 
+        $fallbackContent = ($aiData['content'] ?? '<p>Content extraction failed.</p>') . "\n<!-- GEMINI_CONTENT_FALLBACK -->";
+        if (!str_contains($fallbackContent, 'class="job-content"')) {
+            $fallbackContent = '<div class="job-content">' . $fallbackContent . '</div>';
+        }
+        
         try {
             // Give a massive token allowance for full-length rewrites
             $rewritten = $this->callGeminiAPI($prompt, 8192, 0.75);
@@ -188,23 +193,28 @@ PROMPT;
                 $rewritten = '<div class="job-content"><p>' . nl2br(htmlspecialchars($rewritten)) . '</p></div>';
             }
             
-            // Build image tag from prompt
-            $promptStr = !empty($aiData['image_prompt']) ? $aiData['image_prompt'] : "Indian Government Job, " . $cleanTitle . " office background";
-            $imageUrl = "https://image.pollinations.ai/prompt/" . urlencode($promptStr) . "?width=1200&height=630&nologo=true";
-            
-            $imgTag = '<div class="job-featured-image" style="margin-bottom: 24px; text-align: center;">' . 
-                      '<img src="' . htmlspecialchars($imageUrl) . '" alt="' . htmlspecialchars($cleanTitle) . '" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">' .
-                      '</div>';
-            
-            // Inject image tag right after <div class="job-content">
-            $rewritten = preg_replace('/(<div[^>]*class=["\']job-content["\'][^>]*>)/is', '$1' . "\n" . $imgTag . "\n", $rewritten);
-
-            return $rewritten . "\n<!-- GEMINI_AI_REWRITTEN -->";
+            $finalHtml = $rewritten . "\n<!-- GEMINI_AI_REWRITTEN -->";
         } catch (Exception $e) {
             error_log("[Gemini Content Rewrite] Failed: " . $e->getMessage());
-            // Return original content with a marker
-            return ($aiData['content'] ?? '<p>Content extraction failed.</p>') . "\n<!-- GEMINI_CONTENT_FALLBACK -->";
+            $finalHtml = $fallbackContent;
         }
+
+        // Build image tag from prompt (always do this regardless of rewrite success)
+        $promptStr = !empty($aiData['image_prompt']) ? $aiData['image_prompt'] : "Indian Government Job, " . $cleanTitle . " office background";
+        $imageUrl = "https://image.pollinations.ai/prompt/" . urlencode($promptStr) . "?width=1200&height=630&nologo=true";
+        
+        $imgTag = '<div class="job-featured-image" style="margin-bottom: 24px; text-align: center;">' . 
+                  '<img src="' . htmlspecialchars($imageUrl) . '" alt="' . htmlspecialchars($cleanTitle) . '" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">' .
+                  '</div>';
+        
+        // Inject image tag right after <div class="job-content">
+        if (preg_match('/(<div[^>]*class=["\']job-content["\'][^>]*>)/is', $finalHtml)) {
+            $finalHtml = preg_replace('/(<div[^>]*class=["\']job-content["\'][^>]*>)/is', '$1' . "\n" . $imgTag . "\n", $finalHtml, 1);
+        } else {
+            $finalHtml = $imgTag . "\n" . $finalHtml;
+        }
+
+        return $finalHtml;
     }
 
     /**
