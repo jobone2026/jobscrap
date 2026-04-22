@@ -49,6 +49,9 @@ class AIContentEnhancer
      */
     public function enhanceContent(array $scrapedData): array
     {
+        // ── Clean competitor brands FIRST ─────────────────────────────────────
+        $scrapedData = $this->removeCompetitorBrands($scrapedData);
+        
         // ── Try Gemini first ──────────────────────────────────────────────────
         if (!empty($this->geminiKey)) {
             try {
@@ -75,6 +78,56 @@ class AIContentEnhancer
 
         // ── Static fallback ───────────────────────────────────────────────────
         return $this->fallbackEnhancement($scrapedData);
+    }
+    
+    /**
+     * Remove competitor brand names from all text fields
+     */
+    private function removeCompetitorBrands(array $data): array
+    {
+        $competitors = [
+            'sarkari result.com.cm',
+            'sarkariresult.com.cm',
+            'sarkari result.com',
+            'sarkariresult.com',
+            'sarkari result',
+            'sarkariresult',
+            'sarkari exam',
+            'sarkariexam',
+            'freejobalert.com',
+            'freejobalert',
+            'free job alert',
+            'sarkari job find',
+            'sarkarijobfind.com',
+            'sarkarijobfind',
+            'sarkari help',
+            'sarkarihelp.com',
+            'sarkarihelp',
+            'sarkari naukri',
+            'sarkari-naukri.com',
+            'employment news',
+            'employmentnews.gov.in',
+            'rojgar samachar',
+        ];
+        
+        // Fields to clean
+        $fieldsToClean = ['title', 'short_description', 'meta_title', 'meta_description', 'meta_keywords'];
+        
+        foreach ($fieldsToClean as $field) {
+            if (!empty($data[$field])) {
+                // Replace competitor names with 'JobOne' or remove them
+                $cleaned = str_ireplace($competitors, 'JobOne', $data[$field]);
+                
+                // Remove any remaining mentions in parentheses like "(SarkariResult)"
+                $cleaned = preg_replace('/\s*\([^)]*(?:sarkari|result|exam|alert|naukri)[^)]*\)/i', '', $cleaned);
+                
+                // Clean up multiple spaces and trim
+                $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+                $data[$field] = trim($cleaned);
+            }
+        }
+        
+        return $data;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
