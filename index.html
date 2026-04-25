@@ -1,0 +1,2523 @@
+<?php
+// Nothing server-side needed on the index — all logic is in api.php
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobOne.in Publisher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ── CSS Variables ── */
+    :root {
+      --bg: #f0f2f7;
+      --surface: #ffffff;
+      --surface-2: #f7f9fc;
+      --border: #e4e9f2;
+      --border-strong: #cdd5e0;
+      --text-primary: #0f1724;
+      --text-secondary: #4a5568;
+      --text-muted: #8896a8;
+      --accent: #1a6ef5;
+      --accent-dark: #1557cc;
+      --accent-light: #e8f0fe;
+      --green: #0d9e6b;
+      --green-light: #e6f7f2;
+      --green-dark: #0a7d55;
+      --orange: #f59e0b;
+      --orange-light: #fffbeb;
+      --red: #ef4444;
+      --red-light: #fef2f2;
+      --purple: #7c3aed;
+      --purple-light: #f5f3ff;
+      --tg-blue: #229ED9;
+      --wa-green: #25D366;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 36, 0.06), 0 1px 2px rgba(15, 23, 36, 0.04);
+      --shadow-md: 0 4px 16px rgba(15, 23, 36, 0.08), 0 2px 6px rgba(15, 23, 36, 0.04);
+      --shadow-lg: 0 12px 40px rgba(15, 23, 36, 0.12), 0 4px 12px rgba(15, 23, 36, 0.06);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Reset ── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(26, 110, 245, 0.3);
+    }
+
+    .topbar-name {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .topbar-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Social Channel Buttons */
+    .social-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all .2s;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+
+    .social-btn-tg {
+      background: rgba(34, 158, 217, 0.1);
+      color: var(--tg-blue);
+      border: 1px solid rgba(34, 158, 217, 0.25);
+    }
+
+    .social-btn-tg:hover {
+      background: var(--tg-blue);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(34, 158, 217, 0.4);
+    }
+
+    .social-btn-wa {
+      background: rgba(37, 211, 102, 0.1);
+      color: var(--wa-green);
+      border: 1px solid rgba(37, 211, 102, 0.25);
+    }
+
+    .social-btn-wa:hover {
+      background: var(--wa-green);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(37, 211, 102, 0.4);
+    }
+
+    .social-btn svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .topbar-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .badge-green {
+      color: var(--green);
+      background: var(--green-light);
+      border: 1px solid rgba(13, 158, 107, 0.2);
+    }
+
+    .badge-blue {
+      color: var(--accent);
+      background: var(--accent-light);
+      border: 1px solid rgba(26, 110, 245, 0.2);
+    }
+
+    .badge-purple {
+      color: var(--purple);
+      background: var(--purple-light);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+    }
+
+    /* ── Wrapper ── */
+    .wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 28px 20px;
+    }
+
+    /* ── Step Bar ── */
+    .steps {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+
+    .step-item:last-child {
+      flex: none;
+    }
+
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      flex-shrink: 0;
+      background: var(--border);
+      color: var(--text-muted);
+      transition: all .3s;
+    }
+
+    .step-dot.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(26, 110, 245, 0.15);
+    }
+
+    .step-dot.done {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .step-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      margin-left: 8px;
+      transition: all .3s;
+    }
+
+    .step-label.active {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .step-label.done {
+      color: var(--green);
+    }
+
+    .step-line {
+      flex: 1;
+      height: 2px;
+      margin: 0 10px;
+      background: var(--border);
+      transition: background .3s;
+      border-radius: 2px;
+    }
+
+    .step-line.done {
+      background: var(--green);
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .card-header-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .card-header-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+
+    .card-header-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    /* ── Input group ── */
+    .url-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .url-input-group input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--accent-light);
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--surface);
+      outline: none;
+      font-family: var(--font);
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .url-input-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(26, 110, 245, 0.1);
+    }
+
+    .url-input-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Mode toggle */
+    .mode-toggle-wrap {
+      display: flex;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .mode-btn {
+      padding: 7px 14px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-family: var(--font);
+      transition: all .15s;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Fetch status */
+    .fetch-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--accent-light);
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .fetch-status.success {
+      border-color: rgba(13, 158, 107, 0.2);
+      background: var(--green-light);
+      color: var(--green-dark);
+    }
+
+    .fetch-status.error {
+      border-color: rgba(239, 68, 68, 0.2);
+      background: var(--red-light);
+      color: var(--red);
+    }
+
+    /* ── Form fields ── */
+    label.field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      letter-spacing: 0.01em;
+    }
+
+    label.field-label .req {
+      color: var(--red);
+      margin-left: 3px;
+    }
+
+    input[type=text],
+    input[type=url],
+    input[type=number],
+    input[type=date],
+    select,
+    textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-primary);
+      background: var(--surface);
+      outline: none;
+      font-family: var(--font);
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    input[type=text]:focus,
+    input[type=url]:focus,
+    input[type=number]:focus,
+    input[type=date]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26, 110, 245, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      line-height: 1.7;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    /* Grid */
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .row-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* AI match tag */
+    .ai-match-tag {
+      display: inline-block;
+      margin-left: 6px;
+      font-size: 10px;
+      color: var(--green);
+      background: var(--green-light);
+      border: 1px solid rgba(13, 158, 107, 0.2);
+      border-radius: 10px;
+      padding: 1px 7px;
+      vertical-align: middle;
+      font-weight: 700;
+    }
+
+    /* Section title */
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--accent-light);
+    }
+
+    .section-title span {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    /* Toggle */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-track {
+      width: 38px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--border);
+      position: relative;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-track.on {
+      background: var(--green);
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: left .2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+    }
+
+    .toggle-track.on .toggle-thumb {
+      left: 20px;
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    /* Chips */
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      padding: 4px 11px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      transition: all .15s;
+      user-select: none;
+    }
+
+    .chip.selected {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .chip:hover:not(.selected) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+
+    .tab-btn {
+      padding: 12px 16px;
+      border: none;
+      white-space: nowrap;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-family: var(--font);
+      transition: all .15s;
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 700;
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 24px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Links */
+    .links-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .link-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .link-title {
+      flex: 0 0 200px;
+      padding: 8px 12px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      outline: none;
+      font-family: var(--font);
+      color: var(--text-primary);
+    }
+
+    .link-url {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      outline: none;
+      font-family: var(--font);
+      color: var(--text-primary);
+    }
+
+    .link-title:focus,
+    .link-url:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(26, 110, 245, 0.1);
+    }
+
+    .link-remove {
+      padding: 8px 12px;
+      border-radius: var(--radius-xs);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: var(--red-light);
+      color: var(--red);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-add-link {
+      padding: 8px 16px;
+      border-radius: var(--radius-xs);
+      border: 1px dashed var(--accent);
+      background: var(--accent-light);
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      align-self: flex-start;
+      font-family: var(--font);
+      transition: all .15s;
+    }
+
+    .btn-add-link:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* Char counter */
+    .char-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-align: right;
+      font-family: var(--mono);
+    }
+
+    .char-count.over {
+      color: var(--red);
+    }
+
+    /* KW info */
+    .kw-info {
+      font-size: 11px;
+      color: var(--purple);
+      background: var(--purple-light);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: var(--radius-xs);
+      padding: 4px 10px;
+      margin-top: 6px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
+    /* HTML Preview */
+    .html-preview {
+      margin-top: 14px;
+      padding: 20px;
+      background: var(--surface-2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      line-height: 1.85;
+      color: var(--text-primary);
+    }
+
+    .html-preview-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .jdp h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 6px;
+    }
+
+    .jdp h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin: 18px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--accent-light);
+    }
+
+    .jdp p {
+      margin: 0 0 8px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .jdp ul {
+      margin: 0 0 8px;
+      padding-left: 18px;
+    }
+
+    .jdp li {
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .jdp li::marker {
+      color: var(--accent);
+    }
+
+    .jdp a {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    /* Buttons */
+    .btn-back {
+      padding: 11px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-weight: 600;
+      transition: all .15s;
+    }
+
+    .btn-back:hover {
+      background: var(--surface-2);
+    }
+
+    .btn-post {
+      padding: 12px 36px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: linear-gradient(135deg, var(--green), var(--accent));
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(13, 158, 107, 0.3);
+      font-family: var(--font);
+      transition: all .2s;
+    }
+
+    .btn-post:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(13, 158, 107, 0.4);
+    }
+
+    .btn-post:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .btn-analyze {
+      padding: 12px 28px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #5b4ceb);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(26, 110, 245, 0.3);
+      font-family: var(--font);
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .btn-analyze:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(26, 110, 245, 0.4);
+    }
+
+    .btn-analyze:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+
+    .step2-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Progress steps */
+    .progress-steps {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--accent-light);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(26, 110, 245, 0.15);
+      margin-top: 14px;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .progress-step.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .progress-step.done {
+      color: var(--green);
+    }
+
+    .progress-step-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+
+    .progress-step.active .progress-step-dot {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .progress-step.done .progress-step-dot {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .progress-arrow {
+      color: var(--border-strong);
+      font-size: 10px;
+    }
+
+    /* Error banner */
+    .err-banner {
+      padding: 12px 16px;
+      background: var(--red-light);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--red);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Spinner ── */
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .spinner-dark {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(26, 110, 245, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       SUCCESS CARD — Redesigned, beautiful, feature-rich
+    ═══════════════════════════════════════════════════════════════════ */
+
+    .success-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Celebration header */
+    .success-hero {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1a3a5c 40%, #0d4f38 100%);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .success-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 70% 50%, rgba(26, 110, 245, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 80%, rgba(13, 158, 107, 0.2) 0%, transparent 50%);
+    }
+
+    .success-hero-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .success-emoji-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      backdrop-filter: blur(10px);
+    }
+
+    .success-hero-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .success-hero-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 6px;
+    }
+
+    .success-hero-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .success-hero-org {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 4px;
+    }
+
+    .success-live-badge {
+      background: var(--green);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 5px 12px;
+      border-radius: 20px;
+      flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(13, 158, 107, 0.5);
+      animation: pulse-badge 2s infinite;
+    }
+
+    @keyframes pulse-badge {
+
+      0%,
+      100% {
+        box-shadow: 0 3px 10px rgba(13, 158, 107, 0.5);
+      }
+
+      50% {
+        box-shadow: 0 3px 20px rgba(13, 158, 107, 0.8);
+      }
+    }
+
+    /* Stats bar */
+    .success-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-card-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-primary);
+      font-family: var(--mono);
+      line-height: 1;
+    }
+
+    .stat-card-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-card.accent .stat-card-val {
+      color: var(--accent);
+    }
+
+    .stat-card.green .stat-card-val {
+      color: var(--green);
+    }
+
+    /* Two column layout */
+    .success-cols {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 16px;
+    }
+
+    /* Detail grid */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .detail-box {
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .detail-box.full {
+      grid-column: 1 / -1;
+    }
+
+    .detail-box.accent-box {
+      background: var(--accent-light);
+      border-color: rgba(26, 110, 245, 0.2);
+    }
+
+    .detail-box.green-box {
+      background: var(--green-light);
+      border-color: rgba(13, 158, 107, 0.2);
+    }
+
+    .detail-box-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 4px;
+    }
+
+    .detail-box-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .detail-box.accent-box .detail-box-val {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .detail-box.green-box .detail-box-val {
+      color: var(--green-dark);
+    }
+
+    /* Important links section */
+    .links-section {
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .links-section-header {
+      padding: 12px 16px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: all .15s;
+    }
+
+    .link-item:last-child {
+      border-bottom: none;
+    }
+
+    .link-item:hover {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .link-item-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      width: 24px;
+      text-align: center;
+    }
+
+    .link-item-text {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .link-item-arrow {
+      color: var(--text-muted);
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    /* Right panel */
+    .success-right {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Visit button */
+    .visit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--green), var(--accent));
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: var(--radius-sm);
+      padding: 14px 20px;
+      text-decoration: none;
+      transition: all .2s;
+      box-shadow: 0 4px 14px rgba(13, 158, 107, 0.3);
+    }
+
+    .visit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(13, 158, 107, 0.4);
+    }
+
+    /* Share buttons */
+    .share-section {
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .share-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 10px;
+    }
+
+    .share-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .share-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-xs);
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all .2s;
+      text-decoration: none;
+    }
+
+    .share-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .share-btn-tg {
+      background: rgba(34, 158, 217, 0.1);
+      color: var(--tg-blue);
+      border: 1px solid rgba(34, 158, 217, 0.2);
+    }
+
+    .share-btn-tg:hover {
+      background: var(--tg-blue);
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(34, 158, 217, 0.4);
+    }
+
+    .share-btn-wa {
+      background: rgba(37, 211, 102, 0.1);
+      color: var(--wa-green);
+      border: 1px solid rgba(37, 211, 102, 0.2);
+    }
+
+    .share-btn-wa:hover {
+      background: var(--wa-green);
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(37, 211, 102, 0.4);
+    }
+
+    .share-btn-copy {
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .share-btn-copy:hover {
+      background: var(--border);
+    }
+
+    /* System info */
+    .sys-card {
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sys-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .sys-row:last-child {
+      border-bottom: none;
+    }
+
+    .sys-key {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .sys-val {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: right;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Post another */
+    .btn-another {
+      width: 100%;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--surface);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all .2s;
+      border: 2px solid var(--accent-light);
+    }
+
+    .btn-another:hover {
+      background: var(--accent-light);
+    }
+
+    /* Google Job Posting schema notice */
+    .schema-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--orange-light);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      font-size: 12px;
+      color: #92400e;
+    }
+
+    .schema-notice strong {
+      font-weight: 700;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .success-cols {
+        grid-template-columns: 1fr;
+      }
+
+      .success-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar-right .social-btn span {
+        display: none;
+      }
+
+      .row-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .url-input-group {
+        flex-direction: column;
+      }
+
+      .link-title {
+        flex: 0 0 120px;
+      }
+
+      .success-hero-title {
+        font-size: 17px;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .success-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Top Bar ── -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">🎯</div>
+      <div>
+        <div class="topbar-name">JobOne.in Publisher</div>
+        <div class="topbar-sub">AI-powered · URL → SEO Job Post in seconds</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="https://t.me/jobone2026" target="_blank" rel="noreferrer" class="social-btn social-btn-tg">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+        </svg>
+        <span>Telegram</span>
+      </a>
+      <a href="https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22" target="_blank" rel="noreferrer"
+        class="social-btn social-btn-wa">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
+        </svg>
+        <span>WhatsApp</span>
+      </a>
+      <span class="topbar-badge badge-green" id="badge-cat"></span>
+      <span class="topbar-badge badge-blue" id="badge-state"></span>
+      <span class="topbar-badge badge-purple" id="badge-kw"></span>
+    </div>
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="wrapper">
+
+    <!-- Steps -->
+    <div class="steps" id="steps-bar">
+      <div class="step-item">
+        <div class="step-dot active" id="dot-1">1</div>
+        <div class="step-label active" id="lbl-1">URL / Paste &amp; Analyze</div>
+        <div class="step-line" id="line-1"></div>
+      </div>
+      <div class="step-item">
+        <div class="step-dot" id="dot-2">2</div>
+        <div class="step-label" id="lbl-2">Review &amp; Edit</div>
+        <div class="step-line" id="line-2"></div>
+      </div>
+      <div class="step-item">
+        <div class="step-dot" id="dot-3">3</div>
+        <div class="step-label" id="lbl-3">Post to JobOne</div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 1 ══ -->
+    <div id="step1">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-icon">🔗</div>
+          <div>
+            <div class="card-header-title">Paste URL or Raw Text</div>
+            <div class="card-header-sub">Paste a job notification link — AI will fetch, analyze &amp; auto-fill every
+              field with SEO optimization + Google Job Posting schema</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div
+            style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div class="mode-toggle-wrap">
+              <button class="mode-btn active" id="mode-btn-url" onclick="setMode('url')">🔗 Paste URL</button>
+              <button class="mode-btn" id="mode-btn-text" onclick="setMode('text')">📋 Raw Text</button>
+            </div>
+            <span style="font-size:11px; color:var(--text-muted);">Auto-detects: title · state · category · salary ·
+              200+ keywords · inner links</span>
+          </div>
+
+          <!-- URL mode -->
+          <div id="input-url-wrap">
+            <div class="url-input-group">
+              <input type="url" id="url-input" placeholder="https://ssc.nic.in/notice/... or any govt job page URL"
+                oninput="updateAnalyzeBtn()" onkeydown="if(event.key==='Enter') analyze()">
+              <button class="btn-analyze" id="btn-analyze" onclick="analyze()" disabled>🤖&nbsp; Fetch &amp; Analyze
+                →</button>
+            </div>
+            <div id="fetch-status" style="display:none; margin-top:10px;"></div>
+            <div id="progress-steps" class="progress-steps" style="display:none;">
+              <div class="progress-step" id="ps-fetch">
+                <div class="progress-step-dot">1</div>Fetching URL
+              </div>
+              <div class="progress-arrow">›</div>
+              <div class="progress-step" id="ps-extract">
+                <div class="progress-step-dot">2</div>Extracting Text
+              </div>
+              <div class="progress-arrow">›</div>
+              <div class="progress-step" id="ps-ai">
+                <div class="progress-step-dot">3</div>AI Analysis &amp; SEO
+              </div>
+              <div class="progress-arrow">›</div>
+              <div class="progress-step" id="ps-done">
+                <div class="progress-step-dot">4</div>Done
+              </div>
+            </div>
+          </div>
+
+          <!-- Raw text mode -->
+          <div id="input-text-wrap" style="display:none;">
+            <textarea id="raw-text" rows="12"
+              placeholder="Paste any scraped government job notification here...&#10;&#10;Examples:&#10;• UPSC Civil Services 2026 – Apply for 1000 posts...&#10;• SSC CGL 2026 notification released...&#10;• Railway RRB NTPC vacancies 2026..."
+              oninput="updateAnalyzeBtn()"></textarea>
+            <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+              <button class="btn-analyze" id="btn-analyze-text" onclick="analyze()" disabled>🤖&nbsp; Analyze &amp;
+                Extract with AI →</button>
+            </div>
+          </div>
+
+          <div id="ai-err" class="err-banner" style="display:none; margin-top:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STEP 2 ══ -->
+    <div id="step2" style="display:none;" class="step2-wrap">
+      <div class="card">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('basic',this)">📋 Basic Info</button>
+          <button class="tab-btn" onclick="switchTab('dates',this)">📅 Dates &amp; Salary</button>
+          <button class="tab-btn" onclick="switchTab('content',this)">📝 Content</button>
+          <button class="tab-btn" onclick="switchTab('links',this)">🔗 Links</button>
+          <button class="tab-btn" onclick="switchTab('tags',this)">🏷️ Tags &amp; Education</button>
+          <button class="tab-btn" onclick="switchTab('seo',this)">🔍 SEO</button>
+        </div>
+
+        <!-- Basic Info -->
+        <div class="tab-panel active" id="tab-basic">
+          <div class="section-title"><span>📋 Basic Information</span></div>
+          <div class="row-1">
+            <div class="field">
+              <label class="field-label">SEO Job Title <span class="req">*</span></label>
+              <input type="text" id="f-title" placeholder="e.g. SSC CGL 2026 – Apply for 17727 Posts | SSC Jobs">
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label class="field-label">Post Type <span class="req">*</span></label>
+              <select id="f-type">
+                <option value="job">Job</option>
+                <option value="admit_card">Admit Card</option>
+                <option value="result">Result</option>
+                <option value="answer_key">Answer Key</option>
+                <option value="syllabus">Syllabus</option>
+                <option value="blog">Blog</option>
+                <option value="scholarship">Scholarship</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Organization</label>
+              <input type="text" id="f-organization" placeholder="e.g. Staff Selection Commission">
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label class="field-label">Category <span class="req">*</span> <span class="ai-match-tag"
+                  id="cat-match-tag" style="display:none">✓ AI Matched</span></label>
+              <select id="f-category_id">
+                <option value="">— Select Category —</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">State <span class="ai-match-tag" id="state-match-tag" style="display:none">✓ AI
+                  Matched</span></label>
+              <select id="f-state_id">
+                <option value="">— All India —</option>
+              </select>
+            </div>
+          </div>
+          <div class="row-1">
+            <div class="field">
+              <label class="field-label">Total Vacancies</label>
+              <input type="number" id="f-total_posts" placeholder="e.g. 1000">
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label class="field-label">Visibility Settings</label>
+            <div class="toggle-row">
+              <div class="toggle-wrap" onclick="toggleSwitch('is_published')">
+                <div class="toggle-track" id="track-is_published">
+                  <div class="toggle-thumb"></div>
+                </div>
+                <span class="toggle-label">Published</span>
+              </div>
+              <div class="toggle-wrap" onclick="toggleSwitch('is_featured')">
+                <div class="toggle-track" id="track-is_featured">
+                  <div class="toggle-thumb"></div>
+                </div>
+                <span class="toggle-label">Featured</span>
+              </div>
+              <div class="toggle-wrap" onclick="toggleSwitch('is_upcoming')">
+                <div class="toggle-track" id="track-is_upcoming">
+                  <div class="toggle-thumb"></div>
+                </div>
+                <span class="toggle-label">Upcoming</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dates & Salary -->
+        <div class="tab-panel" id="tab-dates">
+          <div class="section-title"><span>📅 Dates &amp; Salary</span></div>
+          <div class="row-2">
+            <div class="field"><label class="field-label">Notification Date</label><input type="date"
+                id="f-notification_date"></div>
+            <div class="field"><label class="field-label">Application Start Date</label><input type="date"
+                id="f-start_date"></div>
+          </div>
+          <div class="row-2">
+            <div class="field"><label class="field-label">Application End Date</label><input type="date"
+                id="f-end_date"></div>
+            <div class="field"><label class="field-label">Last Date to Apply</label><input type="date" id="f-last_date">
+            </div>
+          </div>
+          <div class="row-1">
+            <div class="field">
+              <label class="field-label">Salary / Pay Scale</label>
+              <input type="text" id="f-salary" placeholder="e.g. Pay Level 6 (₹35,400 – ₹1,12,400)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="tab-panel" id="tab-content">
+          <div class="section-title"><span>📝 Content</span></div>
+          <div style="margin-bottom:14px;">
+            <label class="field-label">Short Description (max 160 chars) <span class="req">*</span></label>
+            <textarea id="f-short_description" rows="3" placeholder="Brief 1–2 sentence summary shown in listings..."
+              oninput="updateCharCount('f-short_description','cnt-short',160)"></textarea>
+            <div class="char-count" id="cnt-short">0/160</div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <label class="field-label">Full Content (HTML with Inner Links) <span class="req">*</span></label>
+            <textarea id="f-content" rows="16"
+              placeholder="&lt;h3&gt;About this Notification&lt;/h3&gt;&lt;p&gt;...&lt;/p&gt;"
+              oninput="updatePreview()"></textarea>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">AI automatically embeds 5–8 internal
+              links to jobone.in in the content</div>
+          </div>
+          <div class="html-preview" id="html-preview" style="display:none;">
+            <div class="html-preview-label">Live HTML Preview (with inner links)</div>
+            <div class="jdp" id="preview-body"></div>
+          </div>
+        </div>
+
+        <!-- Links -->
+        <div class="tab-panel" id="tab-links">
+          <div class="section-title"><span>🔗 Links</span></div>
+          <div class="row-1">
+            <div class="field">
+              <label class="field-label">Apply Online URL</label>
+              <input type="url" id="f-online_form" placeholder="https://...">
+            </div>
+          </div>
+          <div class="row-1">
+            <div class="field">
+              <label class="field-label">Final Result URL</label>
+              <input type="url" id="f-final_result" placeholder="https://...">
+            </div>
+          </div>
+          <div style="margin-top:4px;">
+            <label class="field-label">Important Links</label>
+            <div class="links-list" id="important-links-list"></div>
+            <button class="btn-add-link" onclick="addLink()" style="margin-top:8px;">+ Add Link</button>
+          </div>
+        </div>
+
+        <!-- Tags & Education -->
+        <div class="tab-panel" id="tab-tags">
+          <div class="section-title"><span>🏷️ Tags &amp; Education Qualifications</span></div>
+          <div style="margin-bottom:20px;">
+            <label class="field-label">Tags</label>
+            <div class="chip-group" id="chips-tags" style="margin-top:8px;"></div>
+          </div>
+          <div>
+            <label class="field-label">Education Qualifications</label>
+            <div class="chip-group" id="chips-education" style="margin-top:8px;"></div>
+          </div>
+        </div>
+
+        <!-- SEO -->
+        <div class="tab-panel" id="tab-seo">
+          <div class="section-title"><span>🔍 SEO Settings</span></div>
+          <div style="margin-bottom:14px;">
+            <label class="field-label">Meta Title (max 60 chars)</label>
+            <input type="text" id="f-meta_title" placeholder="e.g. SSC CGL 2026 – 17727 Posts | Apply Online"
+              oninput="updateCharCount('f-meta_title','cnt-metatitle',60)">
+            <div class="char-count" id="cnt-metatitle">0/60</div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <label class="field-label">Meta Description (max 160 chars)</label>
+            <textarea id="f-meta_description" rows="3"
+              placeholder="SSC CGL 2026 notification out. Apply online for 17727 vacancies..."
+              oninput="updateCharCount('f-meta_description','cnt-metadesc',160)"></textarea>
+            <div class="char-count" id="cnt-metadesc">0/160</div>
+          </div>
+          <div>
+            <label class="field-label">Meta Keywords <span id="kw-badge" class="ai-match-tag" style="display:none;">✓
+                200+ Generated</span></label>
+            <textarea id="f-meta_keywords" rows="6"
+              placeholder="ssc cgl 2026, ssc cgl notification 2026, ssc cgl apply online ..."
+              style="font-size:12px; line-height:1.6; font-family:var(--mono);"></textarea>
+            <div id="kw-count-info" class="kw-info" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="post-err" class="err-banner" style="display:none;"></div>
+      <div class="actions-row">
+        <button class="btn-back" onclick="goStep(1)">← Back</button>
+        <button class="btn-post" id="btn-post" onclick="postJob()">🚀&nbsp; Post to JobOne.in →</button>
+      </div>
+    </div>
+
+    <!-- ══ STEP 3 — SUCCESS ══ -->
+    <div id="step3" style="display:none;">
+      <div class="success-wrap">
+
+        <!-- Hero -->
+        <div class="success-hero">
+          <div class="success-hero-content">
+            <div class="success-emoji-wrap">🎉</div>
+            <div class="success-hero-text">
+              <div class="success-hero-label">✓ Published to JobOne.in</div>
+              <div class="success-hero-title" id="gj-title">Job Posted Successfully</div>
+              <div class="success-hero-org" id="gj-org"></div>
+            </div>
+            <div class="success-live-badge">LIVE</div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="success-stats" id="gj-stats"></div>
+
+        <!-- Schema notice -->
+        <div class="schema-notice">
+          <span style="font-size:18px;">🔍</span>
+          <div><strong>Google Job Posting Schema</strong> has been auto-generated — your job will appear in Google Jobs
+            search results for maximum visibility.</div>
+        </div>
+
+        <!-- Two column -->
+        <div class="success-cols">
+
+          <!-- Left -->
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+              <div
+                style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px;">
+                📋 Post Details</div>
+              <div class="detail-grid" id="gj-detail-boxes"></div>
+            </div>
+
+            <div class="links-section" id="gj-links-section">
+              <div class="links-section-header">🔗 Important Links</div>
+              <div id="gj-links-grid"></div>
+            </div>
+          </div>
+
+          <!-- Right -->
+          <div class="success-right">
+
+            <div id="gj-url-wrap" style="display:none;">
+              <a id="success-url" href="#" target="_blank" rel="noreferrer" class="visit-btn">🌐 View Live on JobOne.in
+                →</a>
+            </div>
+
+            <div class="share-section">
+              <div class="share-section-title">📢 Share This Job</div>
+              <div class="share-btns">
+                <a id="share-tg" href="#" target="_blank" rel="noreferrer" class="share-btn share-btn-tg">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                  </svg>
+                  Share on Telegram
+                </a>
+                <a id="share-wa" href="#" target="_blank" rel="noreferrer" class="share-btn share-btn-wa">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
+                  </svg>
+                  Share on WhatsApp
+                </a>
+                <button class="share-btn share-btn-copy" onclick="copyJobUrl()">📋 Copy Job URL</button>
+              </div>
+            </div>
+
+            <div class="sys-card">
+              <div
+                style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px;">
+                🆔 System Info</div>
+              <div id="gj-sys-info"></div>
+            </div>
+
+            <button class="btn-another" onclick="resetForm()">➕ Post Another Job</button>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /wrapper -->
+
+  <script>
+    // ── Config ──
+    const ALL_TAGS = ['cutoff', 'merit_list', 'selection_list', 'final_result', 'provisional_result', 'revised_result', 'scorecard', 'marks'];
+    const ALL_EDU = ['10th_pass', '12th_pass', 'graduate', 'post_graduate', 'diploma', 'iti', 'btech', 'mtech', 'bsc', 'msc', 'bcom', 'mcom', 'ba', 'ma', 'bba', 'mba', 'ca', 'cs', 'cma', 'llb', 'llm', 'mbbs', 'bds', 'bpharm', 'mpharm', 'nursing', 'bed', 'med', 'phd', 'any_qualification'];
+    const FALLBACK_CATEGORIES = [
+      { id: '1', name: 'Central Govt Jobs' }, { id: '2', name: 'State Govt Jobs' }, { id: '3', name: 'Banking Jobs' },
+      { id: '4', name: 'Railway Jobs' }, { id: '5', name: 'Teaching Jobs' }, { id: '6', name: 'Police / Defence' },
+      { id: '7', name: 'Engineering Jobs' }, { id: '8', name: 'Medical / Health' }, { id: '9', name: 'SSC Jobs' },
+      { id: '10', name: 'UPSC Jobs' }, { id: '11', name: 'PSC Jobs' }, { id: '12', name: 'Court / Legal' },
+      { id: '13', name: 'Scholarship' }, { id: '14', name: 'Admit Card' }, { id: '15', name: 'Result' },
+      { id: '16', name: 'Answer Key' }, { id: '17', name: 'Syllabus' },
+    ];
+    const FALLBACK_STATES = [
+      { id: '0', name: 'All India' }, { id: '1', name: 'Andhra Pradesh' }, { id: '2', name: 'Arunachal Pradesh' },
+      { id: '3', name: 'Assam' }, { id: '4', name: 'Bihar' }, { id: '5', name: 'Chhattisgarh' },
+      { id: '6', name: 'Goa' }, { id: '7', name: 'Gujarat' }, { id: '8', name: 'Haryana' },
+      { id: '9', name: 'Himachal Pradesh' }, { id: '10', name: 'Jharkhand' }, { id: '11', name: 'Karnataka' },
+      { id: '12', name: 'Kerala' }, { id: '13', name: 'Madhya Pradesh' }, { id: '14', name: 'Maharashtra' },
+      { id: '15', name: 'Manipur' }, { id: '16', name: 'Meghalaya' }, { id: '17', name: 'Mizoram' },
+      { id: '18', name: 'Nagaland' }, { id: '19', name: 'Odisha' }, { id: '20', name: 'Punjab' },
+      { id: '21', name: 'Rajasthan' }, { id: '22', name: 'Sikkim' }, { id: '23', name: 'Tamil Nadu' },
+      { id: '24', name: 'Telangana' }, { id: '25', name: 'Tripura' }, { id: '26', name: 'Uttar Pradesh' },
+      { id: '27', name: 'Uttarakhand' }, { id: '28', name: 'West Bengal' }, { id: '29', name: 'Delhi' },
+      { id: '30', name: 'Jammu & Kashmir' }, { id: '31', name: 'Ladakh' },
+    ];
+
+    let inputMode = 'url';
+    const toggleState = { is_published: false, is_featured: false, is_upcoming: false };
+    const selectedChips = { tags: [], education: [] };
+    let linkRows = [{ title: '', url: '' }];
+    let lastPostedUrl = '';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCategories(); loadStates();
+      buildChips('tags', ALL_TAGS, 'chips-tags');
+      buildChips('education', ALL_EDU, 'chips-education');
+      renderLinks();
+    });
+
+    function setMode(mode) {
+      inputMode = mode;
+      document.getElementById('input-url-wrap').style.display = mode === 'url' ? '' : 'none';
+      document.getElementById('input-text-wrap').style.display = mode === 'text' ? '' : 'none';
+      document.getElementById('mode-btn-url').classList.toggle('active', mode === 'url');
+      document.getElementById('mode-btn-text').classList.toggle('active', mode === 'text');
+      updateAnalyzeBtn();
+    }
+
+    async function loadCategories() {
+      try {
+        const r = await fetch('api.php?action=categories');
+        const d = await r.json();
+        const cats = (d.success && d.data?.length) ? d.data : FALLBACK_CATEGORIES;
+        populateSelect('f-category_id', cats, '— Select Category —');
+        const badge = document.getElementById('badge-cat');
+        badge.textContent = '✓ ' + cats.length + ' categories'; badge.style.display = '';
+      } catch { populateSelect('f-category_id', FALLBACK_CATEGORIES, '— Select Category —'); }
+    }
+    async function loadStates() {
+      try {
+        const r = await fetch('api.php?action=states');
+        const d = await r.json();
+        const sts = (d.success && d.data?.length) ? d.data : FALLBACK_STATES;
+        populateSelect('f-state_id', sts, '— All India —');
+        const badge = document.getElementById('badge-state');
+        badge.textContent = '✓ ' + sts.length + ' states'; badge.style.display = '';
+      } catch { populateSelect('f-state_id', FALLBACK_STATES, '— All India —'); }
+    }
+
+    function populateSelect(id, items, placeholder) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = `<option value="">${placeholder}</option>`;
+      items.forEach(item => {
+        const o = document.createElement('option');
+        o.value = item.id; o.textContent = item.name;
+        sel.appendChild(o);
+      });
+    }
+
+    function matchSelectByName(selectId, nameToMatch, matchTagId) {
+      if (!nameToMatch || nameToMatch.trim() === '') return false;
+      const sel = document.getElementById(selectId);
+      const lower = nameToMatch.toLowerCase().trim();
+      for (const opt of sel.options) {
+        if (opt.value && opt.textContent.toLowerCase().trim() === lower) {
+          sel.value = opt.value;
+          if (matchTagId) document.getElementById(matchTagId).style.display = '';
+          return true;
+        }
+      }
+      let bestVal = null, bestScore = 0;
+      for (const opt of sel.options) {
+        if (!opt.value) continue;
+        const optLower = opt.textContent.toLowerCase().trim();
+        let score = 0;
+        if (lower.includes(optLower)) score = optLower.length;
+        if (optLower.includes(lower)) score = Math.max(score, lower.length);
+        const aWords = lower.split(/\s+/), bWords = optLower.split(/\s+/);
+        const shared = aWords.filter(w => bWords.includes(w)).length;
+        if (shared > 0) score = Math.max(score, shared * 5);
+        if (score > bestScore) { bestScore = score; bestVal = opt.value; }
+      }
+      if (bestVal) { sel.value = bestVal; if (matchTagId) document.getElementById(matchTagId).style.display = ''; return true; }
+      return false;
+    }
+
+    function goStep(n) {
+      document.getElementById('step1').style.display = n === 1 ? '' : 'none';
+      document.getElementById('step2').style.display = n === 2 ? '' : 'none';
+      document.getElementById('step3').style.display = n === 3 ? '' : 'none';
+      [1, 2, 3].forEach(i => {
+        const dot = document.getElementById('dot-' + i);
+        const lbl = document.getElementById('lbl-' + i);
+        dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+        dot.textContent = i < n ? '✓' : i;
+        lbl.className = 'step-label' + (i < n ? ' done' : i === n ? ' active' : '');
+        if (i < 3) { const line = document.getElementById('line-' + i); line.className = 'step-line' + (i < n ? ' done' : ''); }
+      });
+      if (n === 1) { document.getElementById('ai-err').style.display = 'none'; document.getElementById('post-err').style.display = 'none'; }
+    }
+
+    function updateAnalyzeBtn() {
+      const urlVal = (document.getElementById('url-input')?.value || '').trim();
+      const textVal = (document.getElementById('raw-text')?.value || '').trim();
+      const hasInput = inputMode === 'url' ? urlVal.length > 0 : textVal.length > 0;
+      const btnUrl = document.getElementById('btn-analyze');
+      const btnText = document.getElementById('btn-analyze-text');
+      if (btnUrl) btnUrl.disabled = !hasInput;
+      if (btnText) btnText.disabled = !hasInput;
+    }
+
+    function setProgressStep(step) {
+      const ids = ['ps-fetch', 'ps-extract', 'ps-ai', 'ps-done'];
+      ids.forEach((id, idx) => {
+        const el = document.getElementById(id); if (!el) return;
+        el.className = 'progress-step' + (idx + 1 < step ? ' done' : idx + 1 === step ? ' active' : '');
+        const dot = el.querySelector('.progress-step-dot');
+        if (dot) dot.textContent = idx + 1 < step ? '✓' : idx + 1;
+      });
+      document.getElementById('progress-steps').style.display = 'flex';
+    }
+
+    function setFetchStatus(msg, type = 'info') {
+      const el = document.getElementById('fetch-status');
+      el.className = 'fetch-status ' + type; el.innerHTML = msg; el.style.display = '';
+    }
+
+    async function analyze() {
+      document.getElementById('ai-err').style.display = 'none';
+      const urlBtn  = document.getElementById('btn-analyze');
+      const textBtn = document.getElementById('btn-analyze-text');
+      const setDisabled = v => { if (urlBtn) urlBtn.disabled = v; if (textBtn) textBtn.disabled = v; };
+      const setLabel    = html => { if (urlBtn) urlBtn.innerHTML = html; if (textBtn) textBtn.innerHTML = html; };
+
+      setDisabled(true);
+      setLabel('<span class="spinner"></span> Working...');
+
+      let officialLinks = [];
+      let sourceUrl     = '';
+
+      try {
+        let rawText = '';
+
+        if (inputMode === 'url') {
+          const url = document.getElementById('url-input').value.trim();
+          if (!url) throw new Error('Please enter a URL');
+          sourceUrl = url;
+
+          setProgressStep(1);
+          setFetchStatus('<span class="spinner-dark"></span> Fetching page…', 'info');
+
+          const scrapeRes  = await fetch('api.php?action=scrape_url', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+          });
+          const scrapeData = await scrapeRes.json();
+          if (!scrapeData.success) throw new Error(scrapeData.message || 'Failed to fetch URL. Try pasting raw text instead.');
+
+          officialLinks = scrapeData.official_links || [];
+          const skipped = scrapeData.skipped_count  || 0;
+          const found   = officialLinks.length;
+
+          setProgressStep(2);
+          setFetchStatus(
+            `✓ Fetched ${(scrapeData.chars || 0).toLocaleString()} chars — ` +
+            `<strong>${found} official link${found !== 1 ? 's' : ''}</strong> kept, ` +
+            `<span style="color:var(--text-muted)">${skipped} aggregator link${skipped !== 1 ? 's' : ''} discarded</span>`,
+            'success'
+          );
+          rawText = scrapeData.text;
+        } else {
+          rawText = document.getElementById('raw-text').value.trim();
+          if (!rawText) throw new Error('Please paste the job description');
+        }
+
+        setProgressStep(3);
+        if (inputMode === 'url') setFetchStatus('<span class="spinner-dark"></span> AI analysing — extracting fields, FAQ, SEO content &amp; 200+ keywords…', 'info');
+        setLabel('<span class="spinner"></span> AI Analysing…');
+
+        const analyzeRes  = await fetch('api.php?action=analyze', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw_text: rawText, official_links: officialLinks, source_url: sourceUrl }),
+        });
+        const analyzeData = await analyzeRes.json();
+        if (!analyzeData.success) throw new Error(analyzeData.message || 'AI analysis failed');
+
+        setProgressStep(4);
+        if (inputMode === 'url') {
+          const kwCount  = analyzeData.kw_count  || 0;
+          const faqCount = analyzeData.faq_count || 0;
+          setFetchStatus(
+            `✓ Analysis complete — ${kwCount} SEO keywords · ${faqCount} FAQ pairs · ` +
+            `${officialLinks.length} official links embedded`,
+            'success'
+          );
+        }
+
+        // Store OG tags for display in step 3
+        window._ogTags    = analyzeData.og_tags    || '';
+        window._sourceUrl = sourceUrl;
+        window._parsedData = analyzeData.data || {};
+
+        populateForm(analyzeData.data, analyzeData.kw_count || 0);
+        goStep(2);
+
+      } catch (e) {
+        document.getElementById('progress-steps').style.display = 'none';
+        const err = document.getElementById('ai-err');
+        err.textContent = '⚠️ ' + (e.message || 'Analysis failed');
+        err.style.display = '';
+      } finally {
+        setDisabled(false);
+        if (inputMode === 'url') setLabel('🤖&nbsp; Fetch &amp; Analyze →');
+        else                     setLabel('🤖&nbsp; Analyze &amp; Extract with AI →');
+        updateAnalyzeBtn();
+      }
+    }
+
+    function populateForm(p, kwCount) {
+      const fields = ['title', 'type', 'organization', 'notification_date', 'start_date', 'end_date', 'last_date', 'total_posts', 'salary', 'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords'];
+      fields.forEach(f => { const el = document.getElementById('f-' + f); if (el && p[f] !== undefined && p[f] !== null) el.value = p[f]; });
+      let catMatched = false;
+      if (p.category_id) { const sel = document.getElementById('f-category_id'); if ([...sel.options].some(o => o.value == p.category_id)) { sel.value = p.category_id; catMatched = true; document.getElementById('cat-match-tag').style.display = ''; } }
+      if (!catMatched && p.category_name) catMatched = matchSelectByName('f-category_id', p.category_name, 'cat-match-tag');
+      let stateMatched = false;
+      if (p.state_id) { const sel = document.getElementById('f-state_id'); if ([...sel.options].some(o => o.value == p.state_id)) { sel.value = p.state_id; stateMatched = true; document.getElementById('state-match-tag').style.display = ''; } }
+      if (!stateMatched && p.state_name) stateMatched = matchSelectByName('f-state_id', p.state_name, 'state-match-tag');
+      const actualKwCount = kwCount || countKeywords(p.meta_keywords || '');
+      if (actualKwCount > 0) {
+        document.getElementById('kw-badge').textContent = `✓ ${actualKwCount} Keywords Generated`; document.getElementById('kw-badge').style.display = '';
+        document.getElementById('kw-count-info').textContent = `🔑 ${actualKwCount} SEO keywords generated by AI${actualKwCount >= 200 ? ' ✓ 200+ target met!' : ' (you can add more)'}`;
+        document.getElementById('kw-count-info').style.display = '';
+        document.getElementById('badge-kw').textContent = `🔑 ${actualKwCount} keywords`; document.getElementById('badge-kw').style.display = '';
+      }
+      if (Array.isArray(p.tags)) { selectedChips.tags = p.tags; updateChips('tags', 'chips-tags'); }
+      if (Array.isArray(p.education)) { selectedChips.education = p.education; updateChips('education', 'chips-education'); }
+      let links = [];
+      if (p.important_links) {
+        const rawLinks = Array.isArray(p.important_links) ? p.important_links : Object.values(p.important_links);
+        links = rawLinks.filter(l => l && typeof l === 'object').map((l, idx) => {
+          const rawTitle = l.title || l.name || l.text || '';
+          const url = l.url || l.href || l.link || '';
+          return { title: inferLinkTitle(rawTitle, url, idx + 1), url };
+        }).filter(l => l.title || l.url);
+      }
+      linkRows = links.length ? links : [{ title: '', url: '' }];
+      renderLinks();
+      updateCharCount('f-short_description', 'cnt-short', 160);
+      updateCharCount('f-meta_title', 'cnt-metatitle', 60);
+      updateCharCount('f-meta_description', 'cnt-metadesc', 160);
+      updatePreview();
+      switchTabById('basic');
+    }
+
+    function countKeywords(kwStr) { if (!kwStr) return 0; return kwStr.split(',').map(s => s.trim()).filter(Boolean).length; }
+
+    function switchTab(id, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active'); document.getElementById('tab-' + id).classList.add('active');
+    }
+    function switchTabById(id) {
+      document.querySelectorAll('.tab-btn').forEach(b => { if (b.getAttribute('onclick')?.includes("'" + id + "'")) b.classList.add('active'); else b.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(p => { p.classList.toggle('active', p.id === 'tab-' + id); });
+    }
+
+    function toggleSwitch(key) { toggleState[key] = !toggleState[key]; document.getElementById('track-' + key).classList.toggle('on', toggleState[key]); }
+
+    function buildChips(group, all, containerId) {
+      const container = document.getElementById(containerId); container.innerHTML = '';
+      all.forEach(v => {
+        const chip = document.createElement('div'); chip.className = 'chip'; chip.textContent = v.replace(/_/g, ' '); chip.dataset.val = v;
+        chip.onclick = () => toggleChip(group, v, chip, containerId); container.appendChild(chip);
+      });
+    }
+    function toggleChip(group, v, chip, containerId) { const arr = selectedChips[group]; const idx = arr.indexOf(v); if (idx > -1) arr.splice(idx, 1); else arr.push(v); chip.classList.toggle('selected', arr.includes(v)); }
+    function updateChips(group, containerId) { document.querySelectorAll('#' + containerId + ' .chip').forEach(chip => { chip.classList.toggle('selected', selectedChips[group].includes(chip.dataset.val)); }); }
+
+    function renderLinks() {
+      const list = document.getElementById('important-links-list'); list.innerHTML = '';
+      linkRows.forEach((link, i) => {
+        const row = document.createElement('div'); row.className = 'link-row';
+        row.innerHTML = `<input class="link-title" type="text" placeholder="Link title (e.g. Apply Online)" value="${escHtml(link.title)}" oninput="linkRows[${i}].title=this.value">
+        <input class="link-url" type="url" placeholder="https://..." value="${escHtml(link.url)}" oninput="linkRows[${i}].url=this.value">
+        <button class="link-remove" onclick="removeLink(${i})">✕</button>`;
+        list.appendChild(row);
+      });
+    }
+    function addLink() { linkRows.push({ title: '', url: '' }); renderLinks(); }
+    function removeLink(i) { linkRows.splice(i, 1); renderLinks(); }
+
+    function updateCharCount(fieldId, cntId, max) {
+      const len = (document.getElementById(fieldId)?.value || '').length;
+      const el = document.getElementById(cntId); if (!el) return;
+      el.textContent = len + '/' + max; el.classList.toggle('over', len > max);
+    }
+
+    function updatePreview() {
+      const html = document.getElementById('f-content')?.value || '';
+      const preview = document.getElementById('html-preview');
+      const body = document.getElementById('preview-body');
+      if (html.trim()) { body.innerHTML = html; preview.style.display = ''; }
+      else preview.style.display = 'none';
+    }
+
+    function collectForm() {
+      const g = id => document.getElementById('f-' + id)?.value || '';
+      const pd = window._parsedData || {};
+      return {
+        title:             g('title'),
+        type:              g('type'),
+        short_description: g('short_description'),
+        content:           g('content'),
+        category_id:       g('category_id'),
+        state_id:          g('state_id'),
+        organization:      g('organization'),
+        notification_date: g('notification_date'),
+        start_date:        g('start_date'),
+        end_date:          g('end_date'),
+        last_date:         g('last_date'),
+        total_posts:       g('total_posts') ? Number(g('total_posts')) : (pd.total_posts || ''),
+        salary:            g('salary'),
+        online_form:       g('online_form'),
+        final_result:      g('final_result'),
+        important_links:   linkRows.filter(l => l.title && l.url),
+        tags:              [...selectedChips.tags],
+        education:         [...selectedChips.education],
+        is_featured:       toggleState.is_featured,
+        is_upcoming:       toggleState.is_upcoming,
+        is_published:      toggleState.is_published,
+        meta_title:        g('meta_title'),
+        meta_description:  g('meta_description'),
+        meta_keywords:     g('meta_keywords'),
+        source_url:        window._sourceUrl || '',
+        // --- Pass new AI-generated structured fields silently ---
+        salary_type:       pd.salary_type || 'salary',
+        salary_min:        pd.salary_min || 0,
+        salary_max:        pd.salary_max || 0,
+        age_min:           pd.age_min || 0,
+        age_max_gen:       pd.age_max_gen || 0,
+        age_max_obc:       pd.age_max_obc || 0,
+        age_max_sc:        pd.age_max_sc || 0,
+        apply_url:         pd.apply_url || g('online_form'),
+        direct_apply:      pd.direct_apply !== undefined ? pd.direct_apply : !!g('online_form'),
+        qualifications:    pd.qualifications || '',
+        skills:            pd.skills || '',
+        responsibilities:  pd.responsibilities || '',
+        faq:               pd.faq || null,
+      };
+    }
+
+    async function postJob() {
+      const form = collectForm();
+      if (!form.title || !form.type || !form.short_description || !form.content || !form.category_id) {
+        showPostErr('Please fill required fields: Title, Type, Short Description, Content, Category.');
+        return;
+      }
+      const btn = document.getElementById('btn-post');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Posting...';
+      hidePostErr();
+      try {
+        const res = await fetch('api.php?action=post_job', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || JSON.stringify(data.errors));
+        showSuccess(data);
+        goStep(3);
+      } catch (e) {
+        showPostErr('⚠️ ' + (e.message || 'Failed to post job'));
+      } finally {
+        btn.disabled = false; btn.innerHTML = '🚀&nbsp; Post to JobOne.in →';
+      }
+    }
+
+    function showPostErr(msg) { const el = document.getElementById('post-err'); el.textContent = msg; el.style.display = ''; }
+    function hidePostErr() { document.getElementById('post-err').style.display = 'none'; }
+
+    // ── Success screen ──
+    function showSuccess(data) {
+      const d    = data.data || {};
+      const form = collectForm();
+
+      document.getElementById('gj-title').textContent = d.title || form.title || 'Job Posted Successfully';
+      document.getElementById('gj-org').textContent   = form.organization || d.organization || 'JobOne.in';
+
+      // Stats — now includes FAQ count
+      const faqCount = (form.content.match(/"@type"\s*:\s*"Question"/g) || []).length;
+      const statsData = [
+        { val: d.id || '—',                                                                             lbl: 'Post ID',   cls: 'accent' },
+        { val: form.total_posts ? Number(form.total_posts).toLocaleString('en-IN') : '—',              lbl: 'Vacancies', cls: 'green'  },
+        { val: form.type ? form.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—', lbl: 'Type',      cls: ''       },
+        { val: form.last_date || d.created_at?.slice(0,10) || '—',                                     lbl: 'Last Date', cls: ''       },
+      ];
+      document.getElementById('gj-stats').innerHTML = statsData.map(s => `
+        <div class="stat-card ${s.cls}">
+          <div class="stat-card-val">${escHtml(String(s.val))}</div>
+          <div class="stat-card-lbl">${escHtml(s.lbl)}</div>
+        </div>`).join('');
+
+      // Detail boxes
+      const boxes = [
+        { lbl: 'Category',          val: getCategoryName(form.category_id), cls: '' },
+        { lbl: 'State / Region',    val: getStateName(form.state_id) || 'All India', cls: '' },
+        { lbl: 'Salary / Pay Scale',val: form.salary || '—', cls: '' },
+        { lbl: 'Notification Date', val: form.notification_date || '—', cls: '' },
+        { lbl: 'Apply Start',       val: form.start_date || '—', cls: '' },
+        { lbl: 'Apply End',         val: form.end_date || '—', cls: '' },
+        { lbl: 'Slug / URL Path',   val: d.slug || '—', cls: 'accent-box full' },
+        { lbl: 'Published',         val: form.is_published ? '✓ Yes' : '✗ Draft', cls: form.is_published ? 'green-box' : '' },
+      ];
+      document.getElementById('gj-detail-boxes').innerHTML = boxes.map(b => `
+        <div class="detail-box ${b.cls}">
+          <div class="detail-box-label">${escHtml(b.lbl)}</div>
+          <div class="detail-box-val">${escHtml(String(b.val))}</div>
+        </div>`).join('');
+
+      // Links
+      const links = form.important_links || [];
+      const linksEl = document.getElementById('gj-links-grid');
+      linksEl.innerHTML = links.length
+        ? links.map(l => `
+          <a class="link-item" href="${escHtml(l.url)}" target="_blank" rel="noreferrer">
+            <span class="link-item-icon">${getLinkIcon(l.title)}</span>
+            <span class="link-item-text">${escHtml(l.title)}</span>
+            <span class="link-item-arrow">↗</span>
+          </a>`).join('')
+        : '<div style="padding:14px 16px;color:var(--text-muted);font-size:12px;">No important links added.</div>';
+
+      // Live URL
+      const urlWrap = document.getElementById('gj-url-wrap');
+      const urlEl   = document.getElementById('success-url');
+      lastPostedUrl  = data.job_url || (d.slug ? 'https://jobone.in/' + d.slug : 'https://jobone.in/');
+      if (d.slug || data.job_url) { urlEl.href = lastPostedUrl; urlWrap.style.display = ''; }
+      else urlWrap.style.display = 'none';
+
+      // Share links
+      const shareText = encodeURIComponent(`🔔 ${d.title || form.title || 'New Govt Job'}\n${form.short_description || ''}\n\n🔗 ${lastPostedUrl}`);
+      document.getElementById('share-tg').href = `https://t.me/share/url?url=${encodeURIComponent(lastPostedUrl)}&text=${shareText}`;
+      document.getElementById('share-wa').href = `https://wa.me/?text=${shareText}`;
+
+      // System info
+      const sysRows = [
+        { k: 'Post ID',   v: d.id || '—' },
+        { k: 'Created',   v: d.created_at?.slice(0,10) || '—' },
+        { k: 'Type',      v: d.type || form.type || '—' },
+        { k: 'Featured',  v: form.is_featured ? '✓ Yes' : 'No' },
+        { k: 'Upcoming',  v: form.is_upcoming ? '✓ Yes' : 'No' },
+      ];
+      document.getElementById('gj-sys-info').innerHTML = sysRows.map(r => `
+        <div class="sys-row">
+          <span class="sys-key">${escHtml(r.k)}</span>
+          <span class="sys-val">${escHtml(String(r.v))}</span>
+        </div>`).join('');
+
+      // ── IndexNow result panel (inject after sys-card) ─────────────────────────
+      const ping = data.indexnow || {};
+      const pingHtml = ping.skipped
+        ? `<div class="sys-card" style="border-color:rgba(245,158,11,.3);background:var(--orange-light);margin-top:0;">
+            <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">⚡ IndexNow</div>
+            <div style="font-size:12px;color:#92400e;">Key not configured — add <code>INDEXNOW_KEY</code> to api.php to enable instant Google/Bing indexing</div>
+           </div>`
+        : ping.pinged
+          ? (() => {
+              const results = ping.results || {};
+              const rows = Object.entries(results).map(([engine, r]) =>
+                `<div class="sys-row">
+                  <span class="sys-key">${escHtml(engine)}</span>
+                  <span class="sys-val" style="color:${r.success ? 'var(--green)' : 'var(--red)'};">${r.success ? '✓ ' + r.http_code : '✗ ' + (r.http_code || r.error)}</span>
+                 </div>`
+              ).join('');
+              return `<div class="sys-card" style="border-color:rgba(13,158,107,.3);background:var(--green-light);margin-top:0;">
+                <div style="font-size:11px;font-weight:700;color:var(--green-dark);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">⚡ IndexNow — Pinged</div>
+                ${rows}
+                <div style="font-size:11px;color:var(--green-dark);margin-top:6px;">Google &amp; Bing notified — page will be crawled within minutes</div>
+               </div>`;
+            })()
+          : '';
+
+      // Insert ping panel before the "Post Another" button
+      const anotherBtn = document.querySelector('.btn-another');
+      if (anotherBtn && pingHtml) {
+        const existing = document.getElementById('indexnow-panel');
+        if (existing) existing.remove();
+        const div = document.createElement('div'); div.id = 'indexnow-panel'; div.innerHTML = pingHtml;
+        anotherBtn.parentNode.insertBefore(div, anotherBtn);
+      }
+
+      // ── OG Tags panel ─────────────────────────────────────────────────────────
+      const ogTags = data.og_tags || window._ogTags || '';
+      if (ogTags) {
+        const ogHtml = `
+          <div class="sys-card" id="og-tags-panel" style="margin-top:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;">🔖 Head Meta Tags (OG + Schema)</div>
+              <button onclick="copyOgTags()" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:var(--font);color:var(--accent);font-weight:600;">Copy</button>
+            </div>
+            <textarea id="og-tags-text" readonly style="width:100%;font-size:11px;font-family:var(--mono);border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface-2);resize:vertical;line-height:1.6;color:var(--text-secondary);">${escHtml(ogTags)}</textarea>
+          </div>`;
+        const existingOg = document.getElementById('og-tags-panel');
+        if (existingOg) existingOg.remove();
+        const div = document.createElement('div'); div.innerHTML = ogHtml;
+        anotherBtn.parentNode.insertBefore(div.firstElementChild, anotherBtn);
+      }
+
+      // ── JobPosting schema (Google Jobs rich result) ───────────────────────────
+      injectJobSchema(d, form, data.job_schema || '');
+    }
+
+    function copyJobUrl() {
+      if (!lastPostedUrl) return;
+      navigator.clipboard.writeText(lastPostedUrl).then(() => {
+        const btn = document.querySelector('.share-btn-copy');
+        const orig = btn.innerHTML; btn.innerHTML = '✅ Copied!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+      });
+    }
+
+    // ── Google Job Posting structured data ──
+    function injectJobSchema(d, form, serverSchemaHtml = '') {
+      // Remove previous schema tags
+      document.querySelectorAll('#job-schema, #faq-schema').forEach(el => el.remove());
+
+      if (serverSchemaHtml) {
+        // Parse server-generated <script> tags and inject them into <head>
+        const tmp = document.createElement('div');
+        tmp.innerHTML = serverSchemaHtml;
+        tmp.querySelectorAll('script[type="application/ld+json"]').forEach((s, i) => {
+          const el   = document.createElement('script');
+          el.type    = 'application/ld+json';
+          el.id      = i === 0 ? 'job-schema' : 'faq-schema';
+          el.textContent = s.textContent;
+          document.head.appendChild(el);
+        });
+        return;
+      }
+
+      // Fallback: build minimal client-side JobPosting schema
+      const jobUrl = lastPostedUrl || 'https://jobone.in/';
+      const schema = {
+        '@context': 'https://schema.org/', '@type': 'JobPosting',
+        title:             d.title || form.title || '',
+        description:       form.short_description || '',
+        datePosted:        form.notification_date || new Date().toISOString().slice(0,10),
+        dateModified:      new Date().toISOString(),
+        employmentType:    'FULL_TIME',
+        directApply:       !!form.online_form,
+        hiringOrganization:{ '@type': 'Organization', name: form.organization || 'Government of India', sameAs: 'https://jobone.in' },
+        jobLocation:       { '@type': 'Place', address: { '@type': 'PostalAddress', addressCountry: 'IN', addressRegion: getStateName(form.state_id) || 'All India' } },
+        url:               jobUrl,
+      };
+      if (form.last_date)    schema.validThrough      = form.last_date + 'T23:59:59+05:30';
+      if (form.salary)       schema.baseSalary        = { '@type': 'MonetaryAmount', currency: 'INR', value: { '@type': 'QuantitativeValue', description: form.salary, unitText: 'YEAR' } };
+      if (form.total_posts)  schema.totalJobOpenings  = Number(form.total_posts);
+      if (form.online_form)  schema.applicationContact= { '@type': 'ContactPoint', contactType: 'Apply Online', url: form.online_form };
+
+      const el = document.createElement('script');
+      el.type = 'application/ld+json'; el.id = 'job-schema'; el.textContent = JSON.stringify(schema);
+      document.head.appendChild(el);
+    }
+
+    // Copy OG tags helper
+    function copyOgTags() {
+      const ta = document.getElementById('og-tags-text');
+      if (!ta) return;
+      navigator.clipboard.writeText(ta.value).then(() => {
+        const btn = document.querySelector('#og-tags-panel button');
+        const orig = btn.innerHTML; btn.innerHTML = '✅ Copied!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+      });
+    }
+
+    function getCategoryName(id) { const sel = document.getElementById('f-category_id'); const opt = [...(sel?.options || [])].find(o => o.value == id); return opt ? opt.textContent : '—'; }
+    function getStateName(id) { const sel = document.getElementById('f-state_id'); const opt = [...(sel?.options || [])].find(o => o.value == id); return opt ? opt.textContent : ''; }
+    function getLinkIcon(title) {
+      const t = (title || '').toLowerCase();
+      if (/apply|register/i.test(t)) return '📝';
+      if (/admit|hall/i.test(t)) return '🪪';
+      if (/result|merit/i.test(t)) return '📊';
+      if (/syllabus/i.test(t)) return '📚';
+      if (/answer/i.test(t)) return '🔑';
+      if (/notification|pdf/i.test(t)) return '📄';
+      if (/official|website/i.test(t)) return '🏛️';
+      if (/interview/i.test(t)) return '🗣️';
+      return '🔗';
+    }
+
+    function inferLinkTitle(rawTitle, url, idx) {
+      const t = String(rawTitle).trim();
+      const isGeneric = /^[\d]+$/.test(t) || /^(link|click here|here|view|open)$/i.test(t) || t === '';
+      if (!isGeneric) return t;
+      const u = (url || '').toLowerCase();
+      if (/notification|advt|advertisement|circular/i.test(u)) return 'Official Notification PDF';
+      if (/apply|register|application|form/i.test(u)) return 'Apply Online';
+      if (/admit|hallticket|hall.ticket|call.letter/i.test(u)) return 'Download Admit Card';
+      if (/result|merit|selected|final.list/i.test(u)) return 'Check Result';
+      if (/syllabus|curriculum|pattern/i.test(u)) return 'Download Syllabus';
+      if (/answer.?key|ans.?key|solution/i.test(u)) return 'Answer Key';
+      if (/scorecard|score.card|marks/i.test(u)) return 'View Scorecard';
+      if (/official|home|\.gov\.|\.nic\./i.test(u)) return 'Official Website';
+      if (/\.pdf/i.test(u)) return 'Download PDF';
+      return 'Important Link ' + idx;
+    }
+
+    function resetForm() {
+      document.getElementById('url-input').value = '';
+      document.getElementById('raw-text').value = '';
+      document.getElementById('fetch-status').style.display = 'none';
+      document.getElementById('progress-steps').style.display = 'none';
+      updateAnalyzeBtn();
+      const textFields = ['title', 'type', 'organization', 'notification_date', 'start_date', 'end_date', 'last_date', 'total_posts', 'salary', 'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords', 'category_id', 'state_id'];
+      textFields.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.value = el.tagName === 'SELECT' ? el.options[0]?.value || '' : ''; });
+      document.getElementById('f-type').value = 'job';
+      Object.keys(toggleState).forEach(k => { toggleState[k] = false; document.getElementById('track-' + k).classList.remove('on'); });
+      selectedChips.tags = []; selectedChips.education = [];
+      updateChips('tags', 'chips-tags'); updateChips('education', 'chips-education');
+      linkRows = [{ title: '', url: '' }]; renderLinks();
+      ['cnt-short', 'cnt-metatitle', 'cnt-metadesc'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = '0/' + (id === 'cnt-metatitle' ? '60' : '160'); el.classList.remove('over'); } });
+      ['cat-match-tag', 'state-match-tag', 'kw-badge'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+      document.getElementById('kw-count-info').style.display = 'none';
+      document.getElementById('badge-kw').style.display = 'none';
+      document.getElementById('html-preview').style.display = 'none';
+      lastPostedUrl = '';
+      const schemaEl = document.getElementById('job-schema'); if (schemaEl) schemaEl.remove();
+      switchTabById('basic'); goStep(1);
+    }
+
+    function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  </script>
+</body>
+
+</html>
