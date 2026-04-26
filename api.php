@@ -1,18 +1,53 @@
 <?php
 // ── JobOne Publisher — PHP API Proxy ─────────────────────────────────────────
+
+// ════════════════════════════════════════════════════════════════════════════
+// FIX #1: Output buffering — prevents ANY stray PHP warning/notice from
+//          corrupting the JSON response ("Unexpected end of JSON input")
+// ════════════════════════════════════════════════════════════════════════════
+ob_start();
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    ob_end_clean();
     http_response_code(204);
+    exit;
+}
+
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+set_time_limit(1200);
+ini_set('memory_limit', '512M');
+
+if (!function_exists('curl_init')) {
+    ob_end_clean();
+    echo json_encode(['success' => false, 'message' => 'PHP cURL extension is not installed or enabled.']);
     exit;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
+
+// FIX #1 continued: exception/error handlers must flush buffer before outputting
+set_exception_handler(function ($e) {
+    ob_end_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => 'Uncaught Exception: ' . $e->getMessage(),
+        'trace' => $e->getTraceAsString(),
+    ]);
+    exit;
+});
+set_error_handler(function ($severity, $message, $file, $line) {
+    if (!(error_reporting() & $severity))
+        return;
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
 
 // Load secrets from Laravel .env file if available (Live server: /var/www/jobone/.env)
 $envPath = __DIR__ . '/../../.env';
@@ -38,11 +73,7 @@ define('AI_API_KEY', $env['OPENAI_API_KEY'] ?? 'your_openai_key_here');
 define('TG_CHANNEL', 'https://t.me/jobone2026');
 define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22');
 
-// ── IndexNow ─────────────────────────────────────────────────────────────────
-// 1. Generate a GUID key and save it as /public_html/<key>.txt on your server.
-// 2. Paste that same key here.
-// 3. Submit once to: https://www.indexnow.org/indexnow?url=https://jobone.in/<key>.txt&key=<key>
-define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE'); // ← replace this
+define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE');
 define('INDEXNOW_HOST', 'jobone.in');
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -296,8 +327,15 @@ function curl_request(string $url, string $method = 'GET', array $headers = [], 
     if ($error)
         return ['success' => false, 'message' => 'cURL error: ' . $error];
     $decoded = json_decode($response, true);
-    if ($decoded === null)
-        return ['success' => false, 'message' => 'Invalid JSON from upstream', 'raw' => $response, 'http_code' => $httpCode];
+    if ($decoded === null) {
+        return [
+            'success' => false,
+            'message' => 'Invalid JSON from upstream (HTTP ' . $httpCode . ')',
+            'http_code' => $httpCode,
+            'url' => $url,
+            'snippet' => substr($response, 0, 500),
+        ];
+    }
     return $decoded;
 }
 
@@ -310,7 +348,12 @@ function curl_request_raw(string $url): array
         CURLOPT_TIMEOUT => 30,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-        CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language: en-IN,en;q=0.9', 'Accept-Encoding: identity', 'Cache-Control: no-cache'],
+        CURLOPT_HTTPHEADER => [
+            'Accept: text/html,application/xhtml+xml,*/*;q=0.8',
+            'Accept-Language: en-IN,en;q=0.9',
+            'Accept-Encoding: identity',
+            'Cache-Control: no-cache',
+        ],
     ]);
     $content = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -345,8 +388,97 @@ function html_to_text(string $html): string
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ── LINKS TABLE BUILDER ────────────────────────────────────────────────────────
+// ── CONTENT TABLE BUILDERS ────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
+
+function build_quick_info_table(array $p): string
+{
+    $rows = [
+        ['🏢 Organization', $p['organization'] ?? 'Government Body'],
+        ['📋 Post Name', $p['post_name'] ?? $p['title'] ?? 'Various'],
+        ['🔢 Total Vacancies', ($p['total_posts'] ?? 0) > 0 ? $p['total_posts'] : 'As per requirement'],
+        ['📁 Category', $p['category_name'] ?? 'Govt Jobs'],
+        ['📍 State', $p['state_name'] ?? 'All India'],
+        ['🎓 Education', !empty($p['education']) ? implode(', ', (array) $p['education']) : 'Check Notification'],
+        ['🎂 Age Limit', ($p['age_min'] ?? 0) . ' – ' . ($p['age_max_gen'] ?? 30) . ' Years'],
+        ['💰 Salary', $p['salary'] ?? 'Check Notification'],
+        ['💳 App Fee', ($p['fee_general'] ?? 0) > 0 ? '₹' . $p['fee_general'] : 'No Fee'],
+        ['📝 Apply Mode', !empty($p['online_form']) ? 'Online' : 'Offline'],
+        ['📅 Last Date', !empty($p['last_date']) ? date('d-m-Y', strtotime($p['last_date'])) : 'Apply Soon'],
+    ];
+    $htmlRows = '';
+    foreach ($rows as $i => $r) {
+        $bg = $i % 2 === 0 ? '#ffffff' : '#f9fbff';
+        $htmlRows .= "<tr style=\"background:{$bg};\"><td style=\"padding:10px 14px;border:1px solid #eef2f7;font-weight:700;width:40%;\">{$r[0]}</td><td style=\"padding:10px 14px;border:1px solid #eef2f7;\">{$r[1]}</td></tr>";
+    }
+    return '<h3>📊 Quick Info Overview</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;">' . $htmlRows . '</table>';
+}
+
+function build_dates_table(array $p): string
+{
+    $dates = [
+        'Notification Released' => $p['notification_date'] ?? '',
+        'Online Apply Start' => $p['start_date'] ?? '',
+        'Apply Last Date' => $p['last_date'] ?? '',
+        'Fee Payment Deadline' => $p['last_date'] ?? '',
+        'Exam Date' => 'To be announced',
+        'Result Date' => 'To be announced',
+    ];
+    $htmlRows = '';
+    foreach ($dates as $label => $val) {
+        $display = !empty($val) ? date('d-m-Y', strtotime($val)) : 'Check Notification';
+        $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
+    }
+    return '<h3>📅 Important Dates</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+}
+
+function build_fee_table(array $p): string
+{
+    $fees = [
+        'General / OBC' => $p['fee_general'] ?? 0,
+        'SC / ST' => $p['fee_sc_st'] ?? 0,
+        'PH / PWD' => $p['fee_ph'] ?? 0,
+        'Female Candidates' => $p['fee_women'] ?? 0,
+    ];
+    $htmlRows = '';
+    foreach ($fees as $label => $val) {
+        $display = $val > 0 ? '₹' . $val : 'Nil / Exempted';
+        $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
+    }
+    return '<h3>💳 Application Fee</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+}
+
+function build_vacancy_table(array $p): string
+{
+    $cats = [
+        'General' => $p['vacancy_gen'] ?? 0,
+        'OBC' => $p['vacancy_obc'] ?? 0,
+        'SC' => $p['vacancy_sc'] ?? 0,
+        'ST' => $p['vacancy_st'] ?? 0,
+        'EWS' => $p['vacancy_ews'] ?? 0,
+        'PH' => $p['vacancy_ph'] ?? 0,
+    ];
+    $htmlRows = '';
+    $total = 0;
+    foreach ($cats as $label => $val) {
+        $total += (int) $val;
+        $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$val}</td></tr>";
+    }
+    $htmlRows .= "<tr style=\"background:#f8fafc;\"><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:800;\">Total Posts</td><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:800;\">" . ($p['total_posts'] ?? $total) . "</td></tr>";
+    return '<h3>🔢 Vacancy Breakdown</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+}
+
+function build_selection_stages(array $p): string
+{
+    $stages = $p['selection_stages'] ?? [];
+    if (empty($stages))
+        return '';
+    $list = '';
+    foreach ($stages as $i => $s) {
+        $list .= "<li style=\"margin-bottom:8px;\"><strong>Stage " . ($i + 1) . ":</strong> " . htmlspecialchars($s) . "</li>";
+    }
+    return '<h3>🎯 Selection Process</h3><ol style="padding-left:20px;margin:12px 0;">' . $list . '</ol>';
+}
 
 function build_links_table(array $links): string
 {
@@ -409,7 +541,8 @@ function build_links_table(array $links): string
         $rowBg = $i % 2 === 0 ? '#ffffff' : '#f4f7ff';
         $isSocial = str_contains(strtolower($link['url']), 't.me/') || str_contains(strtolower($link['url']), 'whatsapp.com/channel');
         $btnStyle = $isSocial ? 'background:linear-gradient(135deg,#229ED9,#0d7abf);' : 'background:linear-gradient(135deg,#1a6ef5,#5b4ceb);';
-        $rows .= "\n        <tr style=\"background:{$rowBg};\">
+        $rows .= "
+        <tr style=\"background:{$rowBg};\">
             <td style=\"padding:13px 18px;border-bottom:1px solid #e4e9f2;font-size:13px;font-weight:600;color:#0f1724;vertical-align:middle;\">{$icon}&nbsp; {$title}</td>
             <td style=\"padding:10px 18px;border-bottom:1px solid #e4e9f2;text-align:center;vertical-align:middle;\">
                 <a href=\"{$url}\" target=\"_blank\" rel=\"noreferrer\" style=\"display:inline-block;{$btnStyle}color:#fff;border-radius:6px;padding:7px 20px;font-size:12px;font-weight:700;text-decoration:none;\">Click Here ↗</a>
@@ -417,7 +550,7 @@ function build_links_table(array $links): string
         </tr>";
     }
     return '
-<h3>📎 Important Links</h3>
+<h3>📎 Important Links Table</h3>
 <table style="width:100%;border-collapse:collapse;border:1px solid #e4e9f2;border-radius:12px;overflow:hidden;margin:14px 0;font-family:system-ui,sans-serif;box-shadow:0 2px 12px rgba(15,23,36,.07);">
     <thead>
         <tr style="background:linear-gradient(135deg,#1a6ef5 0%,#5b4ceb 100%);">
@@ -431,12 +564,16 @@ function build_links_table(array $links): string
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ── SCHEMA GENERATORS ─────────────────────────────────────────────────────────
+// ── SCHEMA GENERATORS ─────────────────────────────────────────════════════════
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Build a complete JobPosting JSON-LD schema (all Google-required + recommended fields).
- * Returns a ready-to-inject <script> tag string.
+ * ════════════════════════════════════════════════════════════════════════════
+ * FIX #2: The original code did:
+ *   $schema['jobLocationType'] = 'TELECOMMUTE';   // sets on undefined var
+ *   $schema = [ '@context' => ... ];              // OVERWRITES it entirely!
+ * Fix: collect location fields separately, then merge into $schema.
+ * ════════════════════════════════════════════════════════════════════════════
  */
 function generate_job_schema(array $p, array $importantLinks = []): string
 {
@@ -447,135 +584,198 @@ function generate_job_schema(array $p, array $importantLinks = []): string
     // ── Hiring organisation ──────────────────────────────────────────────────
     $org = [
         '@type' => 'Organization',
-        'name' => $p['organization'] ?: JOBONE_SITE_NAME,
+        'name' => !empty($p['organization']) ? $p['organization'] : JOBONE_SITE_NAME,
         'sameAs' => JOBONE_SITE_URL,
+        'url' => JOBONE_SITE_URL,
     ];
-    // If the official website link exists, use it as sameAs
     foreach ($importantLinks as $l) {
         if (!empty($l['url']) && preg_match('/official.?website|official.?site/i', $l['title'] ?? '')) {
             $org['sameAs'] = $l['url'];
+            $org['url'] = $l['url'];
             break;
         }
     }
 
-    // ── Location ─────────────────────────────────────────────────────────────
-    $region = !empty($p['state_name']) && $p['state_name'] !== 'All India' ? $p['state_name'] : null;
-    $location = [
-        '@type' => 'Place',
-        'address' => array_filter([
-            '@type' => 'PostalAddress',
-            'addressCountry' => 'IN',
-            'addressRegion' => $region,
-        ]),
-    ];
-
-    // ── Salary ───────────────────────────────────────────────────────────────
-    $salaryBlock = null;
-    if (!empty($p['salary'])) {
-        $salaryBlock = [
-            '@type' => 'MonetaryAmount',
-            'currency' => 'INR',
-            'value' => ['@type' => 'QuantitativeValue', 'description' => $p['salary'], 'unitText' => 'YEAR'],
+    // ── FIX #2: build location fields into a separate array first ────────────
+    $region = !empty($p['state_name']) ? trim($p['state_name']) : 'All India';
+    $locationFields = [];
+    if ($region === '' || $region === 'All India') {
+        $locationFields['jobLocationType'] = 'TELECOMMUTE';
+        $locationFields['applicantLocationRequirements'] = [
+            '@type' => 'Country',
+            'name' => 'India',
+        ];
+    } else {
+        $locationFields['jobLocation'] = [
+            '@type' => 'Place',
+            'address' => [
+                '@type' => 'PostalAddress',
+                'addressCountry' => 'IN',
+                'addressRegion' => $region,
+            ],
         ];
     }
 
-    // ── Education requirements from education chips ───────────────────────────
+    // ── Salary ───────────────────────────────────────────────────────────────
+    $minSal = (int) ($p['salary_min'] ?? 0);
+    $maxSal = (int) ($p['salary_max'] ?? 0);
+    if ($minSal === 0 && $maxSal === 0 && !empty($p['salary'])) {
+        preg_match_all('/\d+/', str_replace(',', '', $p['salary']), $salMatches);
+        if (!empty($salMatches[0])) {
+            $salaries = array_map('intval', $salMatches[0]);
+            sort($salaries);
+            $minSal = $salaries[0];
+            $maxSal = $salaries[count($salaries) - 1];
+        }
+    }
+    if ($maxSal < $minSal)
+        $maxSal = $minSal;
+    $salaryBlock = [
+        '@type' => 'MonetaryAmount',
+        'currency' => 'INR',
+        'value' => [
+            '@type' => 'QuantitativeValue',
+            'minValue' => $minSal,
+            'maxValue' => $maxSal > 0 ? $maxSal : ($minSal > 0 ? $minSal : 0),
+            'unitText' => 'MONTH',
+        ],
+    ];
+
+    // ── Education requirements ────────────────────────────────────────────────
     $eduMap = [
-        '10th_pass' => '10th Pass (Matriculation)',
-        '12th_pass' => '12th Pass (Intermediate)',
-        'graduate' => "Bachelor's Degree",
-        'post_graduate' => "Master's Degree",
-        'diploma' => 'Diploma',
-        'iti' => 'ITI Certificate',
-        'btech' => 'B.Tech / B.E.',
-        'mtech' => 'M.Tech / M.E.',
-        'mbbs' => 'MBBS',
-        'bds' => 'BDS',
-        'llb' => 'LLB (Law)',
-        'ca' => 'Chartered Accountant (CA)',
-        'phd' => 'PhD / Doctorate',
-        'any_qualification' => 'Any Graduate',
+        '10th_pass' => 'HIGH_SCHOOL',
+        '12th_pass' => 'HIGH_SCHOOL',
+        'graduate' => 'BACHELOR',
+        'post_graduate' => 'MASTER',
+        'diploma' => 'ASSOCIATE',
+        'iti' => 'ASSOCIATE',
+        'btech' => 'BACHELOR',
+        'mtech' => 'MASTER',
+        'mbbs' => 'BACHELOR',
+        'bds' => 'BACHELOR',
+        'llb' => 'BACHELOR',
+        'ca' => 'PROFESSIONAL_CERTIFICATE',
+        'phd' => 'POSTGRADUATE',
+        'any_qualification' => 'BACHELOR',
     ];
     $eduReqs = [];
     foreach (($p['education'] ?? []) as $e) {
         if (isset($eduMap[$e]))
             $eduReqs[] = $eduMap[$e];
     }
+    $eduReqs = array_values(array_unique($eduReqs));
 
-    // ── Direct apply flag ─────────────────────────────────────────────────────
-    $directApply = (bool)($p['direct_apply'] ?? !empty($p['apply_url'] ?? $p['online_form'] ?? ''));
+    // ── Direct apply ─────────────────────────────────────────────────────────
+    $applyUrlCandidate = $p['apply_url'] ?? $p['online_form'] ?? '';
+    $isDirect = false;
+    if (!empty($applyUrlCandidate)) {
+        $parsedUrl = parse_url($applyUrlCandidate);
+        $path = rtrim($parsedUrl['path'] ?? '/', '/');
+        $query = $parsedUrl['query'] ?? '';
+        if ($path !== '' && !empty($query))
+            $isDirect = true;
+    }
+    $directApply = (bool) ($p['direct_apply'] ?? $isDirect);
 
     // ── Employment type ──────────────────────────────────────────────────────
-    $typeMap = [
-        'job'        => 'FULL_TIME',
-        'admit_card' => 'FULL_TIME',
-        'result'     => 'FULL_TIME',
-        'syllabus'   => 'FULL_TIME',
-        'scholarship'=> 'PART_TIME',
-    ];
-    $empType = $typeMap[$p['type'] ?? 'job'] ?? 'FULL_TIME';
-    // Override for stipend/trainee/intern roles
-    if (($p['salary_type'] ?? '') === 'stipend') $empType = 'OTHER';
+    $empType = 'FULL_TIME';
+    $tLower = strtolower($p['title'] ?? '');
+    if (str_contains($tLower, 'apprentice') || str_contains($tLower, 'trainee') || ($p['salary_type'] ?? '') === 'stipend')
+        $empType = 'INTERN';
+    elseif (str_contains($tLower, 'contract'))
+        $empType = 'CONTRACTOR';
+    elseif (str_contains($tLower, 'part time') || ($p['type'] ?? '') === 'scholarship')
+        $empType = 'PART_TIME';
+    elseif (str_contains($tLower, 'volunteer'))
+        $empType = 'VOLUNTEER';
+    elseif (str_contains($tLower, 'temporary'))
+        $empType = 'TEMPORARY';
 
-    // ── Build schema object ──────────────────────────────────────────────────
-    $schema = [
-        '@context' => 'https://schema.org/',
-        '@type' => 'JobPosting',
-        'title' => $p['title'] ?? '',
-        'description' => $p['short_description'] ?? '',
-        'url' => $jobUrl,
-        'datePosted' => $p['notification_date'] ?: date('Y-m-d'),
-        'dateModified' => $now,                   // ← freshness signal
-        'employmentType' => $empType,
-        'directApply' => $directApply,
-        'hiringOrganization' => $org,
-        'jobLocation' => $location,
-        'jobBenefits' => 'Government employment benefits: job security, pension, health insurance, HRA, TA, DA, medical allowance',
-        'occupationalCategory' => '11-1000.00',           // Managers / Officials (O*NET)
-        'industry' => 'Government / Public Sector',
-        'workHours' => '8 hours/day, 5 days/week',
-    ];
-
-    // Optional recommended fields — only emit if values exist
+    // ── FIX #3: description — use short_description only (plain text, ≤5000c) ─
+    // The original code stuffed the entire content HTML (tables, schemas, etc.)
+    // into description, which breaks Google's validator.
+    $description = trim(strip_tags($p['short_description'] ?? ''));
+    if (empty($description)) {
+        $description = trim(substr(strip_tags($p['title'] ?? ''), 0, 300));
+    }
+    // Append a structured summary to meet Google's meaningful-content requirement
+    $extras = [];
+    if (!empty($p['total_posts']) && (int) $p['total_posts'] > 0)
+        $extras[] = 'Total Vacancies: ' . $p['total_posts'];
+    if (!empty($p['salary']))
+        $extras[] = 'Salary: ' . strip_tags($p['salary']);
     if (!empty($p['last_date']))
-        $schema['validThrough'] = $p['last_date'] . 'T23:59:59+05:30';
-    else
-        $schema['validThrough'] = date('Y-m-d', strtotime('+90 days')) . 'T23:59:59+05:30';
+        $extras[] = 'Last Date: ' . date('d-m-Y', strtotime($p['last_date']));
+    if (!empty($extras))
+        $description .= ' ' . implode('. ', $extras) . '.';
+    $description = substr($description, 0, 5000);
+
+    // ── Build schema — location fields merged in, NOT set before ────────────
+    $schema = array_merge(
+        [
+            '@context' => 'https://schema.org/',
+            '@type' => 'JobPosting',
+            'title' => $p['title'] ?? '',
+            'description' => $description,
+            'url' => $jobUrl,
+            'datePosted' => !empty($p['notification_date'])
+                ? date('c', strtotime($p['notification_date']))
+                : $now,
+            'dateModified' => $now,
+            'employmentType' => $empType,
+            'directApply' => $directApply,
+            'hiringOrganization' => $org,
+            'jobBenefits' => 'Government employment benefits: job security, pension, health insurance, HRA, TA, DA, medical allowance',
+            'occupationalCategory' => '11-1000.00',
+            'industry' => 'Government / Public Sector',
+            'workHours' => '8 hours/day, 5 days/week',
+        ],
+        $locationFields          // ← FIX #2: merged here, never overwritten
+    );
+
+    // Optional fields
+    $schema['validThrough'] = !empty($p['last_date'])
+        ? $p['last_date'] . 'T23:59:59+05:30'
+        : date('Y-m-d', strtotime('+90 days')) . 'T23:59:59+05:30';
+
     if (!empty($p['start_date']))
         $schema['jobStartDate'] = $p['start_date'];
     if ($salaryBlock)
         $schema['baseSalary'] = $salaryBlock;
     if (!empty($p['total_posts']))
         $schema['totalJobOpenings'] = (int) $p['total_posts'];
+
     $applyLink = $p['apply_url'] ?? $p['online_form'] ?? '';
     if (!empty($applyLink))
         $schema['applicationContact'] = ['@type' => 'ContactPoint', 'contactType' => 'Apply Online', 'url' => $applyLink];
 
-    // Qualifications block — build from education + freetext qualifications
     $qualParts = [];
-    if (!empty($eduReqs))
-        $qualParts[] = 'Education: ' . implode(', ', $eduReqs);
     if (!empty($p['qualifications']))
-        $qualParts[] = $p['qualifications'];
-    if (!empty($qualParts)) {
+        $qualParts[] = strip_tags($p['qualifications']);
+    if (!empty($qualParts))
         $schema['qualifications'] = implode('. ', $qualParts);
-        $schema['educationRequirements'] = ['@type' => 'EducationalOccupationalCredential', 'credentialCategory' => $eduReqs[0] ?? 'Graduate'];
+
+    if (!empty($eduReqs)) {
+        $fullQuals = strip_tags($p['qualifications'] ?? '');
+        $eduReqsObj = [];
+        foreach ($eduReqs as $level) {
+            $eduReqsObj[] = [
+                '@type' => 'EducationalOccupationalCredential',
+                'credentialCategory' => $level,
+                'description' => $fullQuals ?: $level,
+            ];
+        }
+        $schema['educationRequirements'] = count($eduReqsObj) === 1 ? $eduReqsObj[0] : $eduReqsObj;
     }
 
-    // Skills
     if (!empty($p['skills']))
         $schema['skills'] = $p['skills'];
-
-    // Responsibilities
     if (!empty($p['responsibilities']))
         $schema['responsibilities'] = $p['responsibilities'];
-
-    // Identifier (Post ID from the API response)
-    if (!empty($p['id'])) {
+    if (!empty($p['id']))
         $schema['identifier'] = ['@type' => 'PropertyValue', 'name' => JOBONE_SITE_NAME, 'value' => (string) $p['id']];
-    }
 
-    // ── Breadcrumb embedded inside same script tag (cleaner than two tags) ──
+    // Breadcrumb
     $breadcrumb = [
         '@context' => 'https://schema.org',
         '@type' => 'BreadcrumbList',
@@ -592,8 +792,11 @@ function generate_job_schema(array $p, array $importantLinks = []): string
 }
 
 /**
- * Build FAQPage JSON-LD from an array of {question, answer} pairs.
- * Returns a ready-to-inject <script> tag string.
+ * ════════════════════════════════════════════════════════════════════════════
+ * FIX #3 (continued): FAQ schema — strip HTML from answer text.
+ * JSON-LD requires plain text in acceptedAnswer.text; HTML tags cause
+ * "invalid items" in Google's Rich Results Test.
+ * ════════════════════════════════════════════════════════════════════════════
  */
 function generate_faq_schema(array $faq): string
 {
@@ -601,12 +804,17 @@ function generate_faq_schema(array $faq): string
         return '';
     $items = [];
     foreach ($faq as $item) {
-        if (empty($item['question']) || empty($item['answer']))
+        $q = trim($item['question'] ?? '');
+        $a = trim($item['answer'] ?? '');
+        if (!$q || !$a)
             continue;
+        // Strip HTML tags and decode entities for clean JSON-LD plain text
+        $a = html_entity_decode(strip_tags($a), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $q = html_entity_decode(strip_tags($q), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $items[] = [
             '@type' => 'Question',
-            'name' => $item['question'],
-            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $item['answer']],
+            'name' => $q,
+            'acceptedAnswer' => ['@type' => 'Answer', 'text' => $a],
         ];
     }
     if (empty($items))
@@ -615,16 +823,12 @@ function generate_faq_schema(array $faq): string
     return '<script type="application/ld+json">' . json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
 }
 
-/**
- * Build a HTML FAQ section from the faq array — injected into content so
- * users can also read it, and Google sees it as visible on-page text.
- */
 function build_faq_html(array $faq): string
 {
     if (empty($faq))
         return '';
     $items = '';
-    foreach ($faq as $i => $item) {
+    foreach ($faq as $item) {
         if (empty($item['question']))
             continue;
         $q = htmlspecialchars($item['question']);
@@ -641,16 +845,9 @@ function build_faq_html(array $faq): string
     }
     if (!$items)
         return '';
-    return '
-<h3>❓ Frequently Asked Questions (FAQ)</h3>
-<div style="margin:14px 0;">' . $items . '</div>';
+    return '<h3>❓ Frequently Asked Questions (FAQ)</h3><div style="margin:14px 0;">' . $items . '</div>';
 }
 
-/**
- * Build Open Graph + Twitter Card meta tags.
- * Returns an HTML string to be emitted in <head> — pass it back to the
- * frontend so it can store / display it for copy-paste into the CMS head.
- */
 function generate_og_tags(array $p, string $jobUrl, string $imageUrl = ''): string
 {
     $title = htmlspecialchars($p['title'] ?? '', ENT_QUOTES);
@@ -684,15 +881,10 @@ function generate_og_tags(array $p, string $jobUrl, string $imageUrl = ''): stri
 // ── INDEXNOW PING ─────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Notify Google, Bing, and Yandex via IndexNow immediately after a post goes live.
- * Returns an array with success status and engine responses.
- */
 function ping_indexnow(string $jobUrl): array
 {
-    if (INDEXNOW_KEY === 'YOUR_32CHAR_GUID_KEY_HERE') {
+    if (INDEXNOW_KEY === 'YOUR_32CHAR_GUID_KEY_HERE')
         return ['skipped' => true, 'reason' => 'IndexNow key not configured'];
-    }
 
     $payload = json_encode([
         'host' => INDEXNOW_HOST,
@@ -700,12 +892,8 @@ function ping_indexnow(string $jobUrl): array
         'keyLocation' => JOBONE_SITE_URL . '/' . INDEXNOW_KEY . '.txt',
         'urlList' => [$jobUrl],
     ]);
-
     $headers = ['Content-Type: application/json; charset=utf-8'];
-    $engines = [
-        'indexnow' => 'https://api.indexnow.org/indexnow',
-        'bing' => 'https://www.bing.com/indexnow',
-    ];
+    $engines = ['indexnow' => 'https://api.indexnow.org/indexnow', 'bing' => 'https://www.bing.com/indexnow'];
 
     $results = [];
     foreach ($engines as $name => $endpoint) {
@@ -718,7 +906,7 @@ function ping_indexnow(string $jobUrl): array
             CURLOPT_TIMEOUT => 10,
             CURLOPT_SSL_VERIFYPEER => false,
         ]);
-        $body = curl_exec($ch);
+        curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = curl_error($ch);
         curl_close($ch);
@@ -733,86 +921,131 @@ function ping_indexnow(string $jobUrl): array
 
 function sanitize_total_posts(mixed $val): int
 {
-    if (is_int($val) && $val >= 0) return $val;
-    if (is_numeric($val)) return max(0, (int)$val);
-    if (preg_match('/(\d+)/', (string)$val, $m)) return (int)$m[1];
-    return 0; // "as per requirement" / "various" → 0
+    if (is_int($val) && $val >= 0)
+        return $val;
+    if (is_numeric($val))
+        return max(0, (int) $val);
+    if (preg_match('/(\d+)/', (string) $val, $m))
+        return (int) $m[1];
+    return 0;
+}
+
+function generate_slug(array $p): string
+{
+    $org = !empty($p['organization']) ? $p['organization'] : 'govt';
+    $orgParts = explode(' ', $org);
+    if (count($orgParts) > 3)
+        $org = implode(' ', array_slice($orgParts, 0, 3));
+
+    $postName = $p['title'] ?? 'job';
+    $year = date('Y');
+    if (preg_match('/\b(20\d{2})\b/', $postName . ' ' . ($p['short_description'] ?? ''), $m))
+        $year = $m[1];
+
+    $fillers = ['apply-for', 'apply-now', 'apply', 'notification', 'check-here', 'recruitment', 'jobs', 'post', 'posts', 'official', 'latest', 'new'];
+    $slugBody = $org . ' ' . $postName;
+    foreach ($fillers as $f) {
+        $slugBody = preg_replace('/\b' . preg_quote($f, '/') . '\b/i', '', $slugBody);
+    }
+
+    $vacancy = (int) ($p['total_posts'] ?? 0);
+    $finalBase = trim($slugBody) . ' recruitment ' . $year;
+    if ($vacancy > 0)
+        $finalBase .= ' ' . $vacancy . ' posts';
+
+    $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $finalBase), '-'));
+    if (strlen($slug) > 70) {
+        $slug = substr($slug, 0, 70);
+        $slug = rtrim($slug, '-');
+    }
+    return $slug;
 }
 
 function sanitize_apply_url(string $url): string
 {
-    if (!$url) return '';
+    if (!$url)
+        return '';
     $p = parse_url($url);
     $path = rtrim($p['path'] ?? '/', '/');
     $query = $p['query'] ?? '';
-    // Reject bare homepages (path is empty/root and no query string)
-    if (($path === '' || $path === '') && !$query) return '';
+    if (($path === '' || $path === '/') && !$query)
+        return '';
     return $url;
 }
 
 function auto_detect_education(string $content, array $current): array
 {
-    if (!empty($current)) return $current;
+    if (!empty($current))
+        return $current;
     $t = strtolower($content);
     $map = [
-        'phd'           => '/ph\.?d\b|doctorate|doctoral/',
-        'mba'           => '/\bmba\b|pgdm|post.?graduate.?diploma.?manage/',
-        'llm'           => '/\bllm\b|master.?of.?law/',
-        'llb'           => '/\bllb\b|bachelor.?of.?law|law.?graduate/',
-        'mbbs'          => '/\bmbbs\b|bachelor.?of.?medicine/',
-        'mtech'         => '/\bm\.?tech\b|\bm\.?e\.\b|master.?of.?technology/',
-        'mpharm'        => '/\bm\.?pharm\b/',
-        'bpharm'        => '/\bb\.?pharm\b/',
-        'msc'           => '/\bm\.?sc\b|master.?of.?science/',
-        'mcom'          => '/\bm\.?com\b|master.?of.?commerce/',
-        'ma'            => '/\bm\.?a\.\b|master.?of.?arts/',
-        'mba'           => '/\bmba\b|pgdm/',
-        'ca'            => '/chartered.?accountant|\bca\b/',
-        'cs'            => '/company.?secretary|\bcs\b/',
-        'cma'           => '/\bcma\b|cost.?accountant/',
-        'post_graduate'  => '/post.?graduate|master.?degree|\bm\.?sc\b|\bm\.?com\b|\bm\.?a\.\b|\bmca\b/',
-        'btech'         => '/\bb\.?tech\b|\bb\.?e\.\b|bachelor.?of.?engineering|bachelor.?of.?technology/',
-        'bsc'           => '/\bb\.?sc\b|bachelor.?of.?science/',
-        'bcom'          => '/\bb\.?com\b|bachelor.?of.?commerce/',
-        'ba'            => '/\bb\.?a\.\b|bachelor.?of.?arts/',
-        'bed'           => '/\bb\.?ed\b|bachelor.?of.?education/',
-        'nursing'       => '/\bnursing\b|\bgnm\b|\bbnsc\b/',
-        'graduate'      => '/\bgraduate\b|graduation|bachelor.?degree|degree.?holder/',
-        'diploma'       => '/\bdiploma\b/',
-        'iti'           => '/\biti\b|industrial.?training.?institute/',
-        '12th_pass'     => '/12th|hsc|higher.?secondary|intermediate|10\+2/',
-        '10th_pass'     => '/10th|ssc|matriculation|\bssle\b|secondary.?school/',
+        'phd' => '/ph\.?d\b|doctorate|doctoral/',
+        'mba' => '/\bmba\b|pgdm|post.?graduate.?diploma.?manage/',
+        'llm' => '/\bllm\b|master.?of.?law/',
+        'llb' => '/\bllb\b|bachelor.?of.?law|law.?graduate/',
+        'mbbs' => '/\bmbbs\b|bachelor.?of.?medicine/',
+        'mtech' => '/\bm\.?tech\b|\bm\.?e\.\b|master.?of.?technology/',
+        'mpharm' => '/\bm\.?pharm\b/',
+        'bpharm' => '/\bb\.?pharm\b/',
+        'msc' => '/\bm\.?sc\b|master.?of.?science/',
+        'mcom' => '/\bm\.?com\b|master.?of.?commerce/',
+        'ma' => '/\bm\.?a\.\b|master.?of.?arts/',
+        'ca' => '/chartered.?accountant|\bca\b/',
+        'cs' => '/company.?secretary|\bcs\b/',
+        'cma' => '/\bcma\b|cost.?accountant/',
+        'post_graduate' => '/post.?graduate|master.?degree|\bm\.?sc\b|\bm\.?com\b|\bm\.?a\.\b|\bmca\b/',
+        'btech' => '/\bb\.?tech\b|\bb\.?e\.\b|bachelor.?of.?engineering|bachelor.?of.?technology/',
+        'bsc' => '/\bb\.?sc\b|bachelor.?of.?science/',
+        'bcom' => '/\bb\.?com\b|bachelor.?of.?commerce/',
+        'ba' => '/\bb\.?a\.\b|bachelor.?of.?arts/',
+        'bed' => '/\bb\.?ed\b|bachelor.?of.?education/',
+        'nursing' => '/\bnursing\b|\bgnm\b|\bbnsc\b/',
+        'graduate' => '/\bgraduate\b|graduation|bachelor.?degree|degree.?holder/',
+        'diploma' => '/\bdiploma\b/',
+        'iti' => '/\biti\b|industrial.?training.?institute/',
+        '12th_pass' => '/12th|hsc|higher.?secondary|intermediate|10\+2/',
+        '10th_pass' => '/10th|ssc|matriculation|\bssle\b|secondary.?school/',
     ];
     $detected = [];
     foreach ($map as $chip => $rx) {
-        if (preg_match($rx, $t)) $detected[] = $chip;
+        if (preg_match($rx, $t))
+            $detected[] = $chip;
     }
-    // Ensure parent chip present
-    if (array_intersect(['mba','mtech','mpharm','llm','msc','mcom','ma'], $detected)
-        && !in_array('post_graduate', $detected)) $detected[] = 'post_graduate';
-    if (array_intersect(['btech','bsc','bcom','ba','bpharm','bed','nursing'], $detected)
-        && !in_array('graduate', $detected)) $detected[] = 'graduate';
+
+    $hasMasters = array_intersect(['mba', 'mtech', 'mpharm', 'llm', 'msc', 'mcom', 'ma', 'post_graduate'], $detected);
+    $hasBachelors = array_intersect(['btech', 'bsc', 'bcom', 'ba', 'bpharm', 'bed', 'nursing'], $detected)
+        || preg_match('/\b(bachelor|graduate|graduation|degree)\b/i', $content);
+
+    if ($hasMasters && !in_array('post_graduate', $detected))
+        $detected[] = 'post_graduate';
+    if ($hasBachelors && !in_array('graduate', $detected))
+        $detected[] = 'graduate';
+    if ($hasMasters && !$hasBachelors && ($key = array_search('graduate', $detected)) !== false)
+        unset($detected[$key]);
+
     $detected = array_unique($detected);
     return $detected ?: ['graduate'];
 }
 
 function auto_detect_tags(string $content, array $current): array
 {
-    if (!empty($current)) return $current;
+    if (!empty($current))
+        return $current;
     $t = strtolower($content);
     $map = [
-        'cutoff'             => '/cut.?off|cutoff/',
-        'merit_list'         => '/merit.?list/',
-        'selection_list'     => '/selection.?list/',
-        'final_result'       => '/final.?result/',
+        'cutoff' => '/cut.?off|cutoff/',
+        'merit_list' => '/merit.?list/',
+        'selection_list' => '/selection.?list/',
+        'final_result' => '/final.?result/',
         'provisional_result' => '/provisional.?result/',
-        'revised_result'     => '/revised.?result/',
-        'scorecard'          => '/scorecard|score.?card/',
-        'marks'              => '/marks.?(released|published|available)/',
+        'revised_result' => '/revised.?result/',
+        'scorecard' => '/scorecard|score.?card/',
+        'marks' => '/marks.?(released|published|available)/',
     ];
     $out = [];
     foreach ($map as $tag => $rx) {
-        if (preg_match($rx, $t)) $out[] = $tag;
+        if (preg_match($rx, $t))
+            $out[] = $tag;
     }
     return $out;
 }
@@ -820,25 +1053,73 @@ function auto_detect_tags(string $content, array $current): array
 function correct_category(array $p): array
 {
     $combined = strtolower(($p['organization'] ?? '') . ' ' . ($p['title'] ?? '') . ' ' . ($p['short_description'] ?? ''));
-    $psu = ['iffco','bpcl','hpcl','iocl','ongc','gail','ntpc','bhel','sail','hal','drdo','isro',
-            'barc','npcil','coalindia','coal india','power grid','powergrid','rvnl','aai','concor',
-            'rites','ircon','irctc','nhpc','nlc','mecl','bsnl','mtnl','nhai','hecl','beml',
-            'public sector undertaking','central public sector','psu'];
+    $psu = [
+        'iffco',
+        'bpcl',
+        'hpcl',
+        'iocl',
+        'ongc',
+        'gail',
+        'ntpc',
+        'bhel',
+        'sail',
+        'hal',
+        'drdo',
+        'isro',
+        'barc',
+        'npcil',
+        'coalindia',
+        'coal india',
+        'power grid',
+        'powergrid',
+        'rvnl',
+        'aai',
+        'concor',
+        'rites',
+        'ircon',
+        'irctc',
+        'nhpc',
+        'nlc',
+        'mecl',
+        'bsnl',
+        'mtnl',
+        'nhai',
+        'hecl',
+        'beml',
+        'public sector undertaking',
+        'central public sector',
+        'psu'
+    ];
     foreach ($psu as $kw) {
         if (str_contains($combined, $kw)) {
             $p['category_name'] = 'PSU Jobs';
-            $p['state_name']    = 'All India';
+            $p['state_name'] = 'All India';
             return $p;
         }
     }
-    $central = ['ministry of','department of','government of india','high court','supreme court',
-                'upsc','staff selection','rrb ','rail','ibps','reserve bank','rbi ','esic','epfo',
-                'central government','union government'];
+    $central = [
+        'ministry of',
+        'department of',
+        'government of india',
+        'high court',
+        'supreme court',
+        'upsc',
+        'staff selection',
+        'rrb ',
+        'rail',
+        'ibps',
+        'reserve bank',
+        'rbi ',
+        'esic',
+        'epfo',
+        'central government',
+        'union government'
+    ];
     if (($p['category_name'] ?? '') === 'State Govt Jobs') {
         foreach ($central as $kw) {
             if (str_contains($combined, $kw)) {
                 $p['category_name'] = 'Central Govt Jobs';
-                $p['state_name']    = 'All India';
+                $p['state_name'] = 'All India';
                 return $p;
             }
         }
@@ -849,15 +1130,12 @@ function correct_category(array $p): array
 function correct_employment_type(array $p): array
 {
     $salType = strtolower($p['salary_type'] ?? 'salary');
-    $salary  = strtolower($p['salary'] ?? '');
-    $title   = strtolower($p['title'] ?? '');
-    if ($salType === 'stipend'
-        || str_contains($salary, 'stipend')
-        || preg_match('/trainee|intern|apprentice/', $title)) {
+    $salary = strtolower($p['salary'] ?? '');
+    $title = strtolower($p['title'] ?? '');
+    if ($salType === 'stipend' || str_contains($salary, 'stipend') || preg_match('/trainee|intern|apprentice/', $title)) {
         $p['salary_type'] = 'stipend';
-        if (!empty($p['salary']) && !str_contains(strtolower($p['salary']), 'stipend')) {
+        if (!empty($p['salary']) && !str_contains(strtolower($p['salary']), 'stipend'))
             $p['salary'] = 'Stipend: ' . $p['salary'];
-        }
     }
     return $p;
 }
@@ -871,12 +1149,10 @@ function get_ai_prompt(array $preFilteredLinks = []): string
     $tg = TG_CHANNEL;
     $wa = WA_CHANNEL;
 
-    $linkInstruction = '';
     if (!empty($preFilteredLinks)) {
         $lines = [];
-        foreach ($preFilteredLinks as $i => $l) {
+        foreach ($preFilteredLinks as $i => $l)
             $lines[] = ($i + 1) . '. Title: "' . addslashes($l['title']) . '" | URL: ' . $l['url'];
-        }
         $linkBlock = implode("\n", $lines);
         $linkInstruction = <<<LINKSEC
 
@@ -939,44 +1215,35 @@ Analyze the provided job notification and return a FULLY SEO-OPTIMIZED, structur
 ⑧ notification_date, start_date, end_date, last_date: YYYY-MM-DD or ""
 ⑨ total_posts: integer or 0
 ⑩ salary: Exact pay scale e.g. "Pay Level 6 (₹35,400 – ₹1,12,400)"
-⑪ online_form: https:// URL or ""
+⑪ salary_min, salary_max: integer values (₹)
+⑫ salary_type: salary|stipend|consolidated|pay_scale
+⑬ online_form: https:// URL or ""
+⑭ age_min, age_max_gen, age_max_obc, age_max_sc, age_max_st, age_max_ph, age_max_ex_serviceman: integer years
+⑮ age_as_on_date: YYYY-MM-DD
+⑯ fee_general, fee_obc, fee_sc_st, fee_women, fee_ph: integer values (₹)
+⑰ vacancy_gen, vacancy_obc, vacancy_sc, vacancy_st, vacancy_ews, vacancy_ph: integer counts
+⑱ selection_stages: Array of strings e.g. ["Written Exam", "Interview", "Document Verification"]
+⑲ is_date_extended: boolean
 
-⑫ important_links: Array of {"title":"...","url":"https://..."}.
+⑳ important_links: Array of {"title":"...","url":"https://..."}.
 {$linkInstruction}
    ✅ GOOD titles: "Official Notification PDF" | "Apply Online" | "Download Admit Card"
    ❌ BAD titles: "1" | "2" | "Link" | "Click Here"
 
 ⑬ tags: subset of [cutoff,merit_list,selection_list,final_result,provisional_result,revised_result,scorecard,marks]
 ⑭ education: subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,bba,mba,ca,cs,cma,llb,llm,mbbs,bds,bpharm,mpharm,nursing,bed,med,phd,any_qualification]
-⑮ meta_title: max 60 chars, keyword-rich, include year
-⑯ meta_description: max 160 chars, include CTA
-⑰ meta_keywords: MINIMUM 200 comma-separated keywords (long-tails, state variations, Hindi terms, date-based, salary-based, jobone.in branded)
-
+⑮ meta_title: "[Org Abbr] [Post Name] [Year] – [N] Posts | Apply by [DD MMM] | JobOne.in"
+⑯ meta_description: "[Org] has released [N] [Post] vacancies for [Year]. Eligibility: [edu]. Last date: [date]. Check qualification, salary, selection process and direct apply link here."
+⑰ meta_keywords: MINIMUM 200 comma-separated keywords
 ⑱ qualifications: One paragraph summarising educational qualifications, age limit, experience required.
-   Example: "Candidates must be graduates aged 18–32 years. SC/ST get 5-year age relaxation. No prior experience required."
-
-⑲ skills: Comma-separated list of relevant skills/competencies.
-   Example: "General Awareness, Reasoning Ability, Quantitative Aptitude, English Language"
-
-⑳ responsibilities: One paragraph describing the role/duties of the position.
-   Example: "Perform clerical duties, maintain records, assist public with government services, coordinate with departments."
-
+⑲ skills: Comma-separated skills/competencies.
+⑳ responsibilities: One paragraph describing the role/duties.
 ㉑ faq: Array of EXACTLY 7 objects {"question":"...","answer":"..."}.
-   CRITICAL — Questions must match REAL Google search queries for this notification.
-   Cover: eligibility, how to apply, last date, age limit, salary, selection process, application fee.
-   Answers must be specific (actual dates, figures, steps from the notification).
-   Example questions:
-   - "What is the eligibility for [Org] [Post] [Year]?"
-   - "How to apply for [Org] [Post] [Year] online?"
-   - "What is the last date to apply for [Org] [Post]?"
-   - "What is the age limit for [Org] [Post] [Year]?"
-   - "What is the salary for [Org] [Post] [Year]?"
-   - "What is the selection process for [Org] [Post]?"
-   - "What is the application fee for [Org] [Post] [Year]?"
+   CRITICAL — plain text answers only (no HTML tags). Cover: eligibility, how to apply, last date, age limit, salary, selection process, application fee.
 
 ━━━━ OUTPUT RULES ━━━━
 Return ONLY valid compact JSON. No markdown, no backticks, no comments.
-{"title":"","type":"job","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","total_posts":0,"salary":"","online_form":"","important_links":[{"title":"","url":""}],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[{"question":"","answer":""}]}
+{"title":"","type":"job","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":18,"age_max_gen":0,"age_max_obc":0,"age_max_sc":0,"age_max_st":0,"age_max_ph":0,"age_max_ex_serviceman":0,"age_as_on_date":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","important_links":[{"title":"","url":""}],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[{"question":"","answer":""}]}
 PROMPT;
 }
 
@@ -986,49 +1253,48 @@ PROMPT;
 
 $action = $_GET['action'] ?? '';
 
+// Helper to send a clean JSON response (FIX #1: clears buffer first)
+function send_json(mixed $data): never
+{
+    ob_end_clean();
+    echo json_encode($data);
+    exit;
+}
+
 switch ($action) {
 
     // ── categories ──────────────────────────────────────────────────────────
     case 'categories':
-        echo json_encode(curl_request(JOBONE_API . '/categories', 'GET', ['Accept: application/json']));
-        break;
+        send_json(curl_request(JOBONE_API . '/categories', 'GET', ['Accept: application/json']));
 
     // ── states ───────────────────────────────────────────────────────────────
     case 'states':
-        echo json_encode(curl_request(JOBONE_API . '/states', 'GET', ['Accept: application/json']));
-        break;
+        send_json(curl_request(JOBONE_API . '/states', 'GET', ['Accept: application/json']));
 
     // ── scrape_url ───────────────────────────────────────────────────────────
     case 'scrape_url':
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $url = trim($input['url'] ?? '');
-        if (!$url) {
-            echo json_encode(['success' => false, 'message' => 'URL is required']);
-            break;
-        }
+        if (!$url)
+            send_json(['success' => false, 'message' => 'URL is required']);
+
         if (!preg_match('/^https?:\/\//i', $url))
             $url = 'https://' . ltrim($url, '/');
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            echo json_encode(['success' => false, 'message' => 'Invalid URL format']);
-            break;
-        }
+        if (!filter_var($url, FILTER_VALIDATE_URL))
+            send_json(['success' => false, 'message' => 'Invalid URL format']);
 
         $raw = curl_request_raw($url);
-        if (!$raw['success']) {
-            echo json_encode($raw);
-            break;
-        }
+        if (!$raw['success'])
+            send_json($raw);
 
         $classified = extract_and_classify_links($raw['content'], $url);
         $officialLinks = $classified['official'];
         $skippedCount = count($classified['aggregator']) + count($classified['unknown']);
 
-        foreach ($officialLinks as $idx => &$link) {
+        foreach ($officialLinks as $idx => &$link)
             $link['title'] = infer_link_title($link['title'], $link['url'], $idx + 1);
-        }
         unset($link);
 
-        // De-duplicate by URL
         $seen = [];
         $officialLinks = array_values(array_filter($officialLinks, function ($l) use (&$seen) {
             $key = strtolower($l['url']);
@@ -1038,24 +1304,20 @@ switch ($action) {
         }));
 
         $text = html_to_text($raw['content']);
-        if (strlen($text) < 100) {
-            echo json_encode(['success' => false, 'message' => 'Page content too short or blocked. Try pasting the text manually.']);
-            break;
-        }
-        echo json_encode(['success' => true, 'text' => $text, 'chars' => strlen($text), 'official_links' => $officialLinks, 'skipped_count' => $skippedCount]);
-        break;
+        if (strlen($text) < 100)
+            send_json(['success' => false, 'message' => 'Page content too short or blocked. Try pasting the text manually.']);
+
+        send_json(['success' => true, 'text' => $text, 'chars' => strlen($text), 'official_links' => $officialLinks, 'skipped_count' => $skippedCount]);
 
     // ── analyze ──────────────────────────────────────────────────────────────
     case 'analyze':
-        $input = json_decode(file_get_contents('php://input'), true);
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $rawText = trim($input['raw_text'] ?? '');
         $officialLinks = $input['official_links'] ?? [];
         $sourceUrl = $input['source_url'] ?? '';
 
-        if (!$rawText) {
-            echo json_encode(['success' => false, 'message' => 'raw_text is required']);
-            break;
-        }
+        if (!$rawText)
+            send_json(['success' => false, 'message' => 'raw_text is required']);
 
         $payload = json_encode([
             'model' => AI_MODEL,
@@ -1068,39 +1330,29 @@ switch ($action) {
         ]);
 
         $response = curl_request(AI_API_URL, 'POST', ['Content-Type: application/json', 'Authorization: Bearer ' . AI_API_KEY], $payload);
-        if (isset($response['success']) && $response['success'] === false) {
-            echo json_encode($response);
-            break;
-        }
-        if (isset($response['error']) && !isset($response['choices'])) {
-            echo json_encode(['success' => false, 'message' => $response['error']['message'] ?? 'API error', 'raw' => $response]);
-            break;
-        }
+        if (isset($response['success']) && $response['success'] === false)
+            send_json($response);
+        if (isset($response['error']) && !isset($response['choices']))
+            send_json(['success' => false, 'message' => $response['error']['message'] ?? 'API error', 'raw' => $response]);
 
         $aiText = $response['choices'][0]['message']['content'] ?? '';
-        if (!$aiText) {
-            echo json_encode(['success' => false, 'message' => 'AI returned empty response', 'raw' => $response]);
-            break;
-        }
+        if (!$aiText)
+            send_json(['success' => false, 'message' => 'AI returned empty response', 'raw' => $response]);
 
         $clean = trim(preg_replace('/```json|```/i', '', $aiText));
         $parsed = json_decode($clean, true);
         if ($parsed === null)
             $parsed = json_decode(repair_json($clean), true);
-        if ($parsed === null) {
-            echo json_encode(['success' => false, 'message' => 'Failed to parse AI response', 'raw' => $clean]);
-            break;
-        }
+        if ($parsed === null)
+            send_json(['success' => false, 'message' => 'Failed to parse AI response', 'raw' => $clean]);
 
-        // ── Sanitize online_form ─────────────────────────────────────────────
-        // ── Sanitize total_posts → always integer
         $parsed['total_posts'] = sanitize_total_posts($parsed['total_posts'] ?? 0);
 
-        // ── Sanitize online_form / apply_url → reject bare homepage URLs
         foreach (['online_form', 'apply_url'] as $urlField) {
             if (!empty($parsed[$urlField])) {
                 $u = trim($parsed[$urlField]);
-                if (!preg_match('/^https?:\/\//i', $u)) $u = 'https://' . ltrim($u, '/');
+                if (!preg_match('/^https?:\/\//i', $u))
+                    $u = 'https://' . ltrim($u, '/');
                 $parsed[$urlField] = filter_var($u, FILTER_VALIDATE_URL) ? sanitize_apply_url($u) : '';
             }
         }
@@ -1108,20 +1360,14 @@ switch ($action) {
         if (empty($parsed['apply_url']) && !empty($parsed['online_form']))
             $parsed['apply_url'] = $parsed['online_form'];
 
-        // ── Category correction (PSU / Central mislabelled as State)
         $parsed = correct_category($parsed);
 
-        // ── Education: AI fallback → keyword detection from raw text
         $detectSrc = ($parsed['content'] ?? '') . ' ' . ($parsed['qualifications'] ?? '') . ' ' . $rawText;
         $parsed['education'] = auto_detect_education($detectSrc, $parsed['education'] ?? []);
-
-        // ── Tags: keyword detection if AI returned none
         $parsed['tags'] = auto_detect_tags($detectSrc, $parsed['tags'] ?? []);
-
-        // ── Employment type: detect stipend/trainee roles
         $parsed = correct_employment_type($parsed);
 
-        // ── Merge + sanitize links ───────────────────────────────────────────
+        // Merge + sanitize links
         $sourceDomain = $sourceUrl ? get_registrable_domain($sourceUrl) : '';
         $aiLinks = is_array($parsed['important_links'] ?? null) ? $parsed['important_links'] : [];
         $sanitizedAiLinks = [];
@@ -1146,14 +1392,33 @@ switch ($action) {
                 $seenUrls[] = strtolower($l['url']);
             }
         }
-        foreach ($merged as $idx => &$link) {
+        foreach ($merged as $idx => &$link)
             $link['title'] = infer_link_title($link['title'], $link['url'], $idx + 1);
-        }
         unset($link);
 
-        // Ensure social links present
-        $hasTg = false;
-        $hasWa = false;
+        // Override meta title & description
+        $orgAbbr = !empty($parsed['organization']) ? explode(' ', $parsed['organization'])[0] : 'Govt';
+        $postN = $parsed['post_name'] ?? $parsed['title'] ?? 'Job';
+        $vCount = (int) ($parsed['total_posts'] ?? 0);
+        $vStr = $vCount > 0 ? " – {$vCount} Posts" : "";
+        $yearStr = date('Y');
+        if (preg_match('/\b(20\d{2})\b/', $postN, $m))
+            $yearStr = $m[1];
+        $lastDateHint = !empty($parsed['last_date']) ? 'Apply by ' . date('d M', strtotime($parsed['last_date'])) : 'Apply Soon';
+        $extendPrefix = !empty($parsed['is_date_extended']) ? '🔥 Date Extended – ' : '';
+
+        $parsed['meta_title'] = "{$extendPrefix}{$orgAbbr} {$postN} Recruitment {$yearStr}{$vStr} | {$lastDateHint} | JobOne.in";
+        if (strlen($parsed['meta_title']) > 80)
+            $parsed['meta_title'] = substr($parsed['meta_title'], 0, 77) . '...';
+
+        $eduList = !empty($parsed['education']) ? implode(', ', array_slice($parsed['education'], 0, 2)) : 'Graduate';
+        $lastDateFull = !empty($parsed['last_date']) ? date('d-m-Y', strtotime($parsed['last_date'])) : 'soon';
+        $parsed['meta_description'] = "{$parsed['organization']} has released " . ($vCount > 0 ? $vCount : 'various') . " {$postN} vacancies for {$yearStr}. Eligibility: {$eduList}. Last date to apply: {$lastDateFull}. Check qualification, salary, selection process and direct apply link here.";
+        if (strlen($parsed['meta_description']) > 160)
+            $parsed['meta_description'] = substr($parsed['meta_description'], 0, 157) . '...';
+
+        // Social links
+        $hasTg = $hasWa = false;
         foreach ($merged as $l) {
             if (!empty($l['url']) && str_contains($l['url'], 't.me/jobone'))
                 $hasTg = true;
@@ -1166,82 +1431,74 @@ switch ($action) {
             $merged[] = ['title' => '🟢 WhatsApp Channel – JobOne.in', 'url' => WA_CHANNEL];
         $parsed['important_links'] = $merged;
 
-        // ── Build FAQ HTML block ─────────────────────────────────────────────
+        // Build FAQ
         $faqData = is_array($parsed['faq'] ?? null) ? $parsed['faq'] : [];
         $faqHtml = build_faq_html($faqData);
         $faqSchema = generate_faq_schema($faqData);
 
-        // ── Build complete JobPosting + Breadcrumb schema block ──────────────
-        // (slug not available at analyze time; will be re-generated post_job)
+        // Build job schema (no real slug yet)
         $jobSchema = generate_job_schema($parsed, $merged);
 
-        // ── Strip any AI-generated "Important Links" or "FAQ" section ────────
-        $parsed['content'] = preg_replace(
-            '/<h3[^>]*>\s*[📎🔗]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si',
-            '',
-            $parsed['content'] ?? ''
-        );
-        $parsed['content'] = preg_replace(
-            '/<h3[^>]*>\s*[❓🙋]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si',
-            '',
-            $parsed['content'] ?? ''
-        );
+        // Strip AI-generated links/FAQ sections from content
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[📎🔗]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[❓🙋]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $parsed['content'] ?? '');
 
-        // ── Assemble final content: links table + FAQ + social + schemas ─────
+        // Assemble content
+        $quickInfoHtml = build_quick_info_table($parsed);
+        $datesHtml = build_dates_table($parsed);
+        $feeHtml = build_fee_table($parsed);
+        $vacancyHtml = build_vacancy_table($parsed);
+        $selectionHtml = build_selection_stages($parsed);
         $linksHtml = build_links_table($parsed['important_links']);
+
         $socialMarker = '<h3>📢 Stay Updated';
         $content = rtrim($parsed['content'] ?? '');
+        $headerBlocks = $quickInfoHtml . "\n" . $datesHtml . "\n" . $vacancyHtml . "\n" . $feeHtml . "\n" . $selectionHtml;
 
         if (str_contains($content, $socialMarker)) {
-            // Insert: FAQ → Links → Social
-            $content = str_replace(
+            $content = $headerBlocks . "\n" . str_replace(
                 $socialMarker,
                 $faqHtml . "\n" . $linksHtml . "\n" . $socialMarker,
                 $content
             );
         } else {
-            $content .= "\n" . $faqHtml . "\n" . $linksHtml;
+            $content = $headerBlocks . "\n" . $content . "\n" . $faqHtml . "\n" . $linksHtml;
         }
 
-        // Inject JSON-LD schemas at the very end of content
-        $content .= "\n" . $faqSchema . "\n" . $jobSchema;
+        $content .= "\n"; 
         $parsed['content'] = $content;
 
-        // ── Build OG tags (returned to frontend for display / CMS head) ──────
         $ogTags = generate_og_tags($parsed, JOBONE_SITE_URL . '/preview');
-
         $kwCount = !empty($parsed['meta_keywords'])
             ? count(array_filter(array_map('trim', explode(',', $parsed['meta_keywords'])))) : 0;
 
-        echo json_encode([
+        send_json([
             'success' => true,
             'data' => $parsed,
             'kw_count' => $kwCount,
             'faq_count' => count($faqData),
-            'og_tags' => $ogTags,           // ← copy-paste into CMS <head>
+            'og_tags' => $ogTags,
         ]);
-        break;
 
     // ── post_job ─────────────────────────────────────────────────────────────
     case 'post_job':
         $input = json_decode(file_get_contents('php://input'), true);
-        if (!$input) {
-            echo json_encode(['success' => false, 'message' => 'Invalid request body']);
-            break;
-        }
+        if (!$input)
+            send_json(['success' => false, 'message' => 'Invalid request body']);
 
         foreach (['title', 'type', 'short_description', 'content', 'category_id'] as $field) {
-            if (empty($input[$field])) {
-                echo json_encode(['success' => false, 'message' => "Required field missing: {$field}"]);
-                break 2;
-            }
+            if (empty($input[$field]))
+                send_json(['success' => false, 'message' => "Required field missing: {$field}"]);
         }
+
         foreach (['state_id', 'notification_date', 'start_date', 'end_date', 'last_date', 'salary', 'online_form', 'final_result'] as $f) {
             if (isset($input[$f]) && $input[$f] === '')
                 unset($input[$f]);
         }
         if (empty($input['total_posts']))
             unset($input['total_posts']);
+
         if (isset($input['important_links'])) {
             $input['important_links'] = array_values(array_filter(
                 $input['important_links'],
@@ -1249,16 +1506,41 @@ switch ($action) {
             ));
         }
 
-        // Strip display-only fields; keep all structured data fields for API
         $sourceUrl = $input['source_url'] ?? '';
         unset($input['state_name'], $input['category_name'], $input['source_url'], $input['qualifications_text'], $input['og_tags']);
 
-        // Cast integer fields so API validation passes
-        foreach (['total_posts','age_min','age_max_gen','age_max_obc','age_max_sc'] as $intField) {
-            if (isset($input[$intField])) $input[$intField] = (int)$input[$intField];
+        $intFields = [
+            'total_posts',
+            'age_min',
+            'age_max_gen',
+            'age_max_obc',
+            'age_max_sc',
+            'age_max_st',
+            'age_max_ph',
+            'age_max_ex_serviceman',
+            'fee_general',
+            'fee_obc',
+            'fee_sc_st',
+            'fee_women',
+            'fee_ph',
+            'salary_min',
+            'salary_max',
+            'vacancy_gen',
+            'vacancy_obc',
+            'vacancy_sc',
+            'vacancy_st',
+            'vacancy_ews',
+            'vacancy_ph'
+        ];
+        foreach ($intFields as $intField) {
+            if (isset($input[$intField]))
+                $input[$intField] = (int) $input[$intField];
         }
-        // Ensure direct_apply is boolean
-        if (isset($input['direct_apply'])) $input['direct_apply'] = (bool)$input['direct_apply'];
+
+        if (empty($input['slug']))
+            $input['slug'] = generate_slug($input);
+        if (isset($input['direct_apply']))
+            $input['direct_apply'] = (bool) $input['direct_apply'];
 
         $postResult = curl_request(
             JOBONE_API . '/posts',
@@ -1267,24 +1549,16 @@ switch ($action) {
             json_encode($input)
         );
 
-        // ── If the post succeeded, regenerate schemas with real slug + ping ──
         if (!empty($postResult['success']) || !empty($postResult['data']['id'])) {
             $postData = $postResult['data'] ?? $postResult;
             $slug = $postData['slug'] ?? '';
             $jobUrl = $slug ? JOBONE_SITE_URL . '/' . $slug : JOBONE_SITE_URL;
 
-            // Regenerate content with real slug in schemas
             $input['id'] = $postData['id'] ?? '';
             $input['slug'] = $slug;
-            // (Re-generate schema and patch content here if your CMS supports update endpoint)
 
-            // ── IndexNow ping ────────────────────────────────────────────────
             $pingResult = ping_indexnow($jobUrl);
-
-            // ── Build final OG tags with real URL ───────────────────────────
             $ogTags = generate_og_tags(array_merge($input, $postData), $jobUrl);
-
-            // ── BreadcrumbList + JobPosting schema with real slug ────────────
             $mergedData = array_merge($input, $postData);
             $finalSchema = generate_job_schema($mergedData, $input['important_links'] ?? []);
 
@@ -1294,13 +1568,12 @@ switch ($action) {
             $postResult['job_url'] = $jobUrl;
         }
 
-        echo json_encode($postResult);
-        break;
+        send_json($postResult);
 
     // ── 404 ──────────────────────────────────────────────────────────────────
     default:
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Unknown action: ' . htmlspecialchars($action)]);
+        send_json(['success' => false, 'message' => 'Unknown action: ' . htmlspecialchars($action)]);
 }
 
 // ── JSON repair ───────────────────────────────────────────────────────────────

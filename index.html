@@ -1644,7 +1644,7 @@
             <label class="field-label">Visibility Settings</label>
             <div class="toggle-row">
               <div class="toggle-wrap" onclick="toggleSwitch('is_published')">
-                <div class="toggle-track" id="track-is_published">
+                <div class="toggle-track on" id="track-is_published">
                   <div class="toggle-thumb"></div>
                 </div>
                 <span class="toggle-label">Published</span>
@@ -1750,17 +1750,17 @@
         <div class="tab-panel" id="tab-seo">
           <div class="section-title"><span>🔍 SEO Settings</span></div>
           <div style="margin-bottom:14px;">
-            <label class="field-label">Meta Title (max 60 chars)</label>
+            <label class="field-label">Meta Title (max 255 chars) <span class="req">*</span></label>
             <input type="text" id="f-meta_title" placeholder="e.g. SSC CGL 2026 – 17727 Posts | Apply Online"
-              oninput="updateCharCount('f-meta_title','cnt-metatitle',60)">
-            <div class="char-count" id="cnt-metatitle">0/60</div>
+              oninput="updateCharCount('f-meta_title','cnt-metatitle',255)">
+            <div class="char-count" id="cnt-metatitle">0/255</div>
           </div>
           <div style="margin-bottom:14px;">
-            <label class="field-label">Meta Description (max 160 chars)</label>
+            <label class="field-label">Meta Description (max 500 chars) <span class="req">*</span></label>
             <textarea id="f-meta_description" rows="3"
               placeholder="SSC CGL 2026 notification out. Apply online for 17727 vacancies..."
-              oninput="updateCharCount('f-meta_description','cnt-metadesc',160)"></textarea>
-            <div class="char-count" id="cnt-metadesc">0/160</div>
+              oninput="updateCharCount('f-meta_description','cnt-metadesc',500)"></textarea>
+            <div class="char-count" id="cnt-metadesc">0/500</div>
           </div>
           <div>
             <label class="field-label">Meta Keywords <span id="kw-badge" class="ai-match-tag" style="display:none;">✓
@@ -1898,7 +1898,7 @@
     ];
 
     let inputMode = 'url';
-    const toggleState = { is_published: false, is_featured: false, is_upcoming: false };
+    const toggleState = { is_published: true, is_featured: false, is_upcoming: false };
     const selectedChips = { tags: [], education: [] };
     let linkRows = [{ title: '', url: '' }];
     let lastPostedUrl = '';
@@ -2139,8 +2139,8 @@
       linkRows = links.length ? links : [{ title: '', url: '' }];
       renderLinks();
       updateCharCount('f-short_description', 'cnt-short', 160);
-      updateCharCount('f-meta_title', 'cnt-metatitle', 60);
-      updateCharCount('f-meta_description', 'cnt-metadesc', 160);
+      updateCharCount('f-meta_title', 'cnt-metatitle', 255);
+      updateCharCount('f-meta_description', 'cnt-metadesc', 500);
       updatePreview();
       switchTabById('basic');
     }
@@ -2506,7 +2506,7 @@
       selectedChips.tags = []; selectedChips.education = [];
       updateChips('tags', 'chips-tags'); updateChips('education', 'chips-education');
       linkRows = [{ title: '', url: '' }]; renderLinks();
-      ['cnt-short', 'cnt-metatitle', 'cnt-metadesc'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = '0/' + (id === 'cnt-metatitle' ? '60' : '160'); el.classList.remove('over'); } });
+      ['cnt-short', 'cnt-metatitle', 'cnt-metadesc'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = '0/' + (id === 'cnt-metatitle' ? '255' : id === 'cnt-metadesc' ? '500' : '160'); el.classList.remove('over'); } });
       ['cat-match-tag', 'state-match-tag', 'kw-badge'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
       document.getElementById('kw-count-info').style.display = 'none';
       document.getElementById('badge-kw').style.display = 'none';
