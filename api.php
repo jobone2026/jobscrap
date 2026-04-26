@@ -51,7 +51,17 @@ set_error_handler(function ($severity, $message, $file, $line) {
 
 // Load secrets from Laravel .env file if available (Live server: /var/www/jobone/.env)
 $envPath = __DIR__ . '/../../.env';
-$env = file_exists($envPath) ? parse_ini_file($envPath) : [];
+$env = [];
+if (file_exists($envPath)) {
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            $env[trim($name)] = trim(trim($value), '"\'');
+        }
+    }
+}
 
 // If running locally, check for a local config.php
 if (file_exists(__DIR__ . '/config.php')) {
