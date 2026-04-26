@@ -2244,8 +2244,15 @@
 
     async function postJob() {
       const form = collectForm();
-      if (!form.title || !form.type || !form.short_description || !form.content || !form.category_id) {
-        showPostErr('Please fill required fields: Title, Type, Short Description, Content, Category.');
+      const missing = [];
+      if (!form.title) missing.push('Title');
+      if (!form.type) missing.push('Type');
+      if (!form.short_description) missing.push('Short Description');
+      if (!form.content) missing.push('Content (HTML)');
+      if (!form.category_id) missing.push('Category');
+      
+      if (missing.length > 0) {
+        showPostErr('Please fill required fields: ' + missing.join(', '));
         return;
       }
       const btn = document.getElementById('btn-post');
