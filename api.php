@@ -874,7 +874,7 @@ function build_faq_html(array $faq): string
     }
     if (!$items)
         return '';
-    return '<h3>â“ Frequently Asked Questions (FAQ)</h3><div style="margin:14px 0;">' . $items . '</div>';
+    return '<h3>❓ Frequently Asked Questions (FAQ)</h3><div style="margin:14px 0;">' . $items . '</div>';
 }
 
 function generate_og_tags(array $p, string $jobUrl, string $imageUrl = ''): string
@@ -1637,7 +1637,7 @@ switch ($action) {
 
         // Strip AI-generated links/FAQ sections from content
         $parsed['content'] = preg_replace('/<h3[^>]*>\s*[🔎🔗]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
-        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[â“🙋]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[❓🙋]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
         $parsed['content'] = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $parsed['content'] ?? '');
 
         // Assemble content
