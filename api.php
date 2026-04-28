@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // â”€â”€ JobOne Publisher â€” PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -401,72 +401,86 @@ function html_to_text(string $html): string
 // â”€â”€ CONTENT TABLE BUILDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
+// ── Helper: safe date display — never show 01-01-1970 or empty ────────────────
+function safe_date(string $val, string $fallback = 'Check Notification'): string
+{
+    if (empty(trim($val))) return $fallback;
+    $ts = strtotime($val);
+    if ($ts === false || $ts <= 0) return $fallback;
+    if ($ts < mktime(0, 0, 0, 1, 1, 2000)) return $fallback;
+    return date('d-m-Y', $ts);
+}
+
 function build_quick_info_table(array $p): string
 {
     $rows = [
-        ['ðŸ¢ Organization', $p['organization'] ?? 'Government Body'],
-        ['ðŸ“‹ Post Name', $p['post_name'] ?? $p['title'] ?? 'Various'],
-        ['ðŸ”¢ Total Vacancies', ($p['total_posts'] ?? 0) > 0 ? $p['total_posts'] : 'As per requirement'],
-        ['ðŸ“ Category', $p['category_name'] ?? 'Govt Jobs'],
-        ['ðŸ“ State', $p['state_name'] ?? 'All India'],
-        ['ðŸŽ“ Education', !empty($p['education']) ? implode(', ', (array) $p['education']) : 'Check Notification'],
-        ['ðŸŽ‚ Age Limit', ($p['age_min'] ?? 0) . ' â€“ ' . ($p['age_max_gen'] ?? 30) . ' Years'],
-        ['ðŸ’° Salary', $p['salary'] ?? 'Check Notification'],
-        ['ðŸ’³ App Fee', ($p['fee_general'] ?? 0) > 0 ? 'â‚¹' . $p['fee_general'] : 'No Fee'],
-        ['ðŸ“ Apply Mode', !empty($p['online_form']) ? 'Online' : 'Offline'],
-        ['ðŸ“… Last Date', !empty($p['last_date']) ? date('d-m-Y', strtotime($p['last_date'])) : 'Apply Soon'],
+        ["\u{1F3E2} Organization", $p['organization'] ?? 'Government Body'],
+        ["\u{1F4CB} Post Name", $p['post_name'] ?? $p['title'] ?? 'Various'],
+        ["\u{1F4E2} Total Vacancies", ($p['total_posts'] ?? 0) > 0 ? $p['total_posts'] : 'As per requirement'],
+        ["\u{1F4C1} Category", $p['category_name'] ?? 'Govt Jobs'],
+        ["\u{1F4CD} State", $p['state_name'] ?? 'All India'],
+        ["\u{1F393} Education", !empty($p['education']) ? implode(', ', (array) $p['education']) : 'Check Notification'],
+        ["\u{1F382} Age Limit", (int)($p['age_min'] ?? 0) > 0 ? ($p['age_min'] . ' - ' . ($p['age_max_gen'] ?? 0) . ' Years') : 'Check Notification'],
+        ["\u{1F4B0} Salary", $p['salary'] ?? 'Check Notification'],
+        ["\u{1F4B3} App Fee", ($p['fee_general'] ?? 0) > 0 ? "\u{20B9}" . $p['fee_general'] : 'No Fee'],
+        ["\u{1F4DD} Apply Mode", !empty($p['online_form']) ? 'Online' : 'Offline'],
+        ["\u{1F4C5} Last Date", safe_date($p['last_date'] ?? '', 'Apply Soon')],
     ];
     $htmlRows = '';
     foreach ($rows as $i => $r) {
         $bg = $i % 2 === 0 ? '#ffffff' : '#f9fbff';
         $htmlRows .= "<tr style=\"background:{$bg};\"><td style=\"padding:10px 14px;border:1px solid #eef2f7;font-weight:700;width:40%;\">{$r[0]}</td><td style=\"padding:10px 14px;border:1px solid #eef2f7;\">{$r[1]}</td></tr>";
     }
-    return '<h3>ðŸ“Š Quick Info Overview</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;">' . $htmlRows . '</table>';
+    return '<h3>' . "\u{1F4CA}" . ' Quick Info Overview</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;">' . $htmlRows . '</table>';
 }
 
 function build_dates_table(array $p): string
 {
-    $dates = [
-        'Notification Released' => $p['notification_date'] ?? '',
-        'Online Apply Start' => $p['start_date'] ?? '',
-        'Apply Last Date' => $p['last_date'] ?? '',
-        'Fee Payment Deadline' => $p['last_date'] ?? '',
-        'Exam Date' => 'To be announced',
-        'Result Date' => 'To be announced',
+    $dateDefs = [
+        ['Notification Released', $p['notification_date'] ?? ''],
+        ['Online Apply Start',    $p['start_date']        ?? ''],
+        ['Apply Last Date',       $p['last_date']         ?? ''],
+        ['Fee Payment Deadline',  $p['last_date']         ?? ''],
+        ['Exam Date',             $p['exam_date']         ?? ''],
+        ['Result Date',           $p['result_date']       ?? ''],
     ];
     $htmlRows = '';
-    foreach ($dates as $label => $val) {
-        $display = !empty($val) ? date('d-m-Y', strtotime($val)) : 'Check Notification';
+    foreach ($dateDefs as [$label, $val]) {
+        $display = safe_date((string)$val);
+        // Skip Exam/Result Date when not provided by AI (avoid blank/1970 rows)
+        if ($display === 'Check Notification' && in_array($label, ['Exam Date', 'Result Date'])) {
+            continue;
+        }
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
     }
-    return '<h3>ðŸ“… Important Dates</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+    return '<h3>' . "\u{1F4C5}" . ' Important Dates</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
 }
 
 function build_fee_table(array $p): string
 {
     $fees = [
-        'General / OBC' => $p['fee_general'] ?? 0,
-        'SC / ST' => $p['fee_sc_st'] ?? 0,
-        'PH / PWD' => $p['fee_ph'] ?? 0,
-        'Female Candidates' => $p['fee_women'] ?? 0,
+        'General / OBC'     => $p['fee_general'] ?? 0,
+        'SC / ST'           => $p['fee_sc_st']   ?? 0,
+        'PH / PWD'          => $p['fee_ph']      ?? 0,
+        'Female Candidates' => $p['fee_women']   ?? 0,
     ];
     $htmlRows = '';
     foreach ($fees as $label => $val) {
-        $display = $val > 0 ? 'â‚¹' . $val : 'Nil / Exempted';
+        $display = $val > 0 ? "\u{20B9}" . $val : 'Nil / Exempted';
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
     }
-    return '<h3>ðŸ’³ Application Fee</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+    return '<h3>' . "\u{1F4B3}" . ' Application Fee</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
 }
 
 function build_vacancy_table(array $p): string
 {
     $cats = [
         'General' => $p['vacancy_gen'] ?? 0,
-        'OBC' => $p['vacancy_obc'] ?? 0,
-        'SC' => $p['vacancy_sc'] ?? 0,
-        'ST' => $p['vacancy_st'] ?? 0,
-        'EWS' => $p['vacancy_ews'] ?? 0,
-        'PH' => $p['vacancy_ph'] ?? 0,
+        'OBC'     => $p['vacancy_obc'] ?? 0,
+        'SC'      => $p['vacancy_sc']  ?? 0,
+        'ST'      => $p['vacancy_st']  ?? 0,
+        'EWS'     => $p['vacancy_ews'] ?? 0,
+        'PH'      => $p['vacancy_ph']  ?? 0,
     ];
     $htmlRows = '';
     $total = 0;
@@ -475,7 +489,7 @@ function build_vacancy_table(array $p): string
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$val}</td></tr>";
     }
     $htmlRows .= "<tr style=\"background:#f8fafc;\"><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:800;\">Total Posts</td><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:800;\">" . ($p['total_posts'] ?? $total) . "</td></tr>";
-    return '<h3>ðŸ”¢ Vacancy Breakdown</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+    return '<h3>' . "\u{1F4E2}" . ' Vacancy Breakdown</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
 }
 
 function build_selection_stages(array $p): string
@@ -487,49 +501,49 @@ function build_selection_stages(array $p): string
     foreach ($stages as $i => $s) {
         $list .= "<li style=\"margin-bottom:8px;\"><strong>Stage " . ($i + 1) . ":</strong> " . htmlspecialchars($s) . "</li>";
     }
-    return '<h3>ðŸŽ¯ Selection Process</h3><ol style="padding-left:20px;margin:12px 0;">' . $list . '</ol>';
+    return '<h3>' . "\u{1F3AF}" . ' Selection Process</h3><ol style="padding-left:20px;margin:12px 0;">' . $list . '</ol>';
 }
 
 function build_links_table(array $links): string
 {
     $iconMap = [
-        'apply online' => 'ðŸ“',
-        'register' => 'ðŸ“',
-        'application form' => 'ðŸ“',
-        'admit card' => 'ðŸªª',
-        'hall ticket' => 'ðŸªª',
-        'call letter' => 'ðŸªª',
-        'final result' => 'ðŸ†',
-        'merit list' => 'ðŸ†',
-        'selection list' => 'ðŸ†',
-        'provisional result' => 'ðŸ“Š',
-        'scorecard' => 'ðŸ“Š',
-        'marks' => 'ðŸ“Š',
-        'result' => 'ðŸ“Š',
-        'syllabus' => 'ðŸ“š',
-        'exam pattern' => 'ðŸ“š',
-        'answer key' => 'ðŸ”‘',
-        'cut-off' => 'âœ‚ï¸',
-        'cut off' => 'âœ‚ï¸',
-        'cutoff' => 'âœ‚ï¸',
-        'interview' => 'ðŸ—£ï¸',
-        'walk-in' => 'ðŸ—£ï¸',
-        'walk in' => 'ðŸ—£ï¸',
-        'official website' => 'ðŸ›ï¸',
-        'official' => 'ðŸ›ï¸',
-        'notification' => 'ðŸ“„',
-        'pdf' => 'ðŸ“„',
-        'telegram' => 'ðŸ“¢',
-        'whatsapp' => 'ðŸ“¢',
-        'channel' => 'ðŸ“¢',
-        'schedule' => 'ðŸ“…',
-        'date' => 'ðŸ“…',
-        'extension' => 'ðŸ“…',
-        'fee' => 'ðŸ’³',
-        'payment' => 'ðŸ’³',
-        'login' => 'ðŸ”',
-        'status' => 'ðŸ”',
-        'download' => 'â¬‡ï¸',
+        'apply online'      => "\u{1F4DD}",
+        'register'          => "\u{1F4DD}",
+        'application form'  => "\u{1F4DD}",
+        'admit card'        => "\u{1FAAA}",
+        'hall ticket'       => "\u{1FAAA}",
+        'call letter'       => "\u{1FAAA}",
+        'final result'      => "\u{1F3C6}",
+        'merit list'        => "\u{1F3C6}",
+        'selection list'    => "\u{1F3C6}",
+        'provisional result'=> "\u{1F4CA}",
+        'scorecard'         => "\u{1F4CA}",
+        'marks'             => "\u{1F4CA}",
+        'result'            => "\u{1F4CA}",
+        'syllabus'          => "\u{1F4DA}",
+        'exam pattern'      => "\u{1F4DA}",
+        'answer key'        => "\u{1F511}",
+        'cut-off'           => "\u{2702}\u{FE0F}",
+        'cut off'           => "\u{2702}\u{FE0F}",
+        'cutoff'            => "\u{2702}\u{FE0F}",
+        'interview'         => "\u{1F5E3}\u{FE0F}",
+        'walk-in'           => "\u{1F5E3}\u{FE0F}",
+        'walk in'           => "\u{1F5E3}\u{FE0F}",
+        'official website'  => "\u{1F3DB}\u{FE0F}",
+        'official'          => "\u{1F3DB}\u{FE0F}",
+        'notification'      => "\u{1F4C4}",
+        'pdf'               => "\u{1F4C4}",
+        'telegram'          => "\u{1F4E2}",
+        'whatsapp'          => "\u{1F4E2}",
+        'channel'           => "\u{1F4E2}",
+        'schedule'          => "\u{1F4C5}",
+        'date'              => "\u{1F4C5}",
+        'extension'         => "\u{1F4C5}",
+        'fee'               => "\u{1F4B3}",
+        'payment'           => "\u{1F4B3}",
+        'login'             => "\u{1F50D}",
+        'status'            => "\u{1F50D}",
+        'download'          => "\u{2B07}\u{FE0F}",
     ];
     $getIcon = function (string $title) use ($iconMap): string {
         $lower = mb_strtolower($title);
@@ -537,12 +551,11 @@ function build_links_table(array $links): string
             if (str_contains($lower, $kw))
                 return $icon;
         }
-        return 'ðŸ”—';
+        return "\u{1F517}";
     };
-    $validLinks = array_values(array_filter($links, fn($l) => !empty($l['url'])));
-    if (empty($validLinks))
-        return '';
 
+    $validLinks = array_values(array_filter($links, fn($l) => !empty($l['url'])));
+    if (empty($validLinks)) return '';
     $rows = '';
     foreach ($validLinks as $i => $link) {
         $title = htmlspecialchars($link['title'] ?? 'Important Link');
@@ -551,28 +564,13 @@ function build_links_table(array $links): string
         $rowBg = $i % 2 === 0 ? '#ffffff' : '#f4f7ff';
         $isSocial = str_contains(strtolower($link['url']), 't.me/') || str_contains(strtolower($link['url']), 'whatsapp.com/channel');
         $btnStyle = $isSocial ? 'background:linear-gradient(135deg,#229ED9,#0d7abf);' : 'background:linear-gradient(135deg,#1a6ef5,#5b4ceb);';
-        $rows .= "
-        <tr style=\"background:{$rowBg};\">
-            <td style=\"padding:13px 18px;border-bottom:1px solid #e4e9f2;font-size:13px;font-weight:600;color:#0f1724;vertical-align:middle;\">{$icon}&nbsp; {$title}</td>
-            <td style=\"padding:10px 18px;border-bottom:1px solid #e4e9f2;text-align:center;vertical-align:middle;\">
-                <a href=\"{$url}\" target=\"_blank\" rel=\"noreferrer\" style=\"display:inline-block;{$btnStyle}color:#fff;border-radius:6px;padding:7px 20px;font-size:12px;font-weight:700;text-decoration:none;\">Click Here â†—</a>
-            </td>
-        </tr>";
+        $rows .= "<tr style=\"background:{$rowBg};\"><td style=\"padding:13px 18px;border-bottom:1px solid #e4e9f2;font-size:13px;font-weight:600;color:#0f1724;\">{$icon}&nbsp; {$title}</td><td style=\"padding:10px 18px;border-bottom:1px solid #e4e9f2;text-align:center;\"><a href=\"{$url}\" target=\"_blank\" rel=\"noreferrer\" style=\"display:inline-block;{$btnStyle}color:#fff;border-radius:6px;padding:7px 20px;font-size:12px;font-weight:700;text-decoration:none;\">Click Here &#8599;</a></td></tr>";
     }
-    return '
-<h3>ðŸ“Ž Important Links Table</h3>
-<table style="width:100%;border-collapse:collapse;border:1px solid #e4e9f2;border-radius:12px;overflow:hidden;margin:14px 0;font-family:system-ui,sans-serif;box-shadow:0 2px 12px rgba(15,23,36,.07);">
-    <thead>
-        <tr style="background:linear-gradient(135deg,#1a6ef5 0%,#5b4ceb 100%);">
-            <th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:left;">ðŸ“‹ Description</th>
-            <th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:center;width:150px;">ðŸ”— Direct Link</th>
-        </tr>
-    </thead>
-    <tbody>' . $rows . '
-    </tbody>
-</table>';
-}
 
+    return '<h3>&#128279; Important Links Table</h3><table style="width:100%;border-collapse:collapse;border:1px solid #e4e9f2;border-radius:12px;overflow:hidden;margin:14px 0;font-family:system-ui,sans-serif;box-shadow:0 2px 12px rgba(15,23,36,.07);"><thead><tr style="background:linear-gradient(135deg,#1a6ef5 0%,#5b4ceb 100%);"><th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:left;">&#128203; Description</th><th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:center;width:150px;">&#128279; Direct Link</th></tr></thead><tbody>' . 
+$rows
+ . '</tbody></table>';
+}
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€ SCHEMA GENERATORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
