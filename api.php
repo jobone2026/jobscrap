@@ -1,8 +1,8 @@
 ﻿<?php
-// â”€â”€ JobOne Publisher â€” PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ JobOne Publisher — PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// FIX #1: Output buffering â€” prevents ANY stray PHP warning/notice from
+// FIX #1: Output buffering — prevents ANY stray PHP warning/notice from
 //          corrupting the JSON response ("Unexpected end of JSON input")
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ob_start();
@@ -372,7 +372,7 @@ function curl_request_raw(string $url): array
     if ($error)
         return ['success' => false, 'message' => 'cURL error: ' . $error];
     if ($httpCode >= 400)
-        return ['success' => false, 'message' => 'HTTP ' . $httpCode . ' â€” page not accessible'];
+        return ['success' => false, 'message' => 'HTTP ' . $httpCode . ' — page not accessible'];
     if (!$content)
         return ['success' => false, 'message' => 'Empty response from URL'];
     return ['success' => true, 'content' => $content, 'http_code' => $httpCode];
@@ -720,7 +720,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
     elseif (str_contains($tLower, 'temporary'))
         $empType = 'TEMPORARY';
 
-    // â”€â”€ FIX #3: description â€” use short_description only (plain text, â‰¤5000c) â”€
+    // â”€â”€ FIX #3: description — use short_description only (plain text, â‰¤5000c) â”€
     // The original code stuffed the entire content HTML (tables, schemas, etc.)
     // into description, which breaks Google's validator.
     $description = trim(strip_tags($p['short_description'] ?? ''));
@@ -739,7 +739,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         $description .= ' ' . implode('. ', $extras) . '.';
     $description = substr($description, 0, 5000);
 
-    // â”€â”€ Build schema â€” location fields merged in, NOT set before â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ Build schema — location fields merged in, NOT set before â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $schema = array_merge(
         [
             '@context' => 'https://schema.org/',
@@ -822,7 +822,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
 
 /**
  * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- * FIX #3 (continued): FAQ schema â€” strip HTML from answer text.
+ * FIX #3 (continued): FAQ schema — strip HTML from answer text.
  * JSON-LD requires plain text in acceptedAnswer.text; HTML tags cause
  * "invalid items" in Google's Rich Results Test.
  * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1367,13 +1367,13 @@ LINKSEC;
 
     // â”€â”€ Type-specific config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $typeCfg = [
-        'admit_card'  => ['role'=>'admit card expert','title_fmt'=>'"[Org] [Exam] Admit Card [Year] â€“ Download Hall Ticket"','struct'=>'Overview â†’ Exam Schedule â†’ How to Download â†’ Details on Hall Ticket â†’ Documents to Carry â†’ Important Links','cat'=>'Admit Card','faq'=>'download steps, login details, exam date, centre, documents to carry, objection, result date'],
-        'result'      => ['role'=>'exam result analyst','title_fmt'=>'"[Org] [Exam] Result [Year] â€“ Check Marks & Merit List"','struct'=>'Overview â†’ Result Highlights â†’ Cut-off Marks (category-wise) â†’ How to Check â†’ Merit List â†’ Next Steps','cat'=>'Result','faq'=>'how to check, cut-off, merit list, scorecard, re-evaluation, next steps'],
-        'answer_key'  => ['role'=>'exam answer key analyst','title_fmt'=>'"[Org] [Exam] Answer Key [Year] â€“ Download & Raise Objection"','struct'=>'Overview â†’ Highlights â†’ How to Download â†’ Raising Objection â†’ Fee â†’ Important Dates','cat'=>'Answer Key','faq'=>'download steps, objection process, fee, timeline, final key, result date'],
-        'syllabus'    => ['role'=>'exam preparation expert','title_fmt'=>'"[Org] [Exam] Syllabus [Year] â€“ Topic-wise Pattern & PDF"','struct'=>'Overview â†’ Exam Pattern (table) â†’ Subject-wise Syllabus â†’ Marking Scheme â†’ Recommended Books â†’ Preparation Tips','cat'=>'Syllabus','faq'=>'topics, exam pattern, marking scheme, negative marking, best books, strategy'],
-        'scholarship' => ['role'=>'scholarship expert','title_fmt'=>'"[Org] [Scholarship] [Year] â€“ Eligibility, Amount & Apply"','struct'=>'Overview â†’ Highlights â†’ Eligibility â†’ Award Amount â†’ How to Apply â†’ Required Documents â†’ Important Dates','cat'=>'Scholarship','faq'=>'eligibility, amount, how to apply, documents, last date, selection, disbursement'],
-        'blog'        => ['role'=>'career guide writer','title_fmt'=>'"[Topic] â€“ Complete Guide [Year]"','struct'=>'Introduction â†’ Key Points â†’ Detailed Explanation â†’ Tips & Advice â†’ Conclusion','cat'=>'Blog','faq'=>'main topic questions, eligibility, process, timeline, tips'],
-        'job'         => ['role'=>'SEO content strategist','title_fmt'=>'"[Org Abbr] [Post Name] [Year] â€“ Apply for [N] Posts"','struct'=>'Overview â†’ Key Highlights â†’ Vacancy Details â†’ Eligibility â†’ Important Dates â†’ Application Fee â†’ How to Apply â†’ Selection Process','cat'=>'Central Govt Jobs','faq'=>'eligibility, how to apply, last date, age limit, salary, selection, fee'],
+        'admit_card'  => ['role'=>'admit card expert','title_fmt'=>'"[Org] [Exam] Admit Card [Year] – Download Hall Ticket"','struct'=>'Overview â†’ Exam Schedule â†’ How to Download â†’ Details on Hall Ticket â†’ Documents to Carry â†’ Important Links','cat'=>'Admit Card','faq'=>'download steps, login details, exam date, centre, documents to carry, objection, result date'],
+        'result'      => ['role'=>'exam result analyst','title_fmt'=>'"[Org] [Exam] Result [Year] – Check Marks & Merit List"','struct'=>'Overview â†’ Result Highlights â†’ Cut-off Marks (category-wise) â†’ How to Check â†’ Merit List â†’ Next Steps','cat'=>'Result','faq'=>'how to check, cut-off, merit list, scorecard, re-evaluation, next steps'],
+        'answer_key'  => ['role'=>'exam answer key analyst','title_fmt'=>'"[Org] [Exam] Answer Key [Year] – Download & Raise Objection"','struct'=>'Overview â†’ Highlights â†’ How to Download â†’ Raising Objection â†’ Fee â†’ Important Dates','cat'=>'Answer Key','faq'=>'download steps, objection process, fee, timeline, final key, result date'],
+        'syllabus'    => ['role'=>'exam preparation expert','title_fmt'=>'"[Org] [Exam] Syllabus [Year] – Topic-wise Pattern & PDF"','struct'=>'Overview â†’ Exam Pattern (table) â†’ Subject-wise Syllabus â†’ Marking Scheme â†’ Recommended Books â†’ Preparation Tips','cat'=>'Syllabus','faq'=>'topics, exam pattern, marking scheme, negative marking, best books, strategy'],
+        'scholarship' => ['role'=>'scholarship expert','title_fmt'=>'"[Org] [Scholarship] [Year] – Eligibility, Amount & Apply"','struct'=>'Overview â†’ Highlights â†’ Eligibility â†’ Award Amount â†’ How to Apply â†’ Required Documents â†’ Important Dates','cat'=>'Scholarship','faq'=>'eligibility, amount, how to apply, documents, last date, selection, disbursement'],
+        'blog'        => ['role'=>'career guide writer','title_fmt'=>'"[Topic] – Complete Guide [Year]"','struct'=>'Introduction â†’ Key Points â†’ Detailed Explanation â†’ Tips & Advice â†’ Conclusion','cat'=>'Blog','faq'=>'main topic questions, eligibility, process, timeline, tips'],
+        'job'         => ['role'=>'SEO content strategist','title_fmt'=>'"[Org Abbr] [Post Name] [Year] – Apply for [N] Posts"','struct'=>'Overview â†’ Key Highlights â†’ Vacancy Details â†’ Eligibility â†’ Important Dates â†’ Application Fee â†’ How to Apply â†’ Selection Process','cat'=>'Central Govt Jobs','faq'=>'eligibility, how to apply, last date, age limit, salary, selection, fee'],
     ];
     $cfg = $typeCfg[$postType] ?? $typeCfg['job'];
 
@@ -1388,7 +1388,7 @@ LINKSEC;
     }
 
     return <<<PROMPT
-You are a {$cfg['role']} for JobOne.in â€” India's top government job portal.
+You are a {$cfg['role']} for JobOne.in — India's top government job portal.
 Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$postType}** post.
 {$extraNotes}
 â”â”â”â” FIELD INSTRUCTIONS â”â”â”â”
@@ -1398,10 +1398,10 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
 â‘¢ short_description (max 160 chars): concise summary for this post type.
 â‘£ content (HTML: <h3><p><ul><li><a> only):
    Structure: {$cfg['struct']}
-   â€” Embed 4â€“6 relevant internal links from the list below (pick the most relevant for this {$postType}):
+   — Embed 4–6 relevant internal links from the list below (pick the most relevant for this {$postType}):
 {$internalLinks}
-   â€” DO NOT add "Important Links" section (auto-generated).
-   â€” End with: <h3>ðŸ“¢ Stay Updated</h3><ul><li>ðŸ”µ <a href="{$tg}">Telegram @jobone2026</a></li><li>ðŸŸ¢ <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
+   — DO NOT add "Important Links" section (auto-generated).
+   — End with: <h3>📢 Stay Updated</h3><ul><li>🔵 <a href="{$tg}">Telegram @jobone2026</a></li><li>🟢 <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
 â‘¤ organization: Full official name
 â‘¥ state_name: Indian state OR "All India"
 â‘¦ category_name: {$cfg['cat']}
@@ -1422,10 +1422,10 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
 â‘² tags: relevant subset of [cutoff,merit_list,final_result,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job]
 â‘³ education: relevant subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,mba,ca,llb,mbbs,phd,any_qualification] or []
 ã‰‘ meta_title: SEO title with org, type, year and "| JobOne.in"
-ã‰’ meta_description: 120â€“160 chars relevant to this post type
+ã‰’ meta_description: 120–160 chars relevant to this post type
 ã‰“ meta_keywords: minimum 100 comma-separated keywords
 ã‰” qualifications, skills, responsibilities: relevant text or ""
-ã‰• faq: EXACTLY 7 objects {"question":"...","answer":"..."} â€” plain text only. Cover: {$cfg['faq']}
+ã‰• faq: EXACTLY 7 objects {"question":"...","answer":"..."} — plain text only. Cover: {$cfg['faq']}
 
 â”â”â”â” OUTPUT RULES â”â”â”â”
 Return ONLY valid compact JSON. No markdown. The "type" field MUST be "{$postType}".
@@ -1582,12 +1582,12 @@ switch ($action) {
         $orgAbbr = !empty($parsed['organization']) ? explode(' ', $parsed['organization'])[0] : 'Govt';
         $postN = $parsed['post_name'] ?? $parsed['title'] ?? 'Job';
         $vCount = (int) ($parsed['total_posts'] ?? 0);
-        $vStr = $vCount > 0 ? " â€“ {$vCount} Posts" : "";
+        $vStr = $vCount > 0 ? " – {$vCount} Posts" : "";
         $yearStr = date('Y');
         if (preg_match('/\b(20\d{2})\b/', $postN, $m))
             $yearStr = $m[1];
         $lastDateHint = !empty($parsed['last_date']) ? 'Apply by ' . date('d M', strtotime($parsed['last_date'])) : 'Apply Soon';
-        $extendPrefix = !empty($parsed['is_date_extended']) ? 'ðŸ”¥ Date Extended â€“ ' : '';
+        $extendPrefix = !empty($parsed['is_date_extended']) ? '🔥 Date Extended – ' : '';
 
         $parsed['meta_title'] = "{$extendPrefix}{$orgAbbr} {$postN} Recruitment {$yearStr}{$vStr} | {$lastDateHint} | JobOne.in";
         if (strlen($parsed['meta_title']) > 80)
@@ -1608,9 +1608,9 @@ switch ($action) {
                 $hasWa = true;
         }
         if (!$hasTg)
-            $merged[] = ['title' => 'ðŸ“¢ Telegram Channel â€“ @jobone2026', 'url' => TG_CHANNEL];
+            $merged[] = ['title' => '📢 Telegram Channel – @jobone2026', 'url' => TG_CHANNEL];
         if (!$hasWa)
-            $merged[] = ['title' => 'ðŸŸ¢ WhatsApp Channel â€“ JobOne.in', 'url' => WA_CHANNEL];
+            $merged[] = ['title' => '🟢 WhatsApp Channel – JobOne.in', 'url' => WA_CHANNEL];
         $parsed['important_links'] = $merged;
 
         // Build FAQ
@@ -1622,8 +1622,8 @@ switch ($action) {
         $jobSchema = generate_job_schema($parsed, $merged);
 
         // Strip AI-generated links/FAQ sections from content
-        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[ðŸ“ŽðŸ”—]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
-        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[â“ðŸ™‹]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[🔎🔗]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[â“🙋]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
         $parsed['content'] = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $parsed['content'] ?? '');
 
         // Assemble content
@@ -1634,7 +1634,7 @@ switch ($action) {
         $selectionHtml = build_selection_stages($parsed);
         $linksHtml = build_links_table($parsed['important_links']);
 
-        $socialMarker = '<h3>ðŸ“¢ Stay Updated';
+        $socialMarker = '<h3>📢 Stay Updated';
         $content = rtrim($parsed['content'] ?? '');
         $headerBlocks = $quickInfoHtml . "\n" . $datesHtml . "\n" . $vacancyHtml . "\n" . $feeHtml . "\n" . $selectionHtml;
 
