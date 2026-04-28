@@ -1682,8 +1682,27 @@
           </div>
           <div class="row-1">
             <div class="field">
-              <label class="field-label">Salary / Pay Scale</label>
+              <label class="field-label">Salary / Pay Scale (Display Text)</label>
               <input type="text" id="f-salary" placeholder="e.g. Pay Level 6 (₹35,400 – ₹1,12,400)">
+            </div>
+          </div>
+          <div class="row-3">
+            <div class="field">
+              <label class="field-label">Salary Min (₹)</label>
+              <input type="number" id="f-salary_min" placeholder="e.g. 35400">
+            </div>
+            <div class="field">
+              <label class="field-label">Salary Max (₹)</label>
+              <input type="number" id="f-salary_max" placeholder="e.g. 112400">
+            </div>
+            <div class="field">
+              <label class="field-label">Salary Type</label>
+              <select id="f-salary_type">
+                <option value="salary">Regular Salary</option>
+                <option value="stipend">Stipend / Training</option>
+                <option value="consolidated">Consolidated Pay</option>
+                <option value="pay_scale">Pay Scale / Level</option>
+              </select>
             </div>
           </div>
         </div>
@@ -2110,7 +2129,7 @@
     }
 
     function populateForm(p, kwCount) {
-      const fields = ['title', 'type', 'organization', 'notification_date', 'start_date', 'end_date', 'last_date', 'total_posts', 'salary', 'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords'];
+      const fields = ['title', 'type', 'organization', 'notification_date', 'start_date', 'end_date', 'last_date', 'total_posts', 'salary', 'salary_min', 'salary_max', 'salary_type', 'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords'];
       fields.forEach(f => { const el = document.getElementById('f-' + f); if (el && p[f] !== undefined && p[f] !== null) el.value = p[f]; });
       let catMatched = false;
       if (p.category_id) { const sel = document.getElementById('f-category_id'); if ([...sel.options].some(o => o.value == p.category_id)) { sel.value = p.category_id; catMatched = true; document.getElementById('cat-match-tag').style.display = ''; } }
@@ -2213,6 +2232,9 @@
         last_date:         g('last_date'),
         total_posts:       g('total_posts') ? Number(g('total_posts')) : (pd.total_posts || ''),
         salary:            g('salary'),
+        salary_min:        g('salary_min'),
+        salary_max:        g('salary_max'),
+        salary_type:       g('salary_type'),
         online_form:       g('online_form'),
         final_result:      g('final_result'),
         important_links:   linkRows.filter(l => l.title && l.url),
@@ -2226,9 +2248,6 @@
         meta_keywords:     g('meta_keywords'),
         source_url:        window._sourceUrl || '',
         // --- Pass new AI-generated structured fields silently ---
-        salary_type:       pd.salary_type || 'salary',
-        salary_min:        pd.salary_min || 0,
-        salary_max:        pd.salary_max || 0,
         age_min:           pd.age_min || 0,
         age_max_gen:       pd.age_max_gen || 0,
         age_max_obc:       pd.age_max_obc || 0,
