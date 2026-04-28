@@ -908,7 +908,7 @@ function generate_og_tags(array $p, string $jobUrl, string $imageUrl = ''): stri
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€ INDEXNOW PING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
 
 function ping_indexnow(string $jobUrl): array
 {
@@ -944,9 +944,130 @@ function ping_indexnow(string $jobUrl): array
     return ['pinged' => true, 'url' => $jobUrl, 'results' => $results];
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// â”€â”€ POST-PARSE HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function build_internal_links(string $postType): string
+{
+    $base = JOBONE_SITE_URL;
+
+    // ── VERIFIED REAL URLs (tested 2026-04-28) ──────────────────────────
+    // Type listing pages:
+    //   /jobs ✅  /admit-cards ✅  /results ✅  /answer-keys ✅
+    //   /scholarships ✅  /blogs ✅  /syllabus ✅
+    // Category pages: /category/{slug} ✅  (NOT /jobs/category/!)
+    // State pages: /state/{slug} ✅
+
+    $links = [];
+
+    switch ($postType) {
+        case 'job':
+            $links = [
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/category/ssc"               => "SSC Jobs 2026",
+                "{$base}/category/upsc"              => "UPSC Jobs 2026",
+                "{$base}/category/banking"           => "Banking Jobs 2026",
+                "{$base}/category/railways"          => "Railway Jobs 2026",
+                "{$base}/admit-cards"                => "Download Admit Card",
+                "{$base}/results"                    => "Check Latest Results",
+                "{$base}/syllabus"                   => "Download Syllabus PDF",
+                "{$base}/category/state-govt"        => "State Govt Jobs 2026",
+                "{$base}/category/defence"           => "Defence Jobs 2026",
+            ];
+            break;
+
+        case 'admit_card':
+            $links = [
+                "{$base}/admit-cards"                => "Latest Admit Cards 2026",
+                "{$base}/results"                    => "Check Exam Results 2026",
+                "{$base}/answer-keys"                => "Download Answer Key",
+                "{$base}/syllabus"                   => "Exam Syllabus & Pattern",
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/category/ssc"               => "SSC Admit Card",
+                "{$base}/category/railways"          => "Railway Admit Card",
+                "{$base}/category/banking"           => "Bank Exam Admit Card",
+                "{$base}/category/upsc"              => "UPSC Admit Card",
+            ];
+            break;
+
+        case 'result':
+            $links = [
+                "{$base}/results"                    => "Latest Exam Results 2026",
+                "{$base}/admit-cards"                => "Download Admit Card",
+                "{$base}/answer-keys"                => "Official Answer Key",
+                "{$base}/syllabus"                   => "Exam Syllabus PDF",
+                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
+                "{$base}/category/ssc"               => "SSC Exam Results",
+                "{$base}/category/upsc"              => "UPSC Results",
+                "{$base}/category/banking"           => "Bank Exam Results",
+                "{$base}/category/railways"          => "Railway Exam Results",
+            ];
+            break;
+
+        case 'answer_key':
+            $links = [
+                "{$base}/answer-keys"                => "Official Answer Keys 2026",
+                "{$base}/results"                    => "Check Result 2026",
+                "{$base}/admit-cards"                => "Download Admit Card",
+                "{$base}/syllabus"                   => "Exam Syllabus & Pattern",
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/category/ssc"               => "SSC Answer Key",
+                "{$base}/category/railways"          => "Railway Answer Key",
+            ];
+            break;
+
+        case 'syllabus':
+            $links = [
+                "{$base}/syllabus"                   => "All Exam Syllabus 2026",
+                "{$base}/admit-cards"                => "Download Hall Ticket",
+                "{$base}/results"                    => "Check Exam Results",
+                "{$base}/answer-keys"                => "Official Answer Key",
+                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
+                "{$base}/category/ssc"               => "SSC Syllabus",
+                "{$base}/category/upsc"              => "UPSC Syllabus",
+                "{$base}/category/railways"          => "Railway Exam Syllabus",
+                "{$base}/category/banking"           => "Bank Exam Syllabus",
+            ];
+            break;
+
+        case 'scholarship':
+            $links = [
+                "{$base}/scholarships"               => "Latest Scholarships 2026",
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/category/central-university" => "University Admissions",
+                "{$base}/results"                    => "Scholarship Results",
+                "{$base}/blogs"                      => "Career Guides & Tips",
+            ];
+            break;
+
+        case 'blog':
+            $links = [
+                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
+                "{$base}/category/ssc"               => "SSC Jobs 2026",
+                "{$base}/category/upsc"              => "UPSC Jobs 2026",
+                "{$base}/category/banking"           => "Bank Jobs 2026",
+                "{$base}/admit-cards"                => "Download Admit Cards",
+                "{$base}/results"                    => "Check Latest Results",
+                "{$base}/syllabus"                   => "Exam Syllabus PDF",
+                "{$base}/scholarships"               => "Scholarships 2026",
+                "{$base}/blogs"                      => "Career Guides",
+            ];
+            break;
+
+        default:
+            $links = [
+                "{$base}/jobs"           => "Latest Govt Jobs 2026",
+                "{$base}/admit-cards"    => "Download Admit Card",
+                "{$base}/results"        => "Check Results",
+                "{$base}/syllabus"       => "Exam Syllabus",
+                "{$base}/scholarships"   => "Scholarships 2026",
+            ];
+    }
+
+    // Format as HTML <a> tags list for the prompt
+    $html = [];
+    foreach ($links as $url => $label) {
+        $html[] = "      <a href=\"{$url}\">{$label}</a>";
+    }
+    return implode("\n", $html);
+}
 
 function sanitize_total_posts(mixed $val): int
 {
@@ -1168,174 +1289,6 @@ function correct_employment_type(array $p): array
     }
     return $p;
 }
-
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// â”€â”€ AI PROMPT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-// â”€â”€ Build smart internal links based on post type + real site structure â”€â”€â”€â”€â”€â”€â”€â”€
-function build_internal_links(string $postType): string
-{
-    $base = JOBONE_SITE_URL;
-
-    // â”€â”€ Real site structure from DB (categories, states, type URLs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    $typeUrls = [
-        'job'         => "{$base}/jobs",
-        'admit_card'  => "{$base}/admit-card",
-        'result'      => "{$base}/results",
-        'answer_key'  => "{$base}/answer-key",
-        'syllabus'    => "{$base}/syllabus",
-        'scholarship' => "{$base}/scholarship",
-        'blog'        => "{$base}/blog",
-    ];
-
-    // Real category slugs from DB
-    $categories = [
-        'ssc'                => 'SSC Jobs',
-        'upsc'               => 'UPSC Jobs',
-        'banking'            => 'Banking Jobs',
-        'railways'           => 'Railway Jobs',
-        'defence'            => 'Defence Jobs',
-        'state-psc'          => 'State PSC Jobs',
-        'police'             => 'Police Jobs',
-        'state-govt'         => 'State Govt Jobs',
-        'central-government' => 'Central Govt Jobs',
-        'central-psu-jobs'   => 'PSU Jobs',
-        'paramilitary'       => 'Paramilitary Jobs',
-        'armed-forces'       => 'Armed Forces Jobs',
-        'central-university' => 'University Jobs',
-        'apprenticetrainee'  => 'Apprentice/Trainee Jobs',
-    ];
-
-    // Real state slugs from DB
-    $popularStates = [
-        'uttar-pradesh' => 'Uttar Pradesh',
-        'rajasthan'     => 'Rajasthan',
-        'bihar'         => 'Bihar',
-        'madhya-pradesh'=> 'Madhya Pradesh',
-        'maharashtra'   => 'Maharashtra',
-        'karnataka'     => 'Karnataka',
-        'gujarat'       => 'Gujarat',
-        'delhi'         => 'Delhi',
-        'haryana'       => 'Haryana',
-        'jharkhand'     => 'Jharkhand',
-    ];
-
-    // â”€â”€ Build type-specific link set â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    $links = [];
-
-    switch ($postType) {
-        case 'job':
-            $links = [
-                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
-                "{$base}/jobs/category/ssc"          => "SSC Jobs 2026",
-                "{$base}/jobs/category/upsc"         => "UPSC Jobs 2026",
-                "{$base}/jobs/category/banking"      => "Banking Jobs 2026",
-                "{$base}/jobs/category/railways"     => "Railway Jobs 2026",
-                "{$base}/admit-card"                 => "Download Admit Card",
-                "{$base}/results"                    => "Check Latest Results",
-                "{$base}/syllabus"                   => "Download Syllabus PDF",
-                "{$base}/jobs/category/state-govt"   => "State Govt Jobs 2026",
-                "{$base}/jobs/category/defence"      => "Defence Jobs 2026",
-            ];
-            break;
-
-        case 'admit_card':
-            $links = [
-                "{$base}/admit-card"                 => "Latest Admit Cards 2026",
-                "{$base}/results"                    => "Check Exam Results 2026",
-                "{$base}/answer-key"                 => "Download Answer Key",
-                "{$base}/syllabus"                   => "Exam Syllabus & Pattern",
-                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
-                "{$base}/jobs/category/ssc"          => "SSC Admit Card",
-                "{$base}/jobs/category/railways"     => "Railway Admit Card",
-                "{$base}/jobs/category/banking"      => "Bank Exam Admit Card",
-                "{$base}/jobs/category/upsc"         => "UPSC Admit Card",
-            ];
-            break;
-
-        case 'result':
-            $links = [
-                "{$base}/results"                    => "Latest Exam Results 2026",
-                "{$base}/admit-card"                 => "Download Admit Card",
-                "{$base}/answer-key"                 => "Official Answer Key",
-                "{$base}/syllabus"                   => "Exam Syllabus PDF",
-                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
-                "{$base}/jobs/category/ssc"          => "SSC Exam Results",
-                "{$base}/jobs/category/upsc"         => "UPSC Results",
-                "{$base}/jobs/category/banking"      => "Bank Exam Results",
-                "{$base}/jobs/category/railways"     => "Railway Exam Results",
-            ];
-            break;
-
-        case 'answer_key':
-            $links = [
-                "{$base}/answer-key"                 => "Official Answer Keys 2026",
-                "{$base}/results"                    => "Check Result 2026",
-                "{$base}/admit-card"                 => "Download Admit Card",
-                "{$base}/syllabus"                   => "Exam Syllabus & Pattern",
-                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
-                "{$base}/jobs/category/ssc"          => "SSC Answer Key",
-                "{$base}/jobs/category/railways"     => "Railway Answer Key",
-            ];
-            break;
-
-        case 'syllabus':
-            $links = [
-                "{$base}/syllabus"                   => "All Exam Syllabus 2026",
-                "{$base}/admit-card"                 => "Download Hall Ticket",
-                "{$base}/results"                    => "Check Exam Results",
-                "{$base}/answer-key"                 => "Official Answer Key",
-                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
-                "{$base}/jobs/category/ssc"          => "SSC Syllabus",
-                "{$base}/jobs/category/upsc"         => "UPSC Syllabus",
-                "{$base}/jobs/category/railways"     => "Railway Exam Syllabus",
-                "{$base}/jobs/category/banking"      => "Bank Exam Syllabus",
-            ];
-            break;
-
-        case 'scholarship':
-            $links = [
-                "{$base}/scholarship"                => "Latest Scholarships 2026",
-                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
-                "{$base}/jobs/category/central-university" => "University Admissions",
-                "{$base}/results"                    => "Scholarship Results",
-                "{$base}/blog"                       => "Career Guides & Tips",
-            ];
-            break;
-
-        case 'blog':
-            $links = [
-                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
-                "{$base}/jobs/category/ssc"          => "SSC Jobs 2026",
-                "{$base}/jobs/category/upsc"         => "UPSC Jobs 2026",
-                "{$base}/jobs/category/banking"      => "Bank Jobs 2026",
-                "{$base}/admit-card"                 => "Download Admit Cards",
-                "{$base}/results"                    => "Check Latest Results",
-                "{$base}/syllabus"                   => "Exam Syllabus PDF",
-                "{$base}/scholarship"                => "Scholarships 2026",
-                "{$base}/blog"                       => "Career Guides",
-            ];
-            break;
-
-        default:
-            $links = [
-                "{$base}/jobs"        => "Latest Govt Jobs 2026",
-                "{$base}/admit-card"  => "Download Admit Card",
-                "{$base}/results"     => "Check Results",
-                "{$base}/syllabus"    => "Exam Syllabus",
-                "{$base}/scholarship" => "Scholarships 2026",
-            ];
-    }
-
-    // Format as HTML <a> tags list for the prompt
-    $html = [];
-    foreach ($links as $url => $label) {
-        $html[] = "      <a href=\"{$url}\">{$label}</a>";
-    }
-    return implode("\n", $html);
-}
-
 function get_ai_prompt(array $preFilteredLinks = [], string $postType = 'job'): string
 {
     $tg = TG_CHANNEL;
