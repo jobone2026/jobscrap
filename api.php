@@ -1783,6 +1783,52 @@ switch ($action) {
             $input['category_id'] = 14; // hard fallback: Central Government
         }
 
+        // Auto-detect organization from title if missing
+        if (empty($input['organization'])) {
+            $titleForOrg = $input['title'] ?? '';
+            // Known abbreviation → full name map
+            $knownOrgs = [
+                'SSC'   => 'Staff Selection Commission',
+                'UPSC'  => 'Union Public Service Commission',
+                'RRB'   => 'Railway Recruitment Board',
+                'IBPS'  => 'Institute of Banking Personnel Selection',
+                'SBI'   => 'State Bank of India',
+                'RBI'   => 'Reserve Bank of India',
+                'ESIC'  => 'Employees State Insurance Corporation',
+                'EPFO'  => 'Employees Provident Fund Organisation',
+                'NHB'   => 'National Housing Bank',
+                'SSB'   => 'Services Selection Board',
+                'DRDO'  => 'Defence Research and Development Organisation',
+                'ISRO'  => 'Indian Space Research Organisation',
+                'BARC'  => 'Bhabha Atomic Research Centre',
+                'CRPF'  => 'Central Reserve Police Force',
+                'BSF'   => 'Border Security Force',
+                'CISF'  => 'Central Industrial Security Force',
+                'ITBP'  => 'Indo-Tibetan Border Police',
+                'SSF'   => 'Secretariat Security Force',
+                'NTPC'  => 'National Thermal Power Corporation',
+                'BHEL'  => 'Bharat Heavy Electricals Limited',
+                'ONGC'  => 'Oil and Natural Gas Corporation',
+                'BPCL'  => 'Bharat Petroleum Corporation Limited',
+                'IOCL'  => 'Indian Oil Corporation Limited',
+                'HAL'   => 'Hindustan Aeronautics Limited',
+                'AAI'   => 'Airports Authority of India',
+                'NHAI'  => 'National Highways Authority of India',
+            ];
+            // Extract org: strip trailing recruitment/vacancy/job keywords
+            $orgRaw = preg_replace('/\s*(recruitment|vacancy|vacancies|bharti|jobs?|notification|apply|online|posts?|hiring|\d{4}|–|-).*/i', '', $titleForOrg);
+            $orgRaw = trim($orgRaw);
+            // Check if first word matches a known abbreviation
+            $firstWord = strtoupper(preg_replace('/[^A-Za-z]/', '', explode(' ', $orgRaw)[0] ?? ''));
+            if ($firstWord && isset($knownOrgs[$firstWord])) {
+                $input['organization'] = $knownOrgs[$firstWord];
+            } elseif (strlen($orgRaw) >= 3) {
+                $input['organization'] = $orgRaw;
+            } else {
+                $input['organization'] = 'Government of India';
+            }
+        }
+
         // Auto-detect education from content if empty/missing
         $detectSrc = ($input['title'] ?? '') . ' ' . ($input['short_description'] ?? '') . ' ' . strip_tags($input['content'] ?? '');
         if (empty($input['education'])) {
