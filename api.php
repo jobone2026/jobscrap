@@ -1742,6 +1742,100 @@ switch ($action) {
         if (isset($input['direct_apply']))
             $input['direct_apply'] = (bool) $input['direct_apply'];
 
+        // ── AUTO-FILL SAFETY NET ─────────────────────────────────────────────
+        // If frontend sends category_name but no category_id, resolve it
+        $categoryNameMap = [
+            'Banking'             => 1,
+            'Banking Jobs'        => 1,
+            'Railways'            => 2,
+            'Railway Jobs'        => 2,
+            'SSC'                 => 3,
+            'SSC Jobs'            => 3,
+            'UPSC'                => 4,
+            'UPSC Jobs'           => 4,
+            'State PSC'           => 5,
+            'State PSC Jobs'      => 5,
+            'Defence'             => 6,
+            'Defence Jobs'        => 6,
+            'State Govt'          => 7,
+            'State Govt Jobs'     => 7,
+            'Police'              => 8,
+            'Police Jobs'         => 8,
+            'SSB'                 => 9,
+            'SSB Jobs'            => 9,
+            'Central PSU'         => 12,
+            'PSU Jobs'            => 12,
+            'Central Govt Jobs'   => 14,
+            'Central Government'  => 14,
+            'Central University'  => 15,
+            'University Jobs'     => 15,
+            'Armed Forces'        => 16,
+            'Armed Forces Jobs'   => 16,
+            'Paramilitary'        => 17,
+            'Paramilitary Jobs'   => 17,
+            'Apprentice/Trainee'  => 18,
+            'Apprentice Jobs'     => 18,
+        ];
+        if (empty($input['category_id']) && !empty($input['category_name'])) {
+            $input['category_id'] = $categoryNameMap[$input['category_name']] ?? 14; // default: Central Govt Jobs
+        }
+        if (empty($input['category_id'])) {
+            $input['category_id'] = 14; // hard fallback: Central Government
+        }
+
+        // Auto-detect education from content if empty/missing
+        $detectSrc = ($input['title'] ?? '') . ' ' . ($input['short_description'] ?? '') . ' ' . strip_tags($input['content'] ?? '');
+        if (empty($input['education'])) {
+            $input['education'] = auto_detect_education($detectSrc, []);
+        }
+
+        // Auto-detect tags from content if empty/missing
+        if (empty($input['tags'])) {
+            $detectedTags = auto_detect_tags($detectSrc, []);
+            // Always add 'govt_job' and 'new_vacancy' for job type posts
+            $defaultTags = ['govt_job', 'new_vacancy'];
+            $type = $input['type'] ?? 'job';
+            if ($type === 'admit_card') $defaultTags = ['admit_card'];
+            elseif ($type === 'result')  $defaultTags = ['final_result'];
+            elseif ($type === 'answer_key') $defaultTags = ['answer_key'];
+            elseif ($type === 'syllabus')   $defaultTags = ['syllabus'];
+            $input['tags'] = array_unique(array_merge($defaultTags, $detectedTags));
+        }
+
+        // Auto-correct category from org/title keywords
+        $inputForCorrection = [
+            'organization'    => $input['organization'] ?? '',
+            'title'           => $input['title'] ?? '',
+            'short_description' => $input['short_description'] ?? '',
+            'category_name'   => $input['category_name'] ?? '',
+            'state_name'      => $input['state_name'] ?? '',
+        ];
+        $corrected = correct_category($inputForCorrection);
+        // Map corrected category_name back to id
+        if (isset($corrected['category_name']) && isset($categoryNameMap[$corrected['category_name']])) {
+            $input['category_id'] = $categoryNameMap[$corrected['category_name']];
+        }
+
+        // Auto-correct salary type (stipend for trainees, apprentices)
+        $input = correct_employment_type($input);
+
+        // Ensure meta_keywords has something if empty
+        if (empty($input['meta_keywords'])) {
+            $org    = $input['organization'] ?? '';
+            $title  = $input['title'] ?? '';
+            $year   = date('Y');
+            $state  = $input['state_name'] ?? 'India';
+            $input['meta_keywords'] = implode(', ', array_filter([
+                $org, $title, "$org recruitment $year", "$title $year",
+                'sarkari naukri', 'govt jobs', "$state govt jobs $year",
+                'apply online', 'last date', 'notification', 'vacancy',
+                'sarkari result', 'free job alert',
+            ]));
+        }
+        // ── END AUTO-FILL ─────────────────────────────────────────────────────
+
+
+
         $postResult = curl_request(
             JOBONE_API . '/posts',
             'POST',
