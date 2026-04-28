@@ -1398,7 +1398,11 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
 â‘¢ short_description (max 160 chars): concise summary for this post type.
 â‘£ content (HTML: <h3><p><ul><li><a> only):
    Structure: {$cfg['struct']}
-   — Embed 4–6 relevant internal links from the list below (pick the most relevant for this {$postType}):
+   — MANDATORY INTERNAL LINKS: You MUST embed AT LEAST 5 internal links from the list below naturally inside your content paragraphs.
+     Insert them as inline anchor tags within sentences, e.g. "Candidates can also check <a href=\"https://jobone.in/results\">latest exam results</a> on our portal."
+     DO NOT create a separate "Internal Links" or "Related Links" section. Weave them naturally into the text.
+     If content has 0 internal links, the output is REJECTED.
+     Available internal links (pick the most relevant for this {$postType}):
 {$internalLinks}
    — DO NOT add "Important Links" section (auto-generated).
    — End with: <h3>📢 Stay Updated</h3><ul><li>🔵 <a href="{$tg}">Telegram @jobone2026</a></li><li>🟢 <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
