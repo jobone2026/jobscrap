@@ -597,6 +597,10 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         'name' => !empty($p['organization']) ? $p['organization'] : JOBONE_SITE_NAME,
         'sameAs' => JOBONE_SITE_URL,
         'url' => JOBONE_SITE_URL,
+        'logo' => [
+            '@type' => 'ImageObject',
+            'url'   => JOBONE_SITE_URL . '/images/jobone-logo.png',
+        ],
     ];
     foreach ($importantLinks as $l) {
         if (!empty($l['url']) && preg_match('/official.?website|official.?site/i', $l['title'] ?? '')) {
@@ -619,9 +623,12 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         $locationFields['jobLocation'] = [
             '@type' => 'Place',
             'address' => [
-                '@type' => 'PostalAddress',
-                'addressCountry' => 'IN',
-                'addressRegion' => $region,
+                '@type'           => 'PostalAddress',
+                'streetAddress'   => $region,
+                'addressLocality' => $region,
+                'addressRegion'   => $region,
+                'postalCode'      => '000000',
+                'addressCountry'  => 'IN',
             ],
         ];
     }
@@ -651,22 +658,36 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         ],
     ];
 
-    // ── Education requirements ────────────────────────────────────────────────
+    // ── Education requirements (Google-accepted lowercase values) ────────────
     $eduMap = [
-        '10th_pass' => 'HIGH_SCHOOL',
-        '12th_pass' => 'HIGH_SCHOOL',
-        'graduate' => 'BACHELOR',
-        'post_graduate' => 'MASTER',
-        'diploma' => 'ASSOCIATE',
-        'iti' => 'ASSOCIATE',
-        'btech' => 'BACHELOR',
-        'mtech' => 'MASTER',
-        'mbbs' => 'BACHELOR',
-        'bds' => 'BACHELOR',
-        'llb' => 'BACHELOR',
-        'ca' => 'PROFESSIONAL_CERTIFICATE',
-        'phd' => 'POSTGRADUATE',
-        'any_qualification' => 'BACHELOR',
+        '10th_pass'       => 'high school',
+        '12th_pass'       => 'high school',
+        'graduate'        => 'bachelor degree',
+        'post_graduate'   => 'master degree',
+        'diploma'         => 'associate degree',
+        'iti'             => 'associate degree',
+        'btech'           => 'bachelor degree',
+        'bsc'             => 'bachelor degree',
+        'bcom'            => 'bachelor degree',
+        'ba'              => 'bachelor degree',
+        'bpharm'          => 'bachelor degree',
+        'bed'             => 'bachelor degree',
+        'nursing'         => 'bachelor degree',
+        'llb'             => 'bachelor degree',
+        'mbbs'            => 'bachelor degree',
+        'bds'             => 'bachelor degree',
+        'mtech'           => 'master degree',
+        'msc'             => 'master degree',
+        'mcom'            => 'master degree',
+        'ma'              => 'master degree',
+        'mpharm'          => 'master degree',
+        'mba'             => 'master degree',
+        'llm'             => 'master degree',
+        'ca'              => 'professional certificate',
+        'cs'              => 'professional certificate',
+        'cma'             => 'professional certificate',
+        'phd'             => 'doctoral degree',
+        'any_qualification' => 'bachelor degree',
     ];
     $eduReqs = [];
     foreach (($p['education'] ?? []) as $e) {
@@ -1154,10 +1175,174 @@ function correct_employment_type(array $p): array
 // ── AI PROMPT ─────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function get_ai_prompt(array $preFilteredLinks = []): string
+// ── Build smart internal links based on post type + real site structure ────────
+function build_internal_links(string $postType): string
+{
+    $base = JOBONE_SITE_URL;
+
+    // ── Real site structure from DB (categories, states, type URLs) ────────────
+    $typeUrls = [
+        'job'         => "{$base}/jobs",
+        'admit_card'  => "{$base}/admit-card",
+        'result'      => "{$base}/results",
+        'answer_key'  => "{$base}/answer-key",
+        'syllabus'    => "{$base}/syllabus",
+        'scholarship' => "{$base}/scholarship",
+        'blog'        => "{$base}/blog",
+    ];
+
+    // Real category slugs from DB
+    $categories = [
+        'ssc'                => 'SSC Jobs',
+        'upsc'               => 'UPSC Jobs',
+        'banking'            => 'Banking Jobs',
+        'railways'           => 'Railway Jobs',
+        'defence'            => 'Defence Jobs',
+        'state-psc'          => 'State PSC Jobs',
+        'police'             => 'Police Jobs',
+        'state-govt'         => 'State Govt Jobs',
+        'central-government' => 'Central Govt Jobs',
+        'central-psu-jobs'   => 'PSU Jobs',
+        'paramilitary'       => 'Paramilitary Jobs',
+        'armed-forces'       => 'Armed Forces Jobs',
+        'central-university' => 'University Jobs',
+        'apprenticetrainee'  => 'Apprentice/Trainee Jobs',
+    ];
+
+    // Real state slugs from DB
+    $popularStates = [
+        'uttar-pradesh' => 'Uttar Pradesh',
+        'rajasthan'     => 'Rajasthan',
+        'bihar'         => 'Bihar',
+        'madhya-pradesh'=> 'Madhya Pradesh',
+        'maharashtra'   => 'Maharashtra',
+        'karnataka'     => 'Karnataka',
+        'gujarat'       => 'Gujarat',
+        'delhi'         => 'Delhi',
+        'haryana'       => 'Haryana',
+        'jharkhand'     => 'Jharkhand',
+    ];
+
+    // ── Build type-specific link set ─────────────────────────────────────────
+    $links = [];
+
+    switch ($postType) {
+        case 'job':
+            $links = [
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/jobs/category/ssc"          => "SSC Jobs 2026",
+                "{$base}/jobs/category/upsc"         => "UPSC Jobs 2026",
+                "{$base}/jobs/category/banking"      => "Banking Jobs 2026",
+                "{$base}/jobs/category/railways"     => "Railway Jobs 2026",
+                "{$base}/admit-card"                 => "Download Admit Card",
+                "{$base}/results"                    => "Check Latest Results",
+                "{$base}/syllabus"                   => "Download Syllabus PDF",
+                "{$base}/jobs/category/state-govt"   => "State Govt Jobs 2026",
+                "{$base}/jobs/category/defence"      => "Defence Jobs 2026",
+            ];
+            break;
+
+        case 'admit_card':
+            $links = [
+                "{$base}/admit-card"                 => "Latest Admit Cards 2026",
+                "{$base}/results"                    => "Check Exam Results 2026",
+                "{$base}/answer-key"                 => "Download Answer Key",
+                "{$base}/syllabus"                   => "Exam Syllabus & Pattern",
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/jobs/category/ssc"          => "SSC Admit Card",
+                "{$base}/jobs/category/railways"     => "Railway Admit Card",
+                "{$base}/jobs/category/banking"      => "Bank Exam Admit Card",
+                "{$base}/jobs/category/upsc"         => "UPSC Admit Card",
+            ];
+            break;
+
+        case 'result':
+            $links = [
+                "{$base}/results"                    => "Latest Exam Results 2026",
+                "{$base}/admit-card"                 => "Download Admit Card",
+                "{$base}/answer-key"                 => "Official Answer Key",
+                "{$base}/syllabus"                   => "Exam Syllabus PDF",
+                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
+                "{$base}/jobs/category/ssc"          => "SSC Exam Results",
+                "{$base}/jobs/category/upsc"         => "UPSC Results",
+                "{$base}/jobs/category/banking"      => "Bank Exam Results",
+                "{$base}/jobs/category/railways"     => "Railway Exam Results",
+            ];
+            break;
+
+        case 'answer_key':
+            $links = [
+                "{$base}/answer-key"                 => "Official Answer Keys 2026",
+                "{$base}/results"                    => "Check Result 2026",
+                "{$base}/admit-card"                 => "Download Admit Card",
+                "{$base}/syllabus"                   => "Exam Syllabus & Pattern",
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/jobs/category/ssc"          => "SSC Answer Key",
+                "{$base}/jobs/category/railways"     => "Railway Answer Key",
+            ];
+            break;
+
+        case 'syllabus':
+            $links = [
+                "{$base}/syllabus"                   => "All Exam Syllabus 2026",
+                "{$base}/admit-card"                 => "Download Hall Ticket",
+                "{$base}/results"                    => "Check Exam Results",
+                "{$base}/answer-key"                 => "Official Answer Key",
+                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
+                "{$base}/jobs/category/ssc"          => "SSC Syllabus",
+                "{$base}/jobs/category/upsc"         => "UPSC Syllabus",
+                "{$base}/jobs/category/railways"     => "Railway Exam Syllabus",
+                "{$base}/jobs/category/banking"      => "Bank Exam Syllabus",
+            ];
+            break;
+
+        case 'scholarship':
+            $links = [
+                "{$base}/scholarship"                => "Latest Scholarships 2026",
+                "{$base}/jobs"                       => "Latest Govt Jobs 2026",
+                "{$base}/jobs/category/central-university" => "University Admissions",
+                "{$base}/results"                    => "Scholarship Results",
+                "{$base}/blog"                       => "Career Guides & Tips",
+            ];
+            break;
+
+        case 'blog':
+            $links = [
+                "{$base}/jobs"                       => "Latest Sarkari Naukri 2026",
+                "{$base}/jobs/category/ssc"          => "SSC Jobs 2026",
+                "{$base}/jobs/category/upsc"         => "UPSC Jobs 2026",
+                "{$base}/jobs/category/banking"      => "Bank Jobs 2026",
+                "{$base}/admit-card"                 => "Download Admit Cards",
+                "{$base}/results"                    => "Check Latest Results",
+                "{$base}/syllabus"                   => "Exam Syllabus PDF",
+                "{$base}/scholarship"                => "Scholarships 2026",
+                "{$base}/blog"                       => "Career Guides",
+            ];
+            break;
+
+        default:
+            $links = [
+                "{$base}/jobs"        => "Latest Govt Jobs 2026",
+                "{$base}/admit-card"  => "Download Admit Card",
+                "{$base}/results"     => "Check Results",
+                "{$base}/syllabus"    => "Exam Syllabus",
+                "{$base}/scholarship" => "Scholarships 2026",
+            ];
+    }
+
+    // Format as HTML <a> tags list for the prompt
+    $html = [];
+    foreach ($links as $url => $label) {
+        $html[] = "      <a href=\"{$url}\">{$label}</a>";
+    }
+    return implode("\n", $html);
+}
+
+function get_ai_prompt(array $preFilteredLinks = [], string $postType = 'job'): string
 {
     $tg = TG_CHANNEL;
     $wa = WA_CHANNEL;
+    $internalLinks = build_internal_links($postType);
 
     if (!empty($preFilteredLinks)) {
         $lines = [];
@@ -1182,9 +1367,73 @@ Do NOT include aggregator or third-party job portal links.
 LINKSEC;
     }
 
+    // ── Type-specific config ───────────────────────────────────────────────────
+    $typeCfg = [
+        'admit_card'  => ['role'=>'admit card expert','title_fmt'=>'"[Org] [Exam] Admit Card [Year] – Download Hall Ticket"','struct'=>'Overview → Exam Schedule → How to Download → Details on Hall Ticket → Documents to Carry → Important Links','cat'=>'Admit Card','faq'=>'download steps, login details, exam date, centre, documents to carry, objection, result date'],
+        'result'      => ['role'=>'exam result analyst','title_fmt'=>'"[Org] [Exam] Result [Year] – Check Marks & Merit List"','struct'=>'Overview → Result Highlights → Cut-off Marks (category-wise) → How to Check → Merit List → Next Steps','cat'=>'Result','faq'=>'how to check, cut-off, merit list, scorecard, re-evaluation, next steps'],
+        'answer_key'  => ['role'=>'exam answer key analyst','title_fmt'=>'"[Org] [Exam] Answer Key [Year] – Download & Raise Objection"','struct'=>'Overview → Highlights → How to Download → Raising Objection → Fee → Important Dates','cat'=>'Answer Key','faq'=>'download steps, objection process, fee, timeline, final key, result date'],
+        'syllabus'    => ['role'=>'exam preparation expert','title_fmt'=>'"[Org] [Exam] Syllabus [Year] – Topic-wise Pattern & PDF"','struct'=>'Overview → Exam Pattern (table) → Subject-wise Syllabus → Marking Scheme → Recommended Books → Preparation Tips','cat'=>'Syllabus','faq'=>'topics, exam pattern, marking scheme, negative marking, best books, strategy'],
+        'scholarship' => ['role'=>'scholarship expert','title_fmt'=>'"[Org] [Scholarship] [Year] – Eligibility, Amount & Apply"','struct'=>'Overview → Highlights → Eligibility → Award Amount → How to Apply → Required Documents → Important Dates','cat'=>'Scholarship','faq'=>'eligibility, amount, how to apply, documents, last date, selection, disbursement'],
+        'blog'        => ['role'=>'career guide writer','title_fmt'=>'"[Topic] – Complete Guide [Year]"','struct'=>'Introduction → Key Points → Detailed Explanation → Tips & Advice → Conclusion','cat'=>'Blog','faq'=>'main topic questions, eligibility, process, timeline, tips'],
+        'job'         => ['role'=>'SEO content strategist','title_fmt'=>'"[Org Abbr] [Post Name] [Year] – Apply for [N] Posts"','struct'=>'Overview → Key Highlights → Vacancy Details → Eligibility → Important Dates → Application Fee → How to Apply → Selection Process','cat'=>'Central Govt Jobs','faq'=>'eligibility, how to apply, last date, age limit, salary, selection, fee'],
+    ];
+    $cfg = $typeCfg[$postType] ?? $typeCfg['job'];
+
+    // ── Type-specific field guidance ───────────────────────────────────────────
+    $extraNotes = '';
+    if (in_array($postType, ['admit_card','result','answer_key','syllabus'])) {
+        $extraNotes = "TYPE NOTE [{$postType}]: total_posts=0, salary/age/fee all 0, education=[], qualifications/skills/responsibilities=\"\".\n";
+    } elseif ($postType === 'blog') {
+        $extraNotes = "TYPE NOTE [blog]: total_posts=0, salary/age/fee all 0, education=[], organization can be empty.\n";
+    } elseif ($postType === 'scholarship') {
+        $extraNotes = "TYPE NOTE [scholarship]: total_posts=0, set salary=scholarship amount, fee usually 0, fill education from eligibility.\n";
+    }
+
     return <<<PROMPT
-You are a senior SEO content strategist for JobOne.in — India's top government job portal.
-Analyze the provided job notification and return a FULLY SEO-OPTIMIZED, structured JSON object.
+You are a {$cfg['role']} for JobOne.in — India's top government job portal.
+Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$postType}** post.
+{$extraNotes}
+━━━━ FIELD INSTRUCTIONS ━━━━
+
+① title (max 70 chars): {$cfg['title_fmt']}
+② type: MUST be exactly "{$postType}"
+③ short_description (max 160 chars): concise summary for this post type.
+④ content (HTML: <h3><p><ul><li><a> only):
+   Structure: {$cfg['struct']}
+   — Embed 4–6 relevant internal links from the list below (pick the most relevant for this {$postType}):
+{$internalLinks}
+   — DO NOT add "Important Links" section (auto-generated).
+   — End with: <h3>📢 Stay Updated</h3><ul><li>🔵 <a href="{$tg}">Telegram @jobone2026</a></li><li>🟢 <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
+⑤ organization: Full official name
+⑥ state_name: Indian state OR "All India"
+⑦ category_name: {$cfg['cat']}
+⑧ notification_date, start_date, end_date, last_date: YYYY-MM-DD or ""
+⑨ total_posts: integer or 0
+⑩ salary: pay scale / scholarship amount or ""
+⑪ salary_min, salary_max: integers or 0
+⑫ salary_type: salary|stipend|consolidated|pay_scale
+⑬ online_form: https:// URL or ""
+⑭ age_min, age_max_gen: integer years or 0
+⑮ fee_general, fee_obc, fee_sc_st, fee_women, fee_ph: integers or 0
+⑯ selection_stages: array of strings or []
+⑰ is_date_extended: boolean
+⑱ important_links: array of {"title":"...","url":"https://..."}.
+{$linkInstruction}
+   ✅ GOOD: "Download Admit Card" | "Check Result" | "Official Notification PDF" | "Apply Online"
+   ❌ BAD: "1" | "Link" | "Click Here"
+⑲ tags: relevant subset of [cutoff,merit_list,final_result,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job]
+⑳ education: relevant subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,mba,ca,llb,mbbs,phd,any_qualification] or []
+㉑ meta_title: SEO title with org, type, year and "| JobOne.in"
+㉒ meta_description: 120–160 chars relevant to this post type
+㉓ meta_keywords: minimum 100 comma-separated keywords
+㉔ qualifications, skills, responsibilities: relevant text or ""
+㉕ faq: EXACTLY 7 objects {"question":"...","answer":"..."} — plain text only. Cover: {$cfg['faq']}
+
+━━━━ OUTPUT RULES ━━━━
+Return ONLY valid compact JSON. No markdown. The "type" field MUST be "{$postType}".
+{"title":"","type":"{$postType}","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":0,"age_max_gen":0,"age_as_on_date":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","important_links":[],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[]}
+PROMPT;
+}
 
 ━━━━ FIELD INSTRUCTIONS ━━━━
 
@@ -1333,8 +1582,8 @@ switch ($action) {
             'model' => AI_MODEL,
             'max_tokens' => 4096,
             'messages' => [
-                ['role' => 'system', 'content' => get_ai_prompt($officialLinks)],
-                ['role' => 'user', 'content' => "Analyze this job notification and return the complete JSON:\n\n" . $rawText],
+                ['role' => 'system', 'content' => get_ai_prompt($officialLinks, $input['post_type'] ?? 'job')],
+                ['role' => 'user', 'content' => "Analyze this " . ($input['post_type'] ?? 'job') . " notification and return the complete JSON with type=\"" . ($input['post_type'] ?? 'job') . "\":\n\n" . $rawText],
             ],
             'response_format' => ['type' => 'json_object'],
         ]);
