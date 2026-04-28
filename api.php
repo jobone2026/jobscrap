@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // â”€â”€ JobOne Publisher — PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1418,16 +1418,27 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
 â‘± important_links: array of {"title":"...","url":"https://..."}.
 {$linkInstruction}
    âœ… GOOD: "Download Admit Card" | "Check Result" | "Official Notification PDF" | "Apply Online"
-   âŒ BAD: "1" | "Link" | "Click Here"
+   â Œ BAD: "1" | "Link" | "Click Here"
 â‘² tags: relevant subset of [cutoff,merit_list,final_result,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job]
 â‘³ education: relevant subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,mba,ca,llb,mbbs,phd,any_qualification] or []
 ã‰‘ meta_title: SEO title with org, type, year and "| JobOne.in"
 ã‰’ meta_description: 120–160 chars relevant to this post type
-ã‰“ meta_keywords: minimum 100 comma-separated keywords
+ã‰“ meta_keywords: MANDATORY 200+ comma-separated SEO keywords. This is CRITICAL for ranking. Generate keywords from ALL these categories:
+   A) EXACT MATCH: org name + post name + year (e.g. "SSF Constable 2026", "SSF Tradesman Recruitment 2026")
+   B) LONG-TAIL: "how to apply [org] [post] [year]", "[org] [post] eligibility", "[org] [post] salary", "[org] [post] syllabus", "[org] [post] age limit"
+   C) HINDI TRANSLITERATION: write the org/post name in romanized Hindi (e.g. "sarkari naukri", "bharti", "sarkari result")
+   D) YEAR COMBOS: combine every keyword with 2026, 2025-26, latest, new, upcoming
+   E) RELATED SEARCHES: "govt jobs [state]", "[state] sarkari naukri [year]", "10th pass govt jobs", "[qualification] govt job"
+   F) ACTION KEYWORDS: "apply online", "last date", "notification pdf", "admit card", "result", "selection process", "application form"
+   G) ABBREVIATIONS: all common short forms of org name
+   H) QUESTION KEYWORDS: "what is [post] salary", "is [org] [post] online or offline", "[org] [post] kab aayega"
+   I) COMPETITOR KEYWORDS: "sarkari result [org]", "rojgar result [org]", "free job alert [post]"
+   J) CATEGORY KEYWORDS: "police jobs [year]", "defence jobs", "central govt jobs [year]", "[state] police bharti"
+   YOU MUST generate AT LEAST 200 keywords. If fewer than 200, the output is REJECTED.
 ã‰” qualifications, skills, responsibilities: relevant text or ""
 ã‰• faq: EXACTLY 7 objects {"question":"...","answer":"..."} — plain text only. Cover: {$cfg['faq']}
 
-â”â”â”â” OUTPUT RULES â”â”â”â”
+â” â” â” â”  OUTPUT RULES â” â” â” â” 
 Return ONLY valid compact JSON. No markdown. The "type" field MUST be "{$postType}".
 {"title":"","type":"{$postType}","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":0,"age_max_gen":0,"age_as_on_date":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","important_links":[],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[]}
 PROMPT;
@@ -1593,7 +1604,10 @@ switch ($action) {
         if (strlen($parsed['meta_title']) > 80)
             $parsed['meta_title'] = substr($parsed['meta_title'], 0, 77) . '...';
 
-        $eduList = !empty($parsed['education']) ? implode(', ', array_slice($parsed['education'], 0, 2)) : 'Graduate';
+        $eduRaw = !empty($parsed['education']) ? array_slice($parsed['education'], 0, 3) : ['Graduate'];
+        $eduList = implode(', ', array_map(function($e) {
+            return ucwords(str_replace('_', ' ', $e));
+        }, $eduRaw));
         $lastDateFull = !empty($parsed['last_date']) ? date('d-m-Y', strtotime($parsed['last_date'])) : 'soon';
         $parsed['meta_description'] = "{$parsed['organization']} has released " . ($vCount > 0 ? $vCount : 'various') . " {$postN} vacancies for {$yearStr}. Eligibility: {$eduList}. Last date to apply: {$lastDateFull}. Check qualification, salary, selection process and direct apply link here.";
         if (strlen($parsed['meta_description']) > 160)
