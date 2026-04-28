@@ -1,10 +1,10 @@
-<?php
-// ── JobOne Publisher — PHP API Proxy ─────────────────────────────────────────
+﻿<?php
+// â”€â”€ JobOne Publisher â€” PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ════════════════════════════════════════════════════════════════════════════
-// FIX #1: Output buffering — prevents ANY stray PHP warning/notice from
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// FIX #1: Output buffering â€” prevents ANY stray PHP warning/notice from
 //          corrupting the JSON response ("Unexpected end of JSON input")
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ob_start();
 
 header('Content-Type: application/json');
@@ -29,9 +29,9 @@ if (!function_exists('curl_init')) {
     exit;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ CONSTANTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 // FIX #1 continued: exception/error handlers must flush buffer before outputting
 set_exception_handler(function ($e) {
@@ -86,9 +86,9 @@ define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22');
 define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE');
 define('INDEXNOW_HOST', 'jobone.in');
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── DOMAIN CLASSIFIER ─────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ DOMAIN CLASSIFIER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const AGGREGATOR_DOMAINS = [
     'sarkarijobfind.com',
@@ -226,9 +226,9 @@ function classify_domain(string $url, string $sourceDomain): string
     return 'unknown';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── LINK EXTRACTOR ────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ LINK EXTRACTOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function extract_and_classify_links(string $html, string $pageUrl): array
 {
@@ -311,9 +311,9 @@ function infer_link_title(string $rawTitle, string $url, int $idx): string
     return 'Official Link ' . $idx;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── CURL HELPERS ──────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ CURL HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function curl_request(string $url, string $method = 'GET', array $headers = [], ?string $body = null): array
 {
@@ -372,7 +372,7 @@ function curl_request_raw(string $url): array
     if ($error)
         return ['success' => false, 'message' => 'cURL error: ' . $error];
     if ($httpCode >= 400)
-        return ['success' => false, 'message' => 'HTTP ' . $httpCode . ' — page not accessible'];
+        return ['success' => false, 'message' => 'HTTP ' . $httpCode . ' â€” page not accessible'];
     if (!$content)
         return ['success' => false, 'message' => 'Empty response from URL'];
     return ['success' => true, 'content' => $content, 'http_code' => $httpCode];
@@ -397,31 +397,31 @@ function html_to_text(string $html): string
     return $text;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── CONTENT TABLE BUILDERS ────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ CONTENT TABLE BUILDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function build_quick_info_table(array $p): string
 {
     $rows = [
-        ['🏢 Organization', $p['organization'] ?? 'Government Body'],
-        ['📋 Post Name', $p['post_name'] ?? $p['title'] ?? 'Various'],
-        ['🔢 Total Vacancies', ($p['total_posts'] ?? 0) > 0 ? $p['total_posts'] : 'As per requirement'],
-        ['📁 Category', $p['category_name'] ?? 'Govt Jobs'],
-        ['📍 State', $p['state_name'] ?? 'All India'],
-        ['🎓 Education', !empty($p['education']) ? implode(', ', (array) $p['education']) : 'Check Notification'],
-        ['🎂 Age Limit', ($p['age_min'] ?? 0) . ' – ' . ($p['age_max_gen'] ?? 30) . ' Years'],
-        ['💰 Salary', $p['salary'] ?? 'Check Notification'],
-        ['💳 App Fee', ($p['fee_general'] ?? 0) > 0 ? '₹' . $p['fee_general'] : 'No Fee'],
-        ['📝 Apply Mode', !empty($p['online_form']) ? 'Online' : 'Offline'],
-        ['📅 Last Date', !empty($p['last_date']) ? date('d-m-Y', strtotime($p['last_date'])) : 'Apply Soon'],
+        ['ðŸ¢ Organization', $p['organization'] ?? 'Government Body'],
+        ['ðŸ“‹ Post Name', $p['post_name'] ?? $p['title'] ?? 'Various'],
+        ['ðŸ”¢ Total Vacancies', ($p['total_posts'] ?? 0) > 0 ? $p['total_posts'] : 'As per requirement'],
+        ['ðŸ“ Category', $p['category_name'] ?? 'Govt Jobs'],
+        ['ðŸ“ State', $p['state_name'] ?? 'All India'],
+        ['ðŸŽ“ Education', !empty($p['education']) ? implode(', ', (array) $p['education']) : 'Check Notification'],
+        ['ðŸŽ‚ Age Limit', ($p['age_min'] ?? 0) . ' â€“ ' . ($p['age_max_gen'] ?? 30) . ' Years'],
+        ['ðŸ’° Salary', $p['salary'] ?? 'Check Notification'],
+        ['ðŸ’³ App Fee', ($p['fee_general'] ?? 0) > 0 ? 'â‚¹' . $p['fee_general'] : 'No Fee'],
+        ['ðŸ“ Apply Mode', !empty($p['online_form']) ? 'Online' : 'Offline'],
+        ['ðŸ“… Last Date', !empty($p['last_date']) ? date('d-m-Y', strtotime($p['last_date'])) : 'Apply Soon'],
     ];
     $htmlRows = '';
     foreach ($rows as $i => $r) {
         $bg = $i % 2 === 0 ? '#ffffff' : '#f9fbff';
         $htmlRows .= "<tr style=\"background:{$bg};\"><td style=\"padding:10px 14px;border:1px solid #eef2f7;font-weight:700;width:40%;\">{$r[0]}</td><td style=\"padding:10px 14px;border:1px solid #eef2f7;\">{$r[1]}</td></tr>";
     }
-    return '<h3>📊 Quick Info Overview</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;">' . $htmlRows . '</table>';
+    return '<h3>ðŸ“Š Quick Info Overview</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;">' . $htmlRows . '</table>';
 }
 
 function build_dates_table(array $p): string
@@ -439,7 +439,7 @@ function build_dates_table(array $p): string
         $display = !empty($val) ? date('d-m-Y', strtotime($val)) : 'Check Notification';
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
     }
-    return '<h3>📅 Important Dates</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+    return '<h3>ðŸ“… Important Dates</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
 }
 
 function build_fee_table(array $p): string
@@ -452,10 +452,10 @@ function build_fee_table(array $p): string
     ];
     $htmlRows = '';
     foreach ($fees as $label => $val) {
-        $display = $val > 0 ? '₹' . $val : 'Nil / Exempted';
+        $display = $val > 0 ? 'â‚¹' . $val : 'Nil / Exempted';
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
     }
-    return '<h3>💳 Application Fee</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+    return '<h3>ðŸ’³ Application Fee</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
 }
 
 function build_vacancy_table(array $p): string
@@ -475,7 +475,7 @@ function build_vacancy_table(array $p): string
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$val}</td></tr>";
     }
     $htmlRows .= "<tr style=\"background:#f8fafc;\"><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:800;\">Total Posts</td><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:800;\">" . ($p['total_posts'] ?? $total) . "</td></tr>";
-    return '<h3>🔢 Vacancy Breakdown</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
+    return '<h3>ðŸ”¢ Vacancy Breakdown</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
 }
 
 function build_selection_stages(array $p): string
@@ -487,49 +487,49 @@ function build_selection_stages(array $p): string
     foreach ($stages as $i => $s) {
         $list .= "<li style=\"margin-bottom:8px;\"><strong>Stage " . ($i + 1) . ":</strong> " . htmlspecialchars($s) . "</li>";
     }
-    return '<h3>🎯 Selection Process</h3><ol style="padding-left:20px;margin:12px 0;">' . $list . '</ol>';
+    return '<h3>ðŸŽ¯ Selection Process</h3><ol style="padding-left:20px;margin:12px 0;">' . $list . '</ol>';
 }
 
 function build_links_table(array $links): string
 {
     $iconMap = [
-        'apply online' => '📝',
-        'register' => '📝',
-        'application form' => '📝',
-        'admit card' => '🪪',
-        'hall ticket' => '🪪',
-        'call letter' => '🪪',
-        'final result' => '🏆',
-        'merit list' => '🏆',
-        'selection list' => '🏆',
-        'provisional result' => '📊',
-        'scorecard' => '📊',
-        'marks' => '📊',
-        'result' => '📊',
-        'syllabus' => '📚',
-        'exam pattern' => '📚',
-        'answer key' => '🔑',
-        'cut-off' => '✂️',
-        'cut off' => '✂️',
-        'cutoff' => '✂️',
-        'interview' => '🗣️',
-        'walk-in' => '🗣️',
-        'walk in' => '🗣️',
-        'official website' => '🏛️',
-        'official' => '🏛️',
-        'notification' => '📄',
-        'pdf' => '📄',
-        'telegram' => '📢',
-        'whatsapp' => '📢',
-        'channel' => '📢',
-        'schedule' => '📅',
-        'date' => '📅',
-        'extension' => '📅',
-        'fee' => '💳',
-        'payment' => '💳',
-        'login' => '🔐',
-        'status' => '🔍',
-        'download' => '⬇️',
+        'apply online' => 'ðŸ“',
+        'register' => 'ðŸ“',
+        'application form' => 'ðŸ“',
+        'admit card' => 'ðŸªª',
+        'hall ticket' => 'ðŸªª',
+        'call letter' => 'ðŸªª',
+        'final result' => 'ðŸ†',
+        'merit list' => 'ðŸ†',
+        'selection list' => 'ðŸ†',
+        'provisional result' => 'ðŸ“Š',
+        'scorecard' => 'ðŸ“Š',
+        'marks' => 'ðŸ“Š',
+        'result' => 'ðŸ“Š',
+        'syllabus' => 'ðŸ“š',
+        'exam pattern' => 'ðŸ“š',
+        'answer key' => 'ðŸ”‘',
+        'cut-off' => 'âœ‚ï¸',
+        'cut off' => 'âœ‚ï¸',
+        'cutoff' => 'âœ‚ï¸',
+        'interview' => 'ðŸ—£ï¸',
+        'walk-in' => 'ðŸ—£ï¸',
+        'walk in' => 'ðŸ—£ï¸',
+        'official website' => 'ðŸ›ï¸',
+        'official' => 'ðŸ›ï¸',
+        'notification' => 'ðŸ“„',
+        'pdf' => 'ðŸ“„',
+        'telegram' => 'ðŸ“¢',
+        'whatsapp' => 'ðŸ“¢',
+        'channel' => 'ðŸ“¢',
+        'schedule' => 'ðŸ“…',
+        'date' => 'ðŸ“…',
+        'extension' => 'ðŸ“…',
+        'fee' => 'ðŸ’³',
+        'payment' => 'ðŸ’³',
+        'login' => 'ðŸ”',
+        'status' => 'ðŸ”',
+        'download' => 'â¬‡ï¸',
     ];
     $getIcon = function (string $title) use ($iconMap): string {
         $lower = mb_strtolower($title);
@@ -537,7 +537,7 @@ function build_links_table(array $links): string
             if (str_contains($lower, $kw))
                 return $icon;
         }
-        return '🔗';
+        return 'ðŸ”—';
     };
     $validLinks = array_values(array_filter($links, fn($l) => !empty($l['url'])));
     if (empty($validLinks))
@@ -555,17 +555,17 @@ function build_links_table(array $links): string
         <tr style=\"background:{$rowBg};\">
             <td style=\"padding:13px 18px;border-bottom:1px solid #e4e9f2;font-size:13px;font-weight:600;color:#0f1724;vertical-align:middle;\">{$icon}&nbsp; {$title}</td>
             <td style=\"padding:10px 18px;border-bottom:1px solid #e4e9f2;text-align:center;vertical-align:middle;\">
-                <a href=\"{$url}\" target=\"_blank\" rel=\"noreferrer\" style=\"display:inline-block;{$btnStyle}color:#fff;border-radius:6px;padding:7px 20px;font-size:12px;font-weight:700;text-decoration:none;\">Click Here ↗</a>
+                <a href=\"{$url}\" target=\"_blank\" rel=\"noreferrer\" style=\"display:inline-block;{$btnStyle}color:#fff;border-radius:6px;padding:7px 20px;font-size:12px;font-weight:700;text-decoration:none;\">Click Here â†—</a>
             </td>
         </tr>";
     }
     return '
-<h3>📎 Important Links Table</h3>
+<h3>ðŸ“Ž Important Links Table</h3>
 <table style="width:100%;border-collapse:collapse;border:1px solid #e4e9f2;border-radius:12px;overflow:hidden;margin:14px 0;font-family:system-ui,sans-serif;box-shadow:0 2px 12px rgba(15,23,36,.07);">
     <thead>
         <tr style="background:linear-gradient(135deg,#1a6ef5 0%,#5b4ceb 100%);">
-            <th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:left;">📋 Description</th>
-            <th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:center;width:150px;">🔗 Direct Link</th>
+            <th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:left;">ðŸ“‹ Description</th>
+            <th style="padding:14px 18px;color:#fff;font-size:13px;font-weight:700;text-align:center;width:150px;">ðŸ”— Direct Link</th>
         </tr>
     </thead>
     <tbody>' . $rows . '
@@ -573,17 +573,17 @@ function build_links_table(array $links): string
 </table>';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── SCHEMA GENERATORS ─────────────────────────────────────────════════════════
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ SCHEMA GENERATORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 /**
- * ════════════════════════════════════════════════════════════════════════════
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  * FIX #2: The original code did:
  *   $schema['jobLocationType'] = 'TELECOMMUTE';   // sets on undefined var
  *   $schema = [ '@context' => ... ];              // OVERWRITES it entirely!
  * Fix: collect location fields separately, then merge into $schema.
- * ════════════════════════════════════════════════════════════════════════════
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  */
 function generate_job_schema(array $p, array $importantLinks = []): string
 {
@@ -591,7 +591,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
     $postSlug = $p['slug'] ?? '';
     $jobUrl = $postSlug ? JOBONE_SITE_URL . '/' . $postSlug : JOBONE_SITE_URL;
 
-    // ── Hiring organisation ──────────────────────────────────────────────────
+    // â”€â”€ Hiring organisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $org = [
         '@type' => 'Organization',
         'name' => !empty($p['organization']) ? $p['organization'] : JOBONE_SITE_NAME,
@@ -610,7 +610,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         }
     }
 
-    // ── FIX #2: build location fields into a separate array first ────────────
+    // â”€â”€ FIX #2: build location fields into a separate array first â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $region = !empty($p['state_name']) ? trim($p['state_name']) : 'All India';
     $locationFields = [];
     if ($region === '' || $region === 'All India') {
@@ -633,7 +633,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         ];
     }
 
-    // ── Salary ───────────────────────────────────────────────────────────────
+    // â”€â”€ Salary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $minSal = (int) ($p['salary_min'] ?? 0);
     $maxSal = (int) ($p['salary_max'] ?? 0);
     if ($minSal === 0 && $maxSal === 0 && !empty($p['salary'])) {
@@ -658,7 +658,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         ],
     ];
 
-    // ── Education requirements (Google-accepted lowercase values) ────────────
+    // â”€â”€ Education requirements (Google-accepted lowercase values) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $eduMap = [
         '10th_pass'       => 'high school',
         '12th_pass'       => 'high school',
@@ -696,7 +696,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
     }
     $eduReqs = array_values(array_unique($eduReqs));
 
-    // ── Direct apply ─────────────────────────────────────────────────────────
+    // â”€â”€ Direct apply â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $applyUrlCandidate = $p['apply_url'] ?? $p['online_form'] ?? '';
     $isDirect = false;
     if (!empty($applyUrlCandidate)) {
@@ -708,7 +708,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
     }
     $directApply = (bool) ($p['direct_apply'] ?? $isDirect);
 
-    // ── Employment type ──────────────────────────────────────────────────────
+    // â”€â”€ Employment type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $empType = 'FULL_TIME';
     $tLower = strtolower($p['title'] ?? '');
     if (str_contains($tLower, 'apprentice') || str_contains($tLower, 'trainee') || ($p['salary_type'] ?? '') === 'stipend')
@@ -722,7 +722,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
     elseif (str_contains($tLower, 'temporary'))
         $empType = 'TEMPORARY';
 
-    // ── FIX #3: description — use short_description only (plain text, ≤5000c) ─
+    // â”€â”€ FIX #3: description â€” use short_description only (plain text, â‰¤5000c) â”€
     // The original code stuffed the entire content HTML (tables, schemas, etc.)
     // into description, which breaks Google's validator.
     $description = trim(strip_tags($p['short_description'] ?? ''));
@@ -741,7 +741,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
         $description .= ' ' . implode('. ', $extras) . '.';
     $description = substr($description, 0, 5000);
 
-    // ── Build schema — location fields merged in, NOT set before ────────────
+    // â”€â”€ Build schema â€” location fields merged in, NOT set before â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $schema = array_merge(
         [
             '@context' => 'https://schema.org/',
@@ -761,7 +761,7 @@ function generate_job_schema(array $p, array $importantLinks = []): string
             'industry' => 'Government / Public Sector',
             'workHours' => '8 hours/day, 5 days/week',
         ],
-        $locationFields          // ← FIX #2: merged here, never overwritten
+        $locationFields          // â† FIX #2: merged here, never overwritten
     );
 
     // Optional fields
@@ -823,11 +823,11 @@ function generate_job_schema(array $p, array $importantLinks = []): string
 }
 
 /**
- * ════════════════════════════════════════════════════════════════════════════
- * FIX #3 (continued): FAQ schema — strip HTML from answer text.
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ * FIX #3 (continued): FAQ schema â€” strip HTML from answer text.
  * JSON-LD requires plain text in acceptedAnswer.text; HTML tags cause
  * "invalid items" in Google's Rich Results Test.
- * ════════════════════════════════════════════════════════════════════════════
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
  */
 function generate_faq_schema(array $faq): string
 {
@@ -876,7 +876,7 @@ function build_faq_html(array $faq): string
     }
     if (!$items)
         return '';
-    return '<h3>❓ Frequently Asked Questions (FAQ)</h3><div style="margin:14px 0;">' . $items . '</div>';
+    return '<h3>â“ Frequently Asked Questions (FAQ)</h3><div style="margin:14px 0;">' . $items . '</div>';
 }
 
 function generate_og_tags(array $p, string $jobUrl, string $imageUrl = ''): string
@@ -908,9 +908,9 @@ function generate_og_tags(array $p, string $jobUrl, string $imageUrl = ''): stri
     ]);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── INDEXNOW PING ─────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ INDEXNOW PING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function ping_indexnow(string $jobUrl): array
 {
@@ -946,9 +946,9 @@ function ping_indexnow(string $jobUrl): array
     return ['pinged' => true, 'url' => $jobUrl, 'results' => $results];
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── POST-PARSE HELPERS ────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ POST-PARSE HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function sanitize_total_posts(mixed $val): int
 {
@@ -1171,16 +1171,16 @@ function correct_employment_type(array $p): array
     return $p;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── AI PROMPT ─────────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€ AI PROMPT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── Build smart internal links based on post type + real site structure ────────
+// â”€â”€ Build smart internal links based on post type + real site structure â”€â”€â”€â”€â”€â”€â”€â”€
 function build_internal_links(string $postType): string
 {
     $base = JOBONE_SITE_URL;
 
-    // ── Real site structure from DB (categories, states, type URLs) ────────────
+    // â”€â”€ Real site structure from DB (categories, states, type URLs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $typeUrls = [
         'job'         => "{$base}/jobs",
         'admit_card'  => "{$base}/admit-card",
@@ -1223,7 +1223,7 @@ function build_internal_links(string $postType): string
         'jharkhand'     => 'Jharkhand',
     ];
 
-    // ── Build type-specific link set ─────────────────────────────────────────
+    // â”€â”€ Build type-specific link set â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $links = [];
 
     switch ($postType) {
@@ -1351,7 +1351,7 @@ function get_ai_prompt(array $preFilteredLinks = [], string $postType = 'job'): 
         $linkBlock = implode("\n", $lines);
         $linkInstruction = <<<LINKSEC
 
-━━━━ PRE-EXTRACTED OFFICIAL LINKS (USE ONLY THESE) ━━━━
+â”â”â”â” PRE-EXTRACTED OFFICIAL LINKS (USE ONLY THESE) â”â”â”â”
 Use EXACTLY these URLs in the important_links array. Do NOT invent or modify URLs.
 
 {$linkBlock}
@@ -1360,26 +1360,26 @@ LINKSEC;
     } else {
         $linkInstruction = <<<LINKSEC
 
-━━━━ LINKS NOTE ━━━━
+â”â”â”â” LINKS NOTE â”â”â”â”
 Extract only direct official government/recruitment URLs (.gov.in, .nic.in).
 Do NOT include aggregator or third-party job portal links.
 
 LINKSEC;
     }
 
-    // ── Type-specific config ───────────────────────────────────────────────────
+    // â”€â”€ Type-specific config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $typeCfg = [
-        'admit_card'  => ['role'=>'admit card expert','title_fmt'=>'"[Org] [Exam] Admit Card [Year] – Download Hall Ticket"','struct'=>'Overview → Exam Schedule → How to Download → Details on Hall Ticket → Documents to Carry → Important Links','cat'=>'Admit Card','faq'=>'download steps, login details, exam date, centre, documents to carry, objection, result date'],
-        'result'      => ['role'=>'exam result analyst','title_fmt'=>'"[Org] [Exam] Result [Year] – Check Marks & Merit List"','struct'=>'Overview → Result Highlights → Cut-off Marks (category-wise) → How to Check → Merit List → Next Steps','cat'=>'Result','faq'=>'how to check, cut-off, merit list, scorecard, re-evaluation, next steps'],
-        'answer_key'  => ['role'=>'exam answer key analyst','title_fmt'=>'"[Org] [Exam] Answer Key [Year] – Download & Raise Objection"','struct'=>'Overview → Highlights → How to Download → Raising Objection → Fee → Important Dates','cat'=>'Answer Key','faq'=>'download steps, objection process, fee, timeline, final key, result date'],
-        'syllabus'    => ['role'=>'exam preparation expert','title_fmt'=>'"[Org] [Exam] Syllabus [Year] – Topic-wise Pattern & PDF"','struct'=>'Overview → Exam Pattern (table) → Subject-wise Syllabus → Marking Scheme → Recommended Books → Preparation Tips','cat'=>'Syllabus','faq'=>'topics, exam pattern, marking scheme, negative marking, best books, strategy'],
-        'scholarship' => ['role'=>'scholarship expert','title_fmt'=>'"[Org] [Scholarship] [Year] – Eligibility, Amount & Apply"','struct'=>'Overview → Highlights → Eligibility → Award Amount → How to Apply → Required Documents → Important Dates','cat'=>'Scholarship','faq'=>'eligibility, amount, how to apply, documents, last date, selection, disbursement'],
-        'blog'        => ['role'=>'career guide writer','title_fmt'=>'"[Topic] – Complete Guide [Year]"','struct'=>'Introduction → Key Points → Detailed Explanation → Tips & Advice → Conclusion','cat'=>'Blog','faq'=>'main topic questions, eligibility, process, timeline, tips'],
-        'job'         => ['role'=>'SEO content strategist','title_fmt'=>'"[Org Abbr] [Post Name] [Year] – Apply for [N] Posts"','struct'=>'Overview → Key Highlights → Vacancy Details → Eligibility → Important Dates → Application Fee → How to Apply → Selection Process','cat'=>'Central Govt Jobs','faq'=>'eligibility, how to apply, last date, age limit, salary, selection, fee'],
+        'admit_card'  => ['role'=>'admit card expert','title_fmt'=>'"[Org] [Exam] Admit Card [Year] â€“ Download Hall Ticket"','struct'=>'Overview â†’ Exam Schedule â†’ How to Download â†’ Details on Hall Ticket â†’ Documents to Carry â†’ Important Links','cat'=>'Admit Card','faq'=>'download steps, login details, exam date, centre, documents to carry, objection, result date'],
+        'result'      => ['role'=>'exam result analyst','title_fmt'=>'"[Org] [Exam] Result [Year] â€“ Check Marks & Merit List"','struct'=>'Overview â†’ Result Highlights â†’ Cut-off Marks (category-wise) â†’ How to Check â†’ Merit List â†’ Next Steps','cat'=>'Result','faq'=>'how to check, cut-off, merit list, scorecard, re-evaluation, next steps'],
+        'answer_key'  => ['role'=>'exam answer key analyst','title_fmt'=>'"[Org] [Exam] Answer Key [Year] â€“ Download & Raise Objection"','struct'=>'Overview â†’ Highlights â†’ How to Download â†’ Raising Objection â†’ Fee â†’ Important Dates','cat'=>'Answer Key','faq'=>'download steps, objection process, fee, timeline, final key, result date'],
+        'syllabus'    => ['role'=>'exam preparation expert','title_fmt'=>'"[Org] [Exam] Syllabus [Year] â€“ Topic-wise Pattern & PDF"','struct'=>'Overview â†’ Exam Pattern (table) â†’ Subject-wise Syllabus â†’ Marking Scheme â†’ Recommended Books â†’ Preparation Tips','cat'=>'Syllabus','faq'=>'topics, exam pattern, marking scheme, negative marking, best books, strategy'],
+        'scholarship' => ['role'=>'scholarship expert','title_fmt'=>'"[Org] [Scholarship] [Year] â€“ Eligibility, Amount & Apply"','struct'=>'Overview â†’ Highlights â†’ Eligibility â†’ Award Amount â†’ How to Apply â†’ Required Documents â†’ Important Dates','cat'=>'Scholarship','faq'=>'eligibility, amount, how to apply, documents, last date, selection, disbursement'],
+        'blog'        => ['role'=>'career guide writer','title_fmt'=>'"[Topic] â€“ Complete Guide [Year]"','struct'=>'Introduction â†’ Key Points â†’ Detailed Explanation â†’ Tips & Advice â†’ Conclusion','cat'=>'Blog','faq'=>'main topic questions, eligibility, process, timeline, tips'],
+        'job'         => ['role'=>'SEO content strategist','title_fmt'=>'"[Org Abbr] [Post Name] [Year] â€“ Apply for [N] Posts"','struct'=>'Overview â†’ Key Highlights â†’ Vacancy Details â†’ Eligibility â†’ Important Dates â†’ Application Fee â†’ How to Apply â†’ Selection Process','cat'=>'Central Govt Jobs','faq'=>'eligibility, how to apply, last date, age limit, salary, selection, fee'],
     ];
     $cfg = $typeCfg[$postType] ?? $typeCfg['job'];
 
-    // ── Type-specific field guidance ───────────────────────────────────────────
+    // â”€â”€ Type-specific field guidance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $extraNotes = '';
     if (in_array($postType, ['admit_card','result','answer_key','syllabus'])) {
         $extraNotes = "TYPE NOTE [{$postType}]: total_posts=0, salary/age/fee all 0, education=[], qualifications/skills/responsibilities=\"\".\n";
@@ -1390,127 +1390,50 @@ LINKSEC;
     }
 
     return <<<PROMPT
-You are a {$cfg['role']} for JobOne.in — India's top government job portal.
+You are a {$cfg['role']} for JobOne.in â€” India's top government job portal.
 Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$postType}** post.
 {$extraNotes}
-━━━━ FIELD INSTRUCTIONS ━━━━
+â”â”â”â” FIELD INSTRUCTIONS â”â”â”â”
 
-① title (max 70 chars): {$cfg['title_fmt']}
-② type: MUST be exactly "{$postType}"
-③ short_description (max 160 chars): concise summary for this post type.
-④ content (HTML: <h3><p><ul><li><a> only):
+â‘  title (max 70 chars): {$cfg['title_fmt']}
+â‘¡ type: MUST be exactly "{$postType}"
+â‘¢ short_description (max 160 chars): concise summary for this post type.
+â‘£ content (HTML: <h3><p><ul><li><a> only):
    Structure: {$cfg['struct']}
-   — Embed 4–6 relevant internal links from the list below (pick the most relevant for this {$postType}):
+   â€” Embed 4â€“6 relevant internal links from the list below (pick the most relevant for this {$postType}):
 {$internalLinks}
-   — DO NOT add "Important Links" section (auto-generated).
-   — End with: <h3>📢 Stay Updated</h3><ul><li>🔵 <a href="{$tg}">Telegram @jobone2026</a></li><li>🟢 <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
-⑤ organization: Full official name
-⑥ state_name: Indian state OR "All India"
-⑦ category_name: {$cfg['cat']}
-⑧ notification_date, start_date, end_date, last_date: YYYY-MM-DD or ""
-⑨ total_posts: integer or 0
-⑩ salary: pay scale / scholarship amount or ""
-⑪ salary_min, salary_max: integers or 0
-⑫ salary_type: salary|stipend|consolidated|pay_scale
-⑬ online_form: https:// URL or ""
-⑭ age_min, age_max_gen: integer years or 0
-⑮ fee_general, fee_obc, fee_sc_st, fee_women, fee_ph: integers or 0
-⑯ selection_stages: array of strings or []
-⑰ is_date_extended: boolean
-⑱ important_links: array of {"title":"...","url":"https://..."}.
+   â€” DO NOT add "Important Links" section (auto-generated).
+   â€” End with: <h3>ðŸ“¢ Stay Updated</h3><ul><li>ðŸ”µ <a href="{$tg}">Telegram @jobone2026</a></li><li>ðŸŸ¢ <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
+â‘¤ organization: Full official name
+â‘¥ state_name: Indian state OR "All India"
+â‘¦ category_name: {$cfg['cat']}
+â‘§ notification_date, start_date, end_date, last_date: YYYY-MM-DD or ""
+â‘¨ total_posts: integer or 0
+â‘© salary: pay scale / scholarship amount or ""
+â‘ª salary_min, salary_max: integers or 0
+â‘« salary_type: salary|stipend|consolidated|pay_scale
+â‘¬ online_form: https:// URL or ""
+â‘­ age_min, age_max_gen: integer years or 0
+â‘® fee_general, fee_obc, fee_sc_st, fee_women, fee_ph: integers or 0
+â‘¯ selection_stages: array of strings or []
+â‘° is_date_extended: boolean
+â‘± important_links: array of {"title":"...","url":"https://..."}.
 {$linkInstruction}
-   ✅ GOOD: "Download Admit Card" | "Check Result" | "Official Notification PDF" | "Apply Online"
-   ❌ BAD: "1" | "Link" | "Click Here"
-⑲ tags: relevant subset of [cutoff,merit_list,final_result,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job]
-⑳ education: relevant subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,mba,ca,llb,mbbs,phd,any_qualification] or []
-㉑ meta_title: SEO title with org, type, year and "| JobOne.in"
-㉒ meta_description: 120–160 chars relevant to this post type
-㉓ meta_keywords: minimum 100 comma-separated keywords
-㉔ qualifications, skills, responsibilities: relevant text or ""
-㉕ faq: EXACTLY 7 objects {"question":"...","answer":"..."} — plain text only. Cover: {$cfg['faq']}
+   âœ… GOOD: "Download Admit Card" | "Check Result" | "Official Notification PDF" | "Apply Online"
+   âŒ BAD: "1" | "Link" | "Click Here"
+â‘² tags: relevant subset of [cutoff,merit_list,final_result,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job]
+â‘³ education: relevant subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,mba,ca,llb,mbbs,phd,any_qualification] or []
+ã‰‘ meta_title: SEO title with org, type, year and "| JobOne.in"
+ã‰’ meta_description: 120â€“160 chars relevant to this post type
+ã‰“ meta_keywords: minimum 100 comma-separated keywords
+ã‰” qualifications, skills, responsibilities: relevant text or ""
+ã‰• faq: EXACTLY 7 objects {"question":"...","answer":"..."} â€” plain text only. Cover: {$cfg['faq']}
 
-━━━━ OUTPUT RULES ━━━━
+â”â”â”â” OUTPUT RULES â”â”â”â”
 Return ONLY valid compact JSON. No markdown. The "type" field MUST be "{$postType}".
 {"title":"","type":"{$postType}","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":0,"age_max_gen":0,"age_as_on_date":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","important_links":[],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[]}
 PROMPT;
 }
-
-━━━━ FIELD INSTRUCTIONS ━━━━
-
-① title (SEO-optimized, max 70 chars):
-   Format: "[Org Abbreviation] [Post Name] [Year] – Apply for [N] Posts"
-
-② type: one of job|admit_card|result|answer_key|syllabus|blog|scholarship
-
-③ short_description (max 160 chars): org name, post count, key dates, eligibility.
-
-④ content (HTML only — <h3><p><ul><li><a> tags):
-   Structure: Overview → Key Highlights (bullet list) → Vacancy Details → Eligibility → Important Dates → Application Fee → How to Apply → Selection Process
-   — Embed 5–8 internal links using these hrefs:
-       <a href="https://jobone.in/">Latest Government Jobs 2026</a>
-       <a href="https://jobone.in/category/ssc-jobs">SSC Jobs 2026</a>
-       <a href="https://jobone.in/category/railway-jobs">Railway Jobs 2026</a>
-       <a href="https://jobone.in/category/bank-jobs">Bank Jobs 2026</a>
-       <a href="https://jobone.in/category/upsc-jobs">UPSC Jobs 2026</a>
-       <a href="https://jobone.in/category/engineering-jobs">Engineering Jobs 2026</a>
-       <a href="https://jobone.in/category/state-govt-jobs">State Govt Jobs 2026</a>
-       <a href="https://jobone.in/category/central-govt-jobs">Central Govt Jobs 2026</a>
-       <a href="https://jobone.in/admit-card">Admit Card 2026</a>
-       <a href="https://jobone.in/results">Results 2026</a>
-       <a href="https://jobone.in/syllabus">Exam Syllabus</a>
-   — DO NOT add any "Important Links" section — it will be auto-generated.
-   — At the END of content add this EXACTLY:
-       <h3>📢 Stay Updated — Join Our Channels</h3>
-       <p>Never miss a government job update! Join the official JobOne.in channels:</p>
-       <ul>
-         <li>🔵 <a href="{$tg}" target="_blank" rel="noreferrer"><strong>Telegram Channel – @jobone2026</strong></a> — Instant job alerts</li>
-         <li>🟢 <a href="{$wa}" target="_blank" rel="noreferrer"><strong>WhatsApp Channel – JobOne.in</strong></a> — Daily updates</li>
-       </ul>
-       <p>Bookmark <a href="https://jobone.in/">JobOne.in</a> and stay ahead in your preparation journey.</p>
-
-⑤ organization: Full official name of recruiting body
-⑥ state_name: Exact Indian state OR "All India"
-⑦ category_name: Central Govt Jobs | State Govt Jobs | Railway Jobs | Bank Jobs | SSC Jobs | UPSC Jobs | Police Jobs | Teaching Jobs | Defence Jobs | PSU Jobs | Engineering Jobs | Medical Jobs | Scholarship | Admit Card | Result | Answer Key | Syllabus
-⑧ notification_date, start_date, end_date, last_date: YYYY-MM-DD or ""
-⑨ total_posts: integer or 0
-⑩ salary: Exact pay scale e.g. "Pay Level 6 (₹35,400 – ₹1,12,400)"
-⑪ salary_min, salary_max: integer values (₹)
-⑫ salary_type: salary|stipend|consolidated|pay_scale
-⑬ online_form: https:// URL or ""
-⑭ age_min, age_max_gen, age_max_obc, age_max_sc, age_max_st, age_max_ph, age_max_ex_serviceman: integer years
-⑮ age_as_on_date: YYYY-MM-DD
-⑯ fee_general, fee_obc, fee_sc_st, fee_women, fee_ph: integer values (₹)
-⑰ vacancy_gen, vacancy_obc, vacancy_sc, vacancy_st, vacancy_ews, vacancy_ph: integer counts
-⑱ selection_stages: Array of strings e.g. ["Written Exam", "Interview", "Document Verification"]
-⑲ is_date_extended: boolean
-
-⑳ important_links: Array of {"title":"...","url":"https://..."}.
-{$linkInstruction}
-   ✅ GOOD titles: "Official Notification PDF" | "Apply Online" | "Download Admit Card"
-   ❌ BAD titles: "1" | "2" | "Link" | "Click Here"
-
-⑬ tags: subset of [cutoff,merit_list,selection_list,final_result,provisional_result,revised_result,scorecard,marks]
-⑭ education: subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,bba,mba,ca,cs,cma,llb,llm,mbbs,bds,bpharm,mpharm,nursing,bed,med,phd,any_qualification]
-⑮ meta_title: "[Org Abbr] [Post Name] [Year] – [N] Posts | Apply by [DD MMM] | JobOne.in"
-⑯ meta_description: "[Org] has released [N] [Post] vacancies for [Year]. Eligibility: [edu]. Last date: [date]. Check qualification, salary, selection process and direct apply link here."
-⑰ meta_keywords: MINIMUM 200 comma-separated keywords
-⑱ qualifications: One paragraph summarising educational qualifications, age limit, experience required.
-⑲ skills: Comma-separated skills/competencies.
-⑳ responsibilities: One paragraph describing the role/duties.
-㉑ faq: Array of EXACTLY 7 objects {"question":"...","answer":"..."}.
-   CRITICAL — plain text answers only (no HTML tags). Cover: eligibility, how to apply, last date, age limit, salary, selection process, application fee.
-
-━━━━ OUTPUT RULES ━━━━
-Return ONLY valid compact JSON. No markdown, no backticks, no comments.
-{"title":"","type":"job","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":18,"age_max_gen":0,"age_max_obc":0,"age_max_sc":0,"age_max_st":0,"age_max_ph":0,"age_max_ex_serviceman":0,"age_as_on_date":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","important_links":[{"title":"","url":""}],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[{"question":"","answer":""}]}
-PROMPT;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ── ROUTER ────────────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
-
-$action = $_GET['action'] ?? '';
 
 // Helper to send a clean JSON response (FIX #1: clears buffer first)
 function send_json(mixed $data): never
@@ -1522,15 +1445,15 @@ function send_json(mixed $data): never
 
 switch ($action) {
 
-    // ── categories ──────────────────────────────────────────────────────────
+    // â”€â”€ categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     case 'categories':
         send_json(curl_request(JOBONE_API . '/categories', 'GET', ['Accept: application/json']));
 
-    // ── states ───────────────────────────────────────────────────────────────
+    // â”€â”€ states â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     case 'states':
         send_json(curl_request(JOBONE_API . '/states', 'GET', ['Accept: application/json']));
 
-    // ── scrape_url ───────────────────────────────────────────────────────────
+    // â”€â”€ scrape_url â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     case 'scrape_url':
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $url = trim($input['url'] ?? '');
@@ -1568,7 +1491,7 @@ switch ($action) {
 
         send_json(['success' => true, 'text' => $text, 'chars' => strlen($text), 'official_links' => $officialLinks, 'skipped_count' => $skippedCount]);
 
-    // ── analyze ──────────────────────────────────────────────────────────────
+    // â”€â”€ analyze â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     case 'analyze':
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $rawText = trim($input['raw_text'] ?? '');
@@ -1659,12 +1582,12 @@ switch ($action) {
         $orgAbbr = !empty($parsed['organization']) ? explode(' ', $parsed['organization'])[0] : 'Govt';
         $postN = $parsed['post_name'] ?? $parsed['title'] ?? 'Job';
         $vCount = (int) ($parsed['total_posts'] ?? 0);
-        $vStr = $vCount > 0 ? " – {$vCount} Posts" : "";
+        $vStr = $vCount > 0 ? " â€“ {$vCount} Posts" : "";
         $yearStr = date('Y');
         if (preg_match('/\b(20\d{2})\b/', $postN, $m))
             $yearStr = $m[1];
         $lastDateHint = !empty($parsed['last_date']) ? 'Apply by ' . date('d M', strtotime($parsed['last_date'])) : 'Apply Soon';
-        $extendPrefix = !empty($parsed['is_date_extended']) ? '🔥 Date Extended – ' : '';
+        $extendPrefix = !empty($parsed['is_date_extended']) ? 'ðŸ”¥ Date Extended â€“ ' : '';
 
         $parsed['meta_title'] = "{$extendPrefix}{$orgAbbr} {$postN} Recruitment {$yearStr}{$vStr} | {$lastDateHint} | JobOne.in";
         if (strlen($parsed['meta_title']) > 80)
@@ -1685,9 +1608,9 @@ switch ($action) {
                 $hasWa = true;
         }
         if (!$hasTg)
-            $merged[] = ['title' => '📢 Telegram Channel – @jobone2026', 'url' => TG_CHANNEL];
+            $merged[] = ['title' => 'ðŸ“¢ Telegram Channel â€“ @jobone2026', 'url' => TG_CHANNEL];
         if (!$hasWa)
-            $merged[] = ['title' => '🟢 WhatsApp Channel – JobOne.in', 'url' => WA_CHANNEL];
+            $merged[] = ['title' => 'ðŸŸ¢ WhatsApp Channel â€“ JobOne.in', 'url' => WA_CHANNEL];
         $parsed['important_links'] = $merged;
 
         // Build FAQ
@@ -1699,8 +1622,8 @@ switch ($action) {
         $jobSchema = generate_job_schema($parsed, $merged);
 
         // Strip AI-generated links/FAQ sections from content
-        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[📎🔗]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
-        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[❓🙋]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[ðŸ“ŽðŸ”—]?\s*important\s+links.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
+        $parsed['content'] = preg_replace('/<h3[^>]*>\s*[â“ðŸ™‹]?\s*frequently\s+asked.*?<\/h3>[\s\S]*?(?=<h3|$)/si', '', $parsed['content'] ?? '');
         $parsed['content'] = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $parsed['content'] ?? '');
 
         // Assemble content
@@ -1711,7 +1634,7 @@ switch ($action) {
         $selectionHtml = build_selection_stages($parsed);
         $linksHtml = build_links_table($parsed['important_links']);
 
-        $socialMarker = '<h3>📢 Stay Updated';
+        $socialMarker = '<h3>ðŸ“¢ Stay Updated';
         $content = rtrim($parsed['content'] ?? '');
         $headerBlocks = $quickInfoHtml . "\n" . $datesHtml . "\n" . $vacancyHtml . "\n" . $feeHtml . "\n" . $selectionHtml;
 
@@ -1740,7 +1663,7 @@ switch ($action) {
             'og_tags' => $ogTags,
         ]);
 
-    // ── post_job ─────────────────────────────────────────────────────────────
+    // â”€â”€ post_job â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     case 'post_job':
         $input = json_decode(file_get_contents('php://input'), true);
         if (!$input)
@@ -1829,13 +1752,13 @@ switch ($action) {
 
         send_json($postResult);
 
-    // ── 404 ──────────────────────────────────────────────────────────────────
+    // â”€â”€ 404 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     default:
         http_response_code(404);
         send_json(['success' => false, 'message' => 'Unknown action: ' . htmlspecialchars($action)]);
 }
 
-// ── JSON repair ───────────────────────────────────────────────────────────────
+// â”€â”€ JSON repair â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function repair_json(string $s): string
 {
     $s = rtrim($s, ', ');
