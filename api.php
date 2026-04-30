@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // â”€â”€ JobOne Publisher — PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -334,7 +334,7 @@ function curl_request(string $url, string $method = 'GET', array $headers = [], 
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT => 60,
+        CURLOPT_TIMEOUT => 180,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_HTTPHEADER => $headers,
     ]);
