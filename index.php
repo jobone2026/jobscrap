@@ -1456,6 +1456,128 @@
         grid-template-columns: 1fr 1fr;
       }
     }
+
+    /* ── PDF Host Button & Modal ── */
+    .pdf-field-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .pdf-field-wrap input { flex: 1; }
+    .btn-host-pdf {
+      padding: 9px 14px;
+      border-radius: var(--radius-xs);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      background: var(--purple-light);
+      color: var(--purple);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      font-family: var(--font);
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-host-pdf:hover {
+      background: var(--purple);
+      color: #fff;
+    }
+    .btn-host-pdf:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+    .btn-view-pdf {
+      padding: 9px 14px;
+      border-radius: var(--radius-xs);
+      border: 1px solid rgba(13, 158, 107, 0.3);
+      background: var(--green-light);
+      color: var(--green);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      font-family: var(--font);
+      transition: all .15s;
+      display: none;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-view-pdf:hover { background: var(--green); color: #fff; }
+    .btn-view-pdf.visible { display: flex; }
+    .pdf-hosted-badge {
+      display: none;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-light);
+      border: 1px solid rgba(13,158,107,.2);
+      border-radius: 20px;
+      padding: 3px 10px;
+      margin-top: 5px;
+      font-weight: 700;
+      align-items: center;
+      gap: 5px;
+    }
+    .pdf-hosted-badge.visible { display: flex; }
+
+    /* PDF Viewer Modal */
+    .pdf-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,36,.75);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .pdf-modal-overlay.open { display: flex; }
+    .pdf-modal {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      width: 90vw;
+      max-width: 1100px;
+      height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .pdf-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .pdf-modal-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    .pdf-modal-close {
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      transition: all .15s;
+    }
+    .pdf-modal-close:hover { background: var(--red-light); border-color: rgba(239,68,68,.3); color: var(--red); }
+    .pdf-modal-body {
+      flex: 1;
+      overflow: hidden;
+    }
+    .pdf-modal-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
   </style>
 </head>
 
@@ -1706,8 +1828,13 @@
               <input type="date" id="f-waitlist_date">
             </div>
             <div class="field">
-              <label class="field-label">Notification PDF URL</label>
-              <input type="url" id="f-notification_pdf" placeholder="https://...notification.pdf">
+              <label class="field-label">Notification PDF URL <span style="font-size:10px;color:var(--text-muted);">(auto-hosts on jobone.in)</span></label>
+              <div class="pdf-field-wrap">
+                <input type="url" id="f-notification_pdf" placeholder="https://...notification.pdf" oninput="updatePdfButtons()">
+                <button class="btn-host-pdf" id="btn-host-pdf" onclick="downloadAndHostPdf()" title="Download & host PDF on JobOne.in">📥 Host PDF</button>
+                <button class="btn-view-pdf" id="btn-view-pdf" onclick="openPdfViewer()" title="View hosted PDF inside site">👁 View</button>
+              </div>
+              <div class="pdf-hosted-badge" id="pdf-hosted-badge">✅ Hosted on JobOne.in — link updated</div>
             </div>
           </div>
           <div class="row-1">
@@ -2219,6 +2346,7 @@
       updateCharCount('f-meta_title', 'cnt-metatitle', 255);
       updateCharCount('f-meta_description', 'cnt-metadesc', 500);
       updatePreview();
+      updatePdfButtons(); // show Host PDF / View buttons if AI filled notification_pdf
       switchTabById('basic');
     }
 
@@ -2610,7 +2738,102 @@
     }
 
     function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+    // ── PDF Host & Viewer ─────────────────────────────────────────────────────
+    function updatePdfButtons() {
+      const url = (document.getElementById('f-notification_pdf')?.value || '').trim();
+      const isExternal = url && !url.includes('jobone.in/pdfs/');
+      const isHosted   = url && url.includes('jobone.in/pdfs/');
+      document.getElementById('btn-host-pdf').style.display = isExternal ? '' : (isHosted ? 'none' : '');
+      document.getElementById('btn-view-pdf').classList.toggle('visible', !!url);
+      document.getElementById('pdf-hosted-badge').classList.toggle('visible', isHosted);
+    }
+
+    async function downloadAndHostPdf() {
+      const pdfInput = document.getElementById('f-notification_pdf');
+      const url = (pdfInput?.value || '').trim();
+      if (!url) { alert('Please enter a PDF URL first.'); return; }
+      if (url.includes('jobone.in/pdfs/')) { openPdfViewer(); return; }
+
+      const btn = document.getElementById('btn-host-pdf');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Hosting...';
+
+      try {
+        const res  = await fetch('api.php?action=download_pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Failed to host PDF');
+
+        // Update the field with the hosted jobone.in URL
+        pdfInput.value = data.hosted_url;
+        updatePdfButtons();
+
+        // Auto-update the notification_pdf field in linkRows too
+        // Replace any existing PDF link with the new hosted URL
+        const pdfIdx = linkRows.findIndex(l => /\.pdf/i.test(l.url) || /notification|advt/i.test(l.title || ''));
+        const pdfLink = { title: 'Official Notification PDF', url: data.hosted_url };
+        if (pdfIdx >= 0) linkRows[pdfIdx] = pdfLink;
+        else linkRows.unshift(pdfLink);
+        renderLinks();
+
+        const badge = document.getElementById('pdf-hosted-badge');
+        badge.innerHTML = `✅ Hosted on JobOne.in — ${(data.file_size / 1024).toFixed(0)} KB saved`;
+        badge.classList.add('visible');
+
+        btn.innerHTML = '✅ Hosted!';
+        btn.style.display = 'none';
+        document.getElementById('btn-view-pdf').classList.add('visible');
+
+        // Auto-switch to Links tab so user sees the updated link
+        setTimeout(() => switchTabById('links'), 600);
+      } catch (e) {
+        alert('⚠️ ' + (e.message || 'Failed to host PDF'));
+        btn.disabled = false;
+        btn.innerHTML = '📥 Host PDF';
+      }
+    }
+
+    function openPdfViewer() {
+      const url = (document.getElementById('f-notification_pdf')?.value || '').trim();
+      if (!url) return;
+
+      // Build serve URL if it is a locally hosted file
+      let viewUrl = url;
+      if (url.includes('jobone.in/pdfs/')) {
+        const fileName = url.split('/').pop();
+        viewUrl = 'api.php?action=serve_pdf&file=' + encodeURIComponent(fileName);
+      }
+
+      const overlay = document.getElementById('pdf-modal-overlay');
+      const iframe  = document.getElementById('pdf-modal-iframe');
+      iframe.src = viewUrl;
+      overlay.classList.add('open');
+    }
+
+    function closePdfModal() {
+      const overlay = document.getElementById('pdf-modal-overlay');
+      overlay.classList.remove('open');
+      document.getElementById('pdf-modal-iframe').src = '';
+    }
   </script>
+
+  <!-- ── PDF Viewer Modal ── -->
+  <div class="pdf-modal-overlay" id="pdf-modal-overlay" onclick="if(event.target===this)closePdfModal()">
+    <div class="pdf-modal">
+      <div class="pdf-modal-header">
+        <div class="pdf-modal-title">📄 Official Notification PDF — JobOne.in</div>
+        <button class="pdf-modal-close" onclick="closePdfModal()">✕ Close</button>
+      </div>
+      <div class="pdf-modal-body">
+        <iframe id="pdf-modal-iframe" src="" title="Official Notification PDF"></iframe>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 </html>

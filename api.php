@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // â”€â”€ JobOne Publisher — PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -86,6 +86,12 @@ define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22');
 define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE');
 define('INDEXNOW_HOST', 'jobone.in');
 
+// ── PDF Storage ──────────────────────────────────────────────────────────────
+// On live server: /var/www/jobone/public/pdfs/
+// Locally under XAMPP: adjust PDF_STORAGE_DIR if needed
+define('PDF_STORAGE_DIR', dirname(__FILE__) . '/pdfs/');
+define('PDF_STORAGE_URL', JOBONE_SITE_URL . '/pdfs/');
+
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€ DOMAIN CLASSIFIER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -128,6 +134,13 @@ const AGGREGATOR_DOMAINS = [
     'unacademy.com',
     'vidyakul.com',
     'jobone.in',
+    // Scraper / aggregator blog sites
+    'rajasthanvacancy.com',
+    'rajasthanhelp.com',
+    'sarkarinaukrihelp.com',
+    'govtjobadda.com',
+    'latestjobs.in',
+    'naukrimessenger.com',
 ];
 
 const OFFICIAL_PATTERNS = [
@@ -1942,6 +1955,95 @@ switch ($action) {
         send_json($postResult);
 
     // â”€â”€ 404 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    // ── download_pdf ──────────────────────────────────────────────────────────
+    // Downloads an external PDF, saves it locally, returns the hosted jobone.in URL.
+    case 'download_pdf':
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $pdfUrl = trim($input['url'] ?? '');
+        if (!$pdfUrl)
+            send_json(['success' => false, 'message' => 'URL is required']);
+        if (!filter_var($pdfUrl, FILTER_VALIDATE_URL))
+            send_json(['success' => false, 'message' => 'Invalid URL']);
+
+        // Ensure storage directory exists
+        if (!is_dir(PDF_STORAGE_DIR)) {
+            if (!mkdir(PDF_STORAGE_DIR, 0755, true))
+                send_json(['success' => false, 'message' => 'Cannot create PDF storage directory']);
+        }
+
+        // Build a safe filename from URL
+        $urlPathPdf  = parse_url($pdfUrl, PHP_URL_PATH) ?? '';
+        $baseNamePdf = basename($urlPathPdf);
+        $baseNamePdf = preg_replace('/[^A-Za-z0-9._-]/', '-', $baseNamePdf);
+        if (!str_ends_with(strtolower($baseNamePdf), '.pdf')) $baseNamePdf .= '.pdf';
+        $fileNamePdf = date('Ymd_His') . '_' . $baseNamePdf;
+        $savePathPdf = PDF_STORAGE_DIR . $fileNamePdf;
+
+        // Download PDF via cURL
+        $chPdf = curl_init($pdfUrl);
+        curl_setopt_array($chPdf, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 120,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+            CURLOPT_HTTPHEADER     => ['Accept: application/pdf,*/*', 'Accept-Language: en-IN,en;q=0.9'],
+        ]);
+        $pdfContent    = curl_exec($chPdf);
+        $httpCodePdf   = curl_getinfo($chPdf, CURLINFO_HTTP_CODE);
+        $curlErrorPdf  = curl_error($chPdf);
+        $contentTypePdf = curl_getinfo($chPdf, CURLINFO_CONTENT_TYPE);
+        curl_close($chPdf);
+
+        if ($curlErrorPdf)
+            send_json(['success' => false, 'message' => 'cURL error: ' . $curlErrorPdf]);
+        if ($httpCodePdf >= 400)
+            send_json(['success' => false, 'message' => 'HTTP ' . $httpCodePdf . ' - could not fetch PDF']);
+        if (empty($pdfContent))
+            send_json(['success' => false, 'message' => 'Empty response from source']);
+
+        // Validate it is actually a PDF
+        if (strncmp($pdfContent, '%PDF', 4) !== 0)
+            send_json(['success' => false, 'message' => 'Not a valid PDF file (type: ' . $contentTypePdf . ')']);
+
+        if (file_put_contents($savePathPdf, $pdfContent) === false)
+            send_json(['success' => false, 'message' => 'Failed to save PDF to disk']);
+
+        $hostedUrlPdf = PDF_STORAGE_URL . $fileNamePdf;
+        send_json([
+            'success'    => true,
+            'message'    => 'PDF downloaded and hosted successfully.',
+            'hosted_url' => $hostedUrlPdf,
+            'file_name'  => $fileNamePdf,
+            'file_size'  => strlen($pdfContent),
+            'source_url' => $pdfUrl,
+        ]);
+
+    // ── serve_pdf ─────────────────────────────────────────────────────────────
+    // Serves a locally-hosted PDF inline for embedding inside the website.
+    // Usage: api.php?action=serve_pdf&file=20260430_NPCIL-notification.pdf
+    case 'serve_pdf':
+        ob_end_clean();
+        $fileNameServe = basename($_GET['file'] ?? '');
+        if (!$fileNameServe || !preg_match('/^[A-Za-z0-9._-]+\.pdf$/i', $fileNameServe)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Invalid file name']);
+            exit;
+        }
+        $filePathServe = PDF_STORAGE_DIR . $fileNameServe;
+        if (!file_exists($filePathServe)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'PDF not found']);
+            exit;
+        }
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $fileNameServe . '"');
+        header('Content-Length: ' . filesize($filePathServe));
+        header('Cache-Control: public, max-age=86400');
+        header('X-Frame-Options: SAMEORIGIN');
+        readfile($filePathServe);
+        exit;
     default:
         http_response_code(404);
         send_json(['success' => false, 'message' => 'Unknown action: ' . htmlspecialchars($action)]);
