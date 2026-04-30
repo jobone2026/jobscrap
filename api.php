@@ -595,9 +595,24 @@ function build_links_table(array $links): string
     if (empty($validLinks)) return '';
     $rows = '';
     foreach ($validLinks as $i => $link) {
-        $title = htmlspecialchars($link['title'] ?? 'Important Link');
+        // Fix: sanitize title — if numeric (0), empty, or too short, auto-detect from URL
+        $rawTitle = $link['title'] ?? '';
+        if (!is_string($rawTitle) || trim((string)$rawTitle) === '' || is_numeric(trim((string)$rawTitle))) {
+            $urlLower = strtolower($link['url']);
+            if (str_contains($urlLower, '.pdf'))             $rawTitle = 'Official Notification PDF';
+            elseif (str_contains($urlLower, 'apply'))        $rawTitle = 'Apply Online';
+            elseif (str_contains($urlLower, 'register'))     $rawTitle = 'Register Now';
+            elseif (str_contains($urlLower, 'admit'))        $rawTitle = 'Download Admit Card';
+            elseif (str_contains($urlLower, 'result'))       $rawTitle = 'Check Result';
+            elseif (str_contains($urlLower, 'syllabus'))     $rawTitle = 'Download Syllabus';
+            elseif (str_contains($urlLower, 'answer'))       $rawTitle = 'Answer Key';
+            elseif (str_contains($urlLower, 't.me'))         $rawTitle = '📢 Telegram Channel';
+            elseif (str_contains($urlLower, 'whatsapp.com')) $rawTitle = '🟢 WhatsApp Channel';
+            else                                              $rawTitle = 'Official Link ' . ($i + 1);
+        }
+        $title = htmlspecialchars((string)$rawTitle);
         $url = htmlspecialchars($link['url']);
-        $icon = $getIcon($link['title'] ?? '');
+        $icon = $getIcon($rawTitle);
         $rowBg = $i % 2 === 0 ? '#ffffff' : '#f4f7ff';
         $isSocial = str_contains(strtolower($link['url']), 't.me/') || str_contains(strtolower($link['url']), 'whatsapp.com/channel');
         $btnStyle = $isSocial ? 'background:linear-gradient(135deg,#229ED9,#0d7abf);' : 'background:linear-gradient(135deg,#1a6ef5,#5b4ceb);';
