@@ -1680,13 +1680,65 @@
             <div class="field"><label class="field-label">Last Date to Apply</label><input type="date" id="f-last_date">
             </div>
           </div>
+          <div class="row-2">
+            <div class="field">
+              <label class="field-label">Deadline Time <span style="font-size:10px;color:var(--text-muted);">(exact cutoff time)</span></label>
+              <input type="text" id="f-deadline_time" placeholder="e.g. 4:00 PM or 5:00 PM IST">
+            </div>
+            <div class="field">
+              <label class="field-label">Age Calculated As On Date</label>
+              <input type="date" id="f-age_as_on_date">
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label class="field-label">Interview Date From</label>
+              <input type="date" id="f-interview_date_from">
+            </div>
+            <div class="field">
+              <label class="field-label">Interview Date To</label>
+              <input type="date" id="f-interview_date_to">
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label class="field-label">Waitlist Valid Until</label>
+              <input type="date" id="f-waitlist_date">
+            </div>
+            <div class="field">
+              <label class="field-label">Notification PDF URL</label>
+              <input type="url" id="f-notification_pdf" placeholder="https://...notification.pdf">
+            </div>
+          </div>
           <div class="row-1">
             <div class="field">
               <label class="field-label">Salary / Pay Scale (Display Text)</label>
-              <input type="text" id="f-salary" placeholder="e.g. Pay Level 6 (₹35,400 – ₹1,12,400)">
+              <input type="text" id="f-salary" placeholder="e.g. Pay Level 10 (₹56,100 – ₹1,77,500)">
             </div>
           </div>
-          <div class="row-3">
+          <div style="margin-bottom:14px;">
+            <label class="field-label">Age Limit by Category</label>
+            <div class="row-2" style="margin-top:8px;">
+              <div class="field"><label class="field-label" style="font-size:11px;">Min Age</label><input type="number" id="f-age_min" placeholder="18"></div>
+              <div class="field"><label class="field-label" style="font-size:11px;">Max Age — General/EWS</label><input type="number" id="f-age_max_gen" placeholder="26"></div>
+            </div>
+            <div class="row-2">
+              <div class="field"><label class="field-label" style="font-size:11px;">Max Age — OBC</label><input type="number" id="f-age_max_obc" placeholder="29"></div>
+              <div class="field"><label class="field-label" style="font-size:11px;">Max Age — SC/ST</label><input type="number" id="f-age_max_sc" placeholder="31"></div>
+            </div>
+            <div class="row-2">
+              <div class="field"><label class="field-label" style="font-size:11px;">Max Age — PwD/Divyang</label><input type="number" id="f-age_max_ph" placeholder="36"></div>
+              <div class="field"><label class="field-label" style="font-size:11px;">Max Age — Ex-Serviceman</label><input type="number" id="f-age_max_ex_serviceman" placeholder="45"></div>
+            </div>
+            <div style="margin-top:8px;">
+              <label class="field-label" style="font-size:11px;">Age Relaxation Note</label>
+              <input type="text" id="f-age_relaxation_note" placeholder="e.g. OBC +3 yrs, SC/ST +5 yrs, PwD +10 yrs">
+            </div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <label class="field-label">GATE Score / Selection Note</label>
+            <input type="text" id="f-gate_note" placeholder="e.g. GATE score for shortlisting only; final selection via interview + medical">
+          </div>
             <div class="field">
               <label class="field-label">Salary Min (₹)</label>
               <input type="number" id="f-salary_min" placeholder="e.g. 35400">
@@ -2129,7 +2181,13 @@
     }
 
     function populateForm(p, kwCount) {
-      const fields = ['title', 'type', 'organization', 'notification_date', 'start_date', 'end_date', 'last_date', 'total_posts', 'salary', 'salary_min', 'salary_max', 'salary_type', 'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords'];
+      const fields = ['title', 'type', 'organization', 'notification_date', 'start_date', 'end_date', 'last_date',
+        'deadline_time', 'interview_date_from', 'interview_date_to', 'waitlist_date',
+        'total_posts', 'salary', 'salary_min', 'salary_max', 'salary_type',
+        'age_min', 'age_max_gen', 'age_max_obc', 'age_max_sc', 'age_max_ph', 'age_max_ex_serviceman',
+        'age_as_on_date', 'age_relaxation_note',
+        'notification_pdf', 'gate_note',
+        'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords'];
       fields.forEach(f => { const el = document.getElementById('f-' + f); if (el && p[f] !== undefined && p[f] !== null) el.value = p[f]; });
       let catMatched = false;
       if (p.category_id) { const sel = document.getElementById('f-category_id'); if ([...sel.options].some(o => o.value == p.category_id)) { sel.value = p.category_id; catMatched = true; document.getElementById('cat-match-tag').style.display = ''; } }
@@ -2230,11 +2288,25 @@
         start_date:        g('start_date'),
         end_date:          g('end_date'),
         last_date:         g('last_date'),
+        deadline_time:     g('deadline_time'),
+        interview_date_from: g('interview_date_from'),
+        interview_date_to:   g('interview_date_to'),
+        waitlist_date:     g('waitlist_date'),
         total_posts:       g('total_posts') ? Number(g('total_posts')) : (pd.total_posts || ''),
         salary:            g('salary'),
         salary_min:        g('salary_min'),
         salary_max:        g('salary_max'),
         salary_type:       g('salary_type'),
+        age_min:           Number(g('age_min')) || pd.age_min || 0,
+        age_max_gen:       Number(g('age_max_gen')) || pd.age_max_gen || 0,
+        age_max_obc:       Number(g('age_max_obc')) || pd.age_max_obc || 0,
+        age_max_sc:        Number(g('age_max_sc')) || pd.age_max_sc || 0,
+        age_max_ph:        Number(g('age_max_ph')) || pd.age_max_ph || 0,
+        age_max_ex_serviceman: Number(g('age_max_ex_serviceman')) || pd.age_max_ex_serviceman || 0,
+        age_as_on_date:    g('age_as_on_date') || pd.age_as_on_date || '',
+        age_relaxation_note: g('age_relaxation_note') || pd.age_relaxation_note || '',
+        notification_pdf:  g('notification_pdf') || pd.notification_pdf || '',
+        gate_note:         g('gate_note') || pd.gate_note || '',
         online_form:       g('online_form'),
         final_result:      g('final_result'),
         important_links:   linkRows.filter(l => l.title && l.url),
@@ -2247,11 +2319,6 @@
         meta_description:  g('meta_description'),
         meta_keywords:     g('meta_keywords'),
         source_url:        window._sourceUrl || '',
-        // --- Pass new AI-generated structured fields silently ---
-        age_min:           pd.age_min || 0,
-        age_max_gen:       pd.age_max_gen || 0,
-        age_max_obc:       pd.age_max_obc || 0,
-        age_max_sc:        pd.age_max_sc || 0,
         apply_url:         pd.apply_url || g('online_form'),
         direct_apply:      pd.direct_apply !== undefined ? pd.direct_apply : !!g('online_form'),
         qualifications:    pd.qualifications || '',

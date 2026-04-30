@@ -76,7 +76,7 @@ define('JOBONE_TOKEN', $env['JOBONE_TOKEN'] ?? 'your_jobone_token_here');
 define('JOBONE_SITE_URL', 'https://jobone.in');
 define('JOBONE_SITE_NAME', 'JobOne.in');
 
-define('AI_MODEL', 'gpt-4o-mini');
+define('AI_MODEL', 'gpt-4.1-mini');
 define('AI_API_URL', 'https://api.openai.com/v1/chat/completions');
 define('AI_API_KEY', $env['OPENAI_API_KEY'] ?? 'your_openai_key_here');
 
@@ -413,19 +413,45 @@ function safe_date(string $val, string $fallback = 'Check Notification'): string
 
 function build_quick_info_table(array $p): string
 {
+    // Build age limit display with relaxations
+    $ageGen  = (int)($p['age_max_gen'] ?? 0);
+    $ageMin  = (int)($p['age_min'] ?? 0);
+    $ageDisp = 'Check Notification';
+    if ($ageGen > 0) {
+        $ageDisp = ($ageMin > 0 ? $ageMin . ' – ' : '') . $ageGen . ' Yrs (Gen)';
+        $parts = [];
+        if ((int)($p['age_max_obc'] ?? 0) > 0)  $parts[] = 'OBC: ' . $p['age_max_obc'] . ' Yrs';
+        if ((int)($p['age_max_sc']  ?? 0) > 0)  $parts[] = 'SC/ST: ' . $p['age_max_sc'] . ' Yrs';
+        if ((int)($p['age_max_ph']  ?? 0) > 0)  $parts[] = 'PwD: ' . $p['age_max_ph'] . ' Yrs';
+        if (!empty($p['age_as_on_date'])) $parts[] = 'As on: ' . date('d-m-Y', strtotime($p['age_as_on_date']));
+        if ($parts) $ageDisp .= ' | ' . implode(' | ', $parts);
+    }
+
+    // Salary with pay level
+    $salaryDisp = !empty($p['salary']) ? $p['salary'] : 'Check Notification';
+    if (!empty($p['salary_min']) && (int)$p['salary_min'] > 0)
+        $salaryDisp .= ' (₹' . number_format((int)$p['salary_min']) . '/month)';
+
+    // Last date with time
+    $lastDateDisp = safe_date($p['last_date'] ?? '', 'Apply Soon');
+    if (!empty($p['deadline_time'])) $lastDateDisp .= ' by ' . $p['deadline_time'];
+
     $rows = [
-        ["\u{1F3E2} Organization", $p['organization'] ?? 'Government Body'],
-        ["\u{1F4CB} Post Name", $p['post_name'] ?? $p['title'] ?? 'Various'],
+        ["\u{1F3E2} Organization",   $p['organization'] ?? 'Government Body'],
+        ["\u{1F4CB} Post Name",       $p['post_name'] ?? $p['title'] ?? 'Various'],
         ["\u{1F4E2} Total Vacancies", ($p['total_posts'] ?? 0) > 0 ? $p['total_posts'] : 'As per requirement'],
-        ["\u{1F4C1} Category", $p['category_name'] ?? 'Govt Jobs'],
-        ["\u{1F4CD} State", $p['state_name'] ?? 'All India'],
-        ["\u{1F393} Education", !empty($p['education']) ? implode(', ', (array) $p['education']) : 'Check Notification'],
-        ["\u{1F382} Age Limit", (int)($p['age_min'] ?? 0) > 0 ? ($p['age_min'] . ' - ' . ($p['age_max_gen'] ?? 0) . ' Years') : 'Check Notification'],
-        ["\u{1F4B0} Salary", $p['salary'] ?? 'Check Notification'],
-        ["\u{1F4B3} App Fee", ($p['fee_general'] ?? 0) > 0 ? "\u{20B9}" . $p['fee_general'] : 'No Fee'],
-        ["\u{1F4DD} Apply Mode", !empty($p['online_form']) ? 'Online' : 'Offline'],
-        ["\u{1F4C5} Last Date", safe_date($p['last_date'] ?? '', 'Apply Soon')],
+        ["\u{1F4C1} Category",        $p['category_name'] ?? 'Govt Jobs'],
+        ["\u{1F4CD} Location",        $p['state_name'] ?? 'All India'],
+        ["\u{1F393} Education",        !empty($p['education']) ? implode(', ', (array)$p['education']) : 'Check Notification'],
+        ["\u{1F382} Age Limit",        $ageDisp],
+        ["\u{1F4B0} Salary",           $salaryDisp],
+        ["\u{1F4B3} App Fee",          ($p['fee_general'] ?? 0) > 0 ? "₹" . $p['fee_general'] . ' (Gen) | SC/ST/Women: Free' : 'No Fee'],
+        ["\u{1F4DD} Apply Mode",       !empty($p['online_form']) ? 'Online' : 'Offline'],
+        ["\u{1F4C5} Last Date",        $lastDateDisp],
     ];
+    if (!empty($p['gate_note'])) {
+        $rows[] = ["\u{1F3AF} GATE Note", htmlspecialchars($p['gate_note'])];
+    }
     $htmlRows = '';
     foreach ($rows as $i => $r) {
         $bg = $i % 2 === 0 ? '#ffffff' : '#f9fbff';
@@ -436,21 +462,32 @@ function build_quick_info_table(array $p): string
 
 function build_dates_table(array $p): string
 {
+    // Last date with exact time
+    $lastDateVal = safe_date($p['last_date'] ?? '');
+    if ($lastDateVal !== 'Check Notification' && !empty($p['deadline_time']))
+        $lastDateVal .= ' (by ' . htmlspecialchars($p['deadline_time']) . ')';
+
     $dateDefs = [
-        ['Notification Released', $p['notification_date'] ?? ''],
-        ['Online Apply Start',    $p['start_date']        ?? ''],
-        ['Apply Last Date',       $p['last_date']         ?? ''],
-        ['Fee Payment Deadline',  $p['last_date']         ?? ''],
-        ['Exam Date',             $p['exam_date']         ?? ''],
-        ['Result Date',           $p['result_date']       ?? ''],
+        ['Notification Released',     $p['notification_date']    ?? ''],
+        ['Online Apply Start',         $p['start_date']           ?? ''],
+        ['Apply Last Date',            '__custom_last__'],
+        ['Fee Payment Deadline',       $p['last_date']            ?? ''],
+        ['Interview Date',             $p['interview_date_from']  ?? ''],
+        ['Exam Date',                  $p['exam_date']            ?? ''],
+        ['Result Date',                $p['result_date']          ?? ''],
+        ['Waitlist Valid Until',        '__custom_waitlist__'],
     ];
     $htmlRows = '';
+    $skipIfEmpty = ['Exam Date', 'Result Date', 'Interview Date', 'Waitlist Valid Until'];
     foreach ($dateDefs as [$label, $val]) {
-        $display = safe_date((string)$val);
-        // Skip Exam/Result Date when not provided by AI (avoid blank/1970 rows)
-        if ($display === 'Check Notification' && in_array($label, ['Exam Date', 'Result Date'])) {
-            continue;
+        if ($val === '__custom_last__') {
+            $display = $lastDateVal;
+        } elseif ($val === '__custom_waitlist__') {
+            $display = !empty($p['waitlist_date']) ? safe_date($p['waitlist_date']) : 'Check Notification';
+        } else {
+            $display = safe_date((string)$val);
         }
+        if ($display === 'Check Notification' && in_array($label, $skipIfEmpty)) continue;
         $htmlRows .= "<tr><td style=\"padding:10px;border:1px solid #eef2f7;font-weight:600;\">{$label}</td><td style=\"padding:10px;border:1px solid #eef2f7;\">{$display}</td></tr>";
     }
     return '<h3>' . "\u{1F4C5}" . ' Important Dates</h3><table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid #eef2f7;font-size:14px;background:#fff;">' . $htmlRows . '</table>';
@@ -1363,6 +1400,17 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
 â‘¥ state_name: Indian state OR "All India"
 â‘¦ category_name: {$cfg['cat']}
 â‘§ notification_date, start_date, end_date, last_date: YYYY-MM-DD or ""
+deadline_time: Exact time of last date (e.g. "4:00 PM", "5:00 PM IST") or ""
+interview_date_from: Interview/DV start date YYYY-MM-DD or ""
+interview_date_to: Interview/DV end date YYYY-MM-DD or ""
+waitlist_date: Date until which waitlist is valid YYYY-MM-DD or ""
+age_max_obc: Max age for OBC (integer) or 0
+age_max_sc: Max age for SC/ST (integer) or 0
+age_max_ph: Max age for PwD/Divyang (integer) or 0
+age_as_on_date: Date on which age is calculated YYYY-MM-DD or ""
+age_relaxation_note: Any additional age relaxation note or ""
+notification_pdf: Direct URL to official notification PDF or ""
+gate_note: IMPORTANT — clarify if GATE score is only for shortlisting (not final merit). E.g. "GATE score used for shortlisting only; final selection via personal interview + medical". Leave "" if not applicable.
 â‘¨ total_posts: integer or 0
 â‘© salary: pay scale / scholarship amount or ""
 â‘ª salary_min, salary_max: integers or 0
@@ -1397,7 +1445,7 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
 
 â” â” â” â”  OUTPUT RULES â” â” â” â” 
 Return ONLY valid compact JSON. No markdown. The "type" field MUST be "{$postType}".
-{"title":"","type":"{$postType}","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":0,"age_max_gen":0,"age_as_on_date":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","important_links":[],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[]}
+{"title":"","type":"{$postType}","short_description":"","content":"","organization":"","state_name":"","category_name":"","notification_date":"","start_date":"","end_date":"","last_date":"","deadline_time":"","interview_date_from":"","interview_date_to":"","waitlist_date":"","is_date_extended":false,"total_posts":0,"vacancy_gen":0,"vacancy_obc":0,"vacancy_sc":0,"vacancy_st":0,"vacancy_ews":0,"vacancy_ph":0,"salary":"","salary_min":0,"salary_max":0,"salary_type":"salary","age_min":0,"age_max_gen":0,"age_max_obc":0,"age_max_sc":0,"age_max_ph":0,"age_as_on_date":"","age_relaxation_note":"","fee_general":0,"fee_obc":0,"fee_sc_st":0,"fee_women":0,"fee_ph":0,"selection_stages":[],"online_form":"","notification_pdf":"","gate_note":"","important_links":[],"tags":[],"education":[],"meta_title":"","meta_description":"","meta_keywords":"","qualifications":"","skills":"","responsibilities":"","faq":[]}
 PROMPT;
 }
 
@@ -1668,7 +1716,6 @@ switch ($action) {
             'age_max_gen',
             'age_max_obc',
             'age_max_sc',
-            'age_max_st',
             'age_max_ph',
             'age_max_ex_serviceman',
             'fee_general',
@@ -1834,6 +1881,22 @@ switch ($action) {
         // ── END AUTO-FILL ─────────────────────────────────────────────────────
 
 
+
+        // Auto-inject notification_pdf into important_links if provided
+        if (!empty($input['notification_pdf']) && filter_var($input['notification_pdf'], FILTER_VALIDATE_URL)) {
+            $pdfExists = false;
+            foreach ($input['important_links'] ?? [] as $il) {
+                if (!empty($il['url']) && strtolower($il['url']) === strtolower($input['notification_pdf'])) {
+                    $pdfExists = true; break;
+                }
+            }
+            if (!$pdfExists) {
+                array_unshift($input['important_links'], [
+                    'title' => 'Official Notification PDF',
+                    'url'   => $input['notification_pdf'],
+                ]);
+            }
+        }
 
         $postResult = curl_request(
             JOBONE_API . '/posts',
