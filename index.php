@@ -2297,9 +2297,6 @@
           const faqCount = analyzeData.faq_count || 0;
           
           let successMsg = `✓ Analysis complete — ${kwCount} SEO keywords · ${faqCount} FAQ pairs · ${officialLinks.length} official links embedded`;
-          if (analyzeData.image_generated) {
-             successMsg += ` · <span style="color:var(--green)">✓ AI image generated</span>`;
-          }
           setFetchStatus(successMsg, 'success');
         }
 
@@ -2309,6 +2306,26 @@
         window._parsedData = analyzeData.data || {};
 
         populateForm(analyzeData.data, analyzeData.kw_count || 0);
+
+        // Auto-generate infographic if no featured image was scraped
+        if (!document.getElementById('f-featured_image').value) {
+            setFetchStatus('Generating beautiful infographic banner...', 'info');
+            try {
+                const b64 = await generateInfographicImage(analyzeData.data);
+                if (b64) {
+                    const uploadUrl = await uploadInfographic(b64, analyzeData.data.title || 'job');
+                    if (uploadUrl) {
+                        const imgInput = document.getElementById('f-featured_image');
+                        imgInput.value = uploadUrl;
+                        imgInput.dispatchEvent(new Event('change'));
+                        setFetchStatus(document.getElementById('fetch-status').innerHTML + ' <br><span style="color:var(--green)">✓ Infographic generated</span>', 'success');
+                    }
+                }
+            } catch (err) {
+                console.error("Infographic generation failed:", err);
+            }
+        }
+
         goStep(2);
 
       } catch (e) {
@@ -2872,6 +2889,7 @@
     </div>
   </div>
 
+  <?php include 'infographic_gen.php'; ?>
 </body>
 
 </html>

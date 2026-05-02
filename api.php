@@ -1842,16 +1842,8 @@ switch ($action) {
         $content .= "\n"; 
         $parsed['content'] = $content;
 
-        // ── AI Image Generation — fires when no image was scraped from the page ──
+        // ── Featured Image from Scraper ──
         $featuredImageUrl = trim($input['featured_image'] ?? '');
-        if (empty($featuredImageUrl)) {
-            $featuredImageUrl = generate_featured_image(
-                $parsed['title']        ?? '',
-                $parsed['organization'] ?? '',
-                $parsed['type']         ?? 'job',
-                $parsed['state_name']   ?? ''
-            );
-        }
         if (!empty($featuredImageUrl)) {
             $parsed['featured_image'] = $featuredImageUrl;
         }
@@ -2188,6 +2180,31 @@ switch ($action) {
         header('X-Frame-Options: SAMEORIGIN');
         readfile($filePathServe);
         exit;
+    // ── upload_base64_image ──────────────────────────────────────────────────────────
+    case 'upload_base64_image':
+        $req = json_decode(file_get_contents('php://input'), true);
+        $base64 = $req['image'] ?? '';
+        $title = $req['title'] ?? 'job';
+        if (!$base64 || !preg_match('/^data:image\/(\w+);base64,/', $base64, $type)) {
+            send_json(['success' => false, 'message' => 'Invalid image data']);
+        }
+        $data = substr($base64, strpos($base64, ',') + 1);
+        $data = base64_decode($data);
+        if ($data === false) {
+            send_json(['success' => false, 'message' => 'Failed to decode base64']);
+        }
+        $pdfDir = PDF_STORAGE_DIR;
+        $imgDir = dirname($pdfDir) . '/job-images/';
+        if (!is_dir($imgDir)) @mkdir($imgDir, 0755, true);
+        
+        $filename = 'infographic-' . time() . '-' . substr(md5($title), 0, 8) . '.png';
+        $filepath = $imgDir . $filename;
+        if (file_put_contents($filepath, $data) !== false) {
+            $baseUrl = rtrim(JOBONE_SITE_URL, '/');
+            send_json(['success' => true, 'url' => $baseUrl . '/job-images/' . $filename]);
+        }
+        send_json(['success' => false, 'message' => 'Failed to save image']);
+
     default:
         http_response_code(404);
         send_json(['success' => false, 'message' => 'Unknown action: ' . htmlspecialchars($action)]);
