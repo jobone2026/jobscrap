@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // â”€â”€ JobOne Publisher — PHP API Proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1533,7 +1533,47 @@ switch ($action) {
         if (strlen($text) < 100)
             send_json(['success' => false, 'message' => 'Page content too short or blocked. Try pasting the text manually.']);
 
-        send_json(['success' => true, 'text' => $text, 'chars' => strlen($text), 'official_links' => $officialLinks, 'skipped_count' => $skippedCount]);
+        // ── Extract featured image (og:image or first meaningful img) ─────────
+        $featuredImage = '';
+        // Try og:image first
+        if (preg_match('/<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\'][^>]*>/i', $raw['content'], $imgM)) {
+            $featuredImage = trim($imgM[1]);
+        } elseif (preg_match('/<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\'][^>]*>/i', $raw['content'], $imgM)) {
+            $featuredImage = trim($imgM[1]);
+        }
+        // Try twitter:image as fallback
+        if (empty($featuredImage) && preg_match('/<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\'][^>]*>/i', $raw['content'], $imgM)) {
+            $featuredImage = trim($imgM[1]);
+        }
+        // Try first large img tag as last resort
+        if (empty($featuredImage)) {
+            preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $raw['content'], $imgMatches);
+            foreach ($imgMatches[1] ?? [] as $imgSrc) {
+                $imgSrc = trim($imgSrc);
+                if (!$imgSrc || str_contains($imgSrc, 'data:') || str_contains($imgSrc, 'logo') || str_contains($imgSrc, 'icon') || str_contains($imgSrc, 'banner'))
+                    continue;
+                // Must be a proper URL
+                if (!preg_match('/^https?:\/\//i', $imgSrc)) {
+                    $parsedBase = parse_url($url);
+                    if (str_starts_with($imgSrc, '//'))
+                        $imgSrc = ($parsedBase['scheme'] ?? 'https') . ':' . $imgSrc;
+                    elseif (str_starts_with($imgSrc, '/'))
+                        $imgSrc = ($parsedBase['scheme'] ?? 'https') . '://' . ($parsedBase['host'] ?? '') . $imgSrc;
+                    else
+                        continue;
+                }
+                // Filter out tiny tracking pixels
+                if (preg_match('/\.(gif|svg)(\?|$)/i', $imgSrc))
+                    continue;
+                $featuredImage = $imgSrc;
+                break;
+            }
+        }
+        // Validate it's a real image URL
+        if ($featuredImage && !filter_var($featuredImage, FILTER_VALIDATE_URL))
+            $featuredImage = '';
+
+        send_json(['success' => true, 'text' => $text, 'chars' => strlen($text), 'official_links' => $officialLinks, 'skipped_count' => $skippedCount, 'featured_image' => $featuredImage]);
 
     // â”€â”€ analyze â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     case 'analyze':

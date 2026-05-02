@@ -2248,6 +2248,7 @@
           if (!scrapeData.success) throw new Error(scrapeData.message || 'Failed to fetch URL. Try pasting raw text instead.');
 
           officialLinks = scrapeData.official_links || [];
+          window._featuredImage = scrapeData.featured_image || '';
           const skipped = scrapeData.skipped_count  || 0;
           const found   = officialLinks.length;
 
@@ -2255,7 +2256,8 @@
           setFetchStatus(
             `✓ Fetched ${(scrapeData.chars || 0).toLocaleString()} chars — ` +
             `<strong>${found} official link${found !== 1 ? 's' : ''}</strong> kept, ` +
-            `<span style="color:var(--text-muted)">${skipped} aggregator link${skipped !== 1 ? 's' : ''} discarded</span>`,
+            `<span style="color:var(--text-muted)">${skipped} aggregator link${skipped !== 1 ? 's' : ''} discarded</span>` +
+            (window._featuredImage ? ` · <span style="color:var(--green)">✓ Featured image found</span>` : ''),
             'success'
           );
           rawText = scrapeData.text;
@@ -2453,6 +2455,7 @@
         skills:            pd.skills || '',
         responsibilities:  pd.responsibilities || '',
         faq:               pd.faq || null,
+        featured_image:    window._featuredImage || pd.featured_image || '',
       };
     }
 
@@ -2546,8 +2549,20 @@
       if (d.slug || data.job_url) { urlEl.href = lastPostedUrl; urlWrap.style.display = ''; }
       else urlWrap.style.display = 'none';
 
-      // Share links
-      const shareText = encodeURIComponent(`🔔 ${d.title || form.title || 'New Govt Job'}\n${form.short_description || ''}\n\n🔗 ${lastPostedUrl}`);
+      // Share links — rich message with job data
+      const shareLines = [
+        `🔔 *${d.title || form.title || 'New Govt Job'}*`,
+        form.organization ? `🏛️ ${form.organization}` : '',
+        form.total_posts  ? `📋 Vacancies: ${Number(form.total_posts).toLocaleString('en-IN')}` : '',
+        form.salary       ? `💰 Salary: ${form.salary}` : '',
+        form.last_date    ? `⏰ Last Date: ${form.last_date}` : '',
+        '',
+        `✅ Apply Now:`,
+        lastPostedUrl,
+        '',
+        `📲 More Govt Jobs: https://jobone.in`,
+      ].filter(l => l !== null);
+      const shareText = encodeURIComponent(shareLines.join('\n'));
       document.getElementById('share-tg').href = `https://t.me/share/url?url=${encodeURIComponent(lastPostedUrl)}&text=${shareText}`;
       document.getElementById('share-wa').href = `https://wa.me/?text=${shareText}`;
 
@@ -2558,12 +2573,14 @@
         { k: 'Type',      v: d.type || form.type || '—' },
         { k: 'Featured',  v: form.is_featured ? '✓ Yes' : 'No' },
         { k: 'Upcoming',  v: form.is_upcoming ? '✓ Yes' : 'No' },
+        { k: 'Image',     v: form.featured_image ? '✓ Scraped' : 'None' },
       ];
       document.getElementById('gj-sys-info').innerHTML = sysRows.map(r => `
         <div class="sys-row">
           <span class="sys-key">${escHtml(r.k)}</span>
           <span class="sys-val">${escHtml(String(r.v))}</span>
-        </div>`).join('');
+        </div>`).join('') +
+        (form.featured_image ? `<div style="margin-top:10px;border-radius:8px;overflow:hidden"><img src="${escHtml(form.featured_image)}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:0.5px solid #e5e7eb" alt="Featured Image" onerror="this.parentElement.style.display='none'"></div>` : '');
 
       // ── IndexNow result panel (inject after sys-card) ─────────────────────────
       const ping = data.indexnow || {};
