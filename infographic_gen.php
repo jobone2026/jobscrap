@@ -43,8 +43,8 @@
     </div>
   </div>
   
-  <div style="background: white; margin: 0 15px 15px 15px; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); text-align: center; font-size: 16px; color: #555;">
-    For complete details & application visit: <strong style="color: #0d233a; font-size: 18px;">JobOne.in</strong>
+  <div style="background: #ff9900; color: #0d233a; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+    Official Updates & Application Link at: <span style="background: #0d233a; color: white; padding: 4px 10px; border-radius: 4px; margin-left: 8px;">JobOne.in</span>
   </div>
 </div>
 
