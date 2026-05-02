@@ -1765,9 +1765,9 @@
           <div class="row-1" style="margin-top:8px;">
             <div class="field">
               <label class="field-label">Featured Image URL <span style="font-size:10px;color:var(--text-muted);">(Auto-generated or Scraped)</span></label>
-              <div style="display:flex;gap:12px;align-items:flex-start;">
-                <input type="url" id="f-featured_image" placeholder="https://..." style="flex:1" onchange="document.getElementById('f-img-preview').src = this.value; document.getElementById('f-img-preview').style.display = this.value ? 'block' : 'none';">
-                <img id="f-img-preview" src="" style="display:none;width:120px;height:70px;object-fit:cover;border-radius:4px;border:1px solid var(--border);" onerror="this.style.display='none'">
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <input type="url" id="f-featured_image" placeholder="https://..." style="width:100%" onchange="document.getElementById('f-img-preview').src = this.value; document.getElementById('f-img-preview').style.display = this.value ? 'block' : 'none';">
+                <img id="f-img-preview" src="" style="display:none;width:100%;max-width:600px;height:auto;max-height:350px;object-fit:contain;border-radius:4px;border:1px solid var(--border);" onerror="this.style.display='none'">
               </div>
             </div>
           </div>
