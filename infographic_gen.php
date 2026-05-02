@@ -1,89 +1,154 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<div id="ig-container" style="position: absolute; top: -9999px; left: -9999px; width: 800px; background: #f0f2f5; font-family: 'Inter', sans-serif; box-sizing: border-box;">
-  <div style="background: #0d233a; color: white; padding: 25px; text-align: center; border-bottom: 5px solid #ff9900;">
-    <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px;" id="ig-org">Organization Name</h2>
-    <h1 style="margin: 15px 0 0 0; font-size: 36px; color: #ffeb3b; text-transform: uppercase;" id="ig-title">JOB TITLE RECRUITMENT 2026</h1>
-    <div style="margin-top: 15px; font-size: 20px; font-weight: bold;">
-      APPLY FOR <span style="color: #ff5722; background: white; padding: 4px 12px; border-radius: 4px; display: inline-block;" id="ig-vacancies">100</span> POSTS
-    </div>
-  </div>
-  
-  <div style="display: flex; justify-content: space-between; padding: 20px; background: white; margin: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08);">
-    <div style="text-align: center; flex: 1; border-right: 1px solid #eee;">
-      <div style="font-size: 14px; color: #666; font-weight: bold; text-transform: uppercase;">Apply By</div>
-      <div style="font-size: 20px; font-weight: bold; color: #d32f2f; margin-top: 5px;" id="ig-last-date">14 MAY 2026</div>
-    </div>
-    <div style="text-align: center; flex: 1; border-right: 1px solid #eee;">
-      <div style="font-size: 14px; color: #666; font-weight: bold; text-transform: uppercase;">Category</div>
-      <div style="font-size: 20px; font-weight: bold; margin-top: 5px;" id="ig-category">Govt Job</div>
-    </div>
-    <div style="text-align: center; flex: 1;">
-      <div style="font-size: 14px; color: #666; font-weight: bold; text-transform: uppercase;">Salary / Pay</div>
-      <div style="font-size: 20px; font-weight: bold; color: #388e3c; margin-top: 5px;" id="ig-salary">₹26,000 / month</div>
-    </div>
-  </div>
-
-  <div style="display: flex; gap: 15px; padding: 0 15px 15px 15px;">
-    <div style="flex: 1; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.08);">
-      <h3 style="margin: 0 0 15px 0; border-bottom: 2px solid #0d233a; padding-bottom: 8px; color: #0d233a; font-size: 18px; text-transform: uppercase;">Important Dates</h3>
-      <table style="width: 100%; font-size: 16px; line-height: 2.2;">
-        <tr><td style="color: #555;">Notification</td><td style="text-align: right; font-weight: bold;" id="ig-notif-date">-</td></tr>
-        <tr><td style="color: #555;">Apply Start</td><td style="text-align: right; font-weight: bold;" id="ig-start-date">-</td></tr>
-        <tr><td style="color: #555;">Apply Last Date</td><td style="text-align: right; font-weight: bold; color: #d32f2f;" id="ig-end-date">-</td></tr>
-      </table>
-    </div>
-    <div style="flex: 1; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.08);">
-      <h3 style="margin: 0 0 15px 0; border-bottom: 2px solid #0d233a; padding-bottom: 8px; color: #0d233a; font-size: 18px; text-transform: uppercase;">Job Details</h3>
-      <table style="width: 100%; font-size: 16px; line-height: 2.2;">
-        <tr><td style="color: #555;">Age Limit</td><td style="text-align: right; font-weight: bold;" id="ig-age">-</td></tr>
-        <tr><td style="color: #555;">Location</td><td style="text-align: right; font-weight: bold;" id="ig-location">All India</td></tr>
-        <tr><td style="color: #555;">Education</td><td style="text-align: right; font-weight: bold;" id="ig-education">10th Pass</td></tr>
-      </table>
-    </div>
-  </div>
-  
-  <div style="background: #ff9900; color: #0d233a; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
-    Official Updates & Application Link at: <span style="background: #0d233a; color: white; padding: 4px 10px; border-radius: 4px; margin-left: 8px;">JobOne.in</span>
-  </div>
-</div>
+<!-- Hidden infographic container rendered by html2canvas -->
+<div id="ig-container" style="position:absolute;top:-9999px;left:-9999px;width:800px;font-family:'Segoe UI',Arial,sans-serif;box-sizing:border-box;"></div>
 
 <script>
-async function generateInfographicImage(data) {
-    if (!html2canvas) return null;
-    
-    // Populate data
-    document.getElementById('ig-org').innerText = data.organization || 'Government Job';
-    document.getElementById('ig-title').innerText = data.title || 'Recruitment 2026';
-    document.getElementById('ig-vacancies').innerText = data.total_posts || 'Various';
-    document.getElementById('ig-last-date').innerText = data.last_date || 'Soon';
-    
-    document.getElementById('ig-category').innerText = data.category_name || 'Govt Job';
-    document.getElementById('ig-salary').innerText = data.salary || 'As per rules';
-    
-    document.getElementById('ig-notif-date').innerText = data.notification_date || '-';
-    document.getElementById('ig-start-date').innerText = data.start_date || '-';
-    document.getElementById('ig-end-date').innerText = data.last_date || '-';
-    
-    document.getElementById('ig-age').innerText = data.age_min ? (data.age_min + ' - ' + (data.age_max_gen || '')) : '-';
-    document.getElementById('ig-location').innerText = data.state_name || 'All India';
-    
-    let edu = 'Various';
-    if (data.education && data.education.length > 0) {
-        edu = data.education.join(', ');
-    }
-    document.getElementById('ig-education').innerText = edu;
+/* ── Type config ─────────────────────────────────────────────────── */
+const TYPE_CONFIG = {
+    job: {
+        headerBg: '#0d233a', accentColor: '#ff9900', labelColor: '#ffeb3b',
+        icon: '💼', badge: 'RECRUITMENT', actionLabel: 'APPLY NOW',
+        subLabel: 'VACANCIES', subField: d => d.total_posts || 'Various Posts',
+        fields: d => [
+            ['📅 Notification', d.notification_date || '-'],
+            ['🟢 Apply Start',  d.start_date || '-'],
+            ['🔴 Last Date',    d.last_date || '-'],
+            ['💰 Salary',       d.salary || 'As per rules'],
+            ['🎓 Education',    eduLabel(d)],
+            ['📍 Location',     d.state_name || 'All India'],
+            ['👥 Age Limit',    ageLabel(d)],
+        ],
+    },
+    admit_card: {
+        headerBg: '#1a237e', accentColor: '#3f51b5', labelColor: '#bbdefb',
+        icon: '🎫', badge: 'ADMIT CARD', actionLabel: 'DOWNLOAD NOW',
+        subLabel: 'STATUS', subField: d => 'Released',
+        fields: d => [
+            ['📅 Released Date', d.notification_date || '-'],
+            ['⏰ Available Till', d.last_date || 'Till Exam'],
+            ['📍 Location',      d.state_name || 'All India'],
+            ['🎓 Qualification', eduLabel(d)],
+        ],
+    },
+    result: {
+        headerBg: '#1b5e20', accentColor: '#43a047', labelColor: '#c8e6c9',
+        icon: '🏆', badge: 'RESULT DECLARED', actionLabel: 'CHECK RESULT',
+        subLabel: 'STATUS', subField: d => 'Declared',
+        fields: d => [
+            ['📅 Result Date',  d.notification_date || '-'],
+            ['📍 Location',     d.state_name || 'All India'],
+            ['🎓 Qualification', eduLabel(d)],
+        ],
+    },
+    answer_key: {
+        headerBg: '#4a148c', accentColor: '#ab47bc', labelColor: '#e1bee7',
+        icon: '🔑', badge: 'ANSWER KEY', actionLabel: 'DOWNLOAD KEY',
+        subLabel: 'STATUS', subField: d => 'Available',
+        fields: d => [
+            ['📅 Released',            d.notification_date || '-'],
+            ['⏰ Objection Last Date', d.last_date || '-'],
+            ['📍 Location',            d.state_name || 'All India'],
+        ],
+    },
+    syllabus: {
+        headerBg: '#e65100', accentColor: '#ff7043', labelColor: '#ffe0b2',
+        icon: '📚', badge: 'SYLLABUS', actionLabel: 'DOWNLOAD PDF',
+        subLabel: 'EXAM TYPE', subField: d => d.category_name || 'Written Exam',
+        fields: d => [
+            ['📍 Location',     d.state_name || 'All India'],
+            ['🎓 Qualification', eduLabel(d)],
+        ],
+    },
+    scholarship: {
+        headerBg: '#006064', accentColor: '#00acc1', labelColor: '#b2ebf2',
+        icon: '🎓', badge: 'SCHOLARSHIP', actionLabel: 'APPLY NOW',
+        subLabel: 'AMOUNT', subField: d => d.salary || 'Check Notification',
+        fields: d => [
+            ['📅 Notification',  d.notification_date || '-'],
+            ['🔴 Last Date',     d.last_date || '-'],
+            ['📍 Location',      d.state_name || 'All India'],
+            ['🎓 Qualification', eduLabel(d)],
+        ],
+    },
+    blog: {
+        headerBg: '#37474f', accentColor: '#78909c', labelColor: '#eceff1',
+        icon: '📝', badge: 'NEWS & UPDATES', actionLabel: 'READ MORE',
+        subLabel: 'CATEGORY', subField: d => d.category_name || 'General',
+        fields: d => [
+            ['📅 Published', d.notification_date || new Date().toLocaleDateString('en-IN')],
+            ['📍 Relevant',  d.state_name || 'All India'],
+        ],
+    },
+};
 
-    // Render to canvas
+function eduLabel(d) {
+    if (!d.education || !d.education.length) return 'Various';
+    const map = {'10th_pass':'10th','12th_pass':'12th','graduate':'Graduate','post_graduate':'PG','diploma':'Diploma','iti':'ITI','btech':'B.Tech','mtech':'M.Tech','mbbs':'MBBS','any_qualification':'Any'};
+    return d.education.slice(0,3).map(e => map[e] || e).join(', ');
+}
+
+function ageLabel(d) {
+    if (!d.age_min) return '-';
+    return d.age_min + ' – ' + (d.age_max_gen || '?') + ' Years';
+}
+
+/* ── Build the HTML for the container ───────────────────────────── */
+function buildInfographic(data) {
+    const postType = (data.type || 'job').toLowerCase().replace(' ','_');
+    const cfg = TYPE_CONFIG[postType] || TYPE_CONFIG['job'];
+    const fields = cfg.fields(data);
+
+    const fieldsHtml = fields.map(([label, val]) => `
+        <tr>
+            <td style="padding:7px 0;color:#555;font-size:15px;">${label}</td>
+            <td style="padding:7px 0;text-align:right;font-weight:700;font-size:15px;color:#222;">${val}</td>
+        </tr>`).join('');
+
+    return `
+    <div style="background:${cfg.headerBg};color:white;padding:28px 30px 22px;text-align:center;border-bottom:6px solid ${cfg.accentColor};">
+        <div style="font-size:42px;margin-bottom:8px;">${cfg.icon}</div>
+        <div style="font-size:13px;letter-spacing:3px;color:${cfg.labelColor};font-weight:600;text-transform:uppercase;margin-bottom:6px;">${cfg.badge}</div>
+        <div id="ig-title" style="font-size:26px;font-weight:800;color:white;line-height:1.3;text-transform:uppercase;">${data.title || 'Update 2026'}</div>
+        <div style="margin-top:10px;font-size:15px;color:${cfg.labelColor};opacity:0.85;">
+            ${data.organization || 'Government of India'}
+        </div>
+        <div style="margin-top:14px;display:inline-block;background:${cfg.accentColor};color:#000;font-size:18px;font-weight:800;padding:8px 24px;border-radius:6px;text-transform:uppercase;letter-spacing:1px;">
+            ${cfg.subLabel}: &nbsp;${cfg.subField(data)}
+        </div>
+    </div>
+
+    <div style="background:#f7f8fa;padding:20px 25px;">
+        <table style="width:100%;border-collapse:collapse;">
+            ${fieldsHtml}
+        </table>
+    </div>
+
+    <div style="background:${cfg.accentColor};color:#000;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+            ${cfg.actionLabel} → <strong>JobOne.in</strong>
+        </div>
+        <div style="background:#0d233a;color:white;font-size:14px;font-weight:800;padding:6px 16px;border-radius:4px;letter-spacing:1px;">
+            JOBONE.IN
+        </div>
+    </div>`;
+}
+
+/* ── Main generate function ─────────────────────────────────────── */
+async function generateInfographicImage(data) {
     const container = document.getElementById('ig-container');
+    if (!container || typeof html2canvas === 'undefined') return null;
+
+    container.innerHTML = buildInfographic(data);
+
     const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#f0f2f5'
+        backgroundColor: '#f0f2f5',
+        logging: false,
     });
-    
-    const base64Image = canvas.toDataURL('image/png');
-    return base64Image;
+
+    return canvas.toDataURL('image/png');
 }
 
 async function uploadInfographic(base64Image, title) {
