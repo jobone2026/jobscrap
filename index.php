@@ -1600,7 +1600,7 @@
         </svg>
         <span>Telegram</span>
       </a>
-      <a href="https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22" target="_blank" rel="noreferrer"
+      <a href="https://whatsapp.com/channel/0029VbBXKhkCsU9UG2tVla0X" target="_blank" rel="noreferrer"
         class="social-btn social-btn-wa">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path
@@ -1762,7 +1762,16 @@
               <input type="number" id="f-total_posts" placeholder="e.g. 1000">
             </div>
           </div>
-          <div style="margin-top:8px;">
+          <div class="row-1" style="margin-top:8px;">
+            <div class="field">
+              <label class="field-label">Featured Image URL <span style="font-size:10px;color:var(--text-muted);">(Auto-generated or Scraped)</span></label>
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <input type="url" id="f-featured_image" placeholder="https://..." style="flex:1" onchange="document.getElementById('f-img-preview').src = this.value; document.getElementById('f-img-preview').style.display = this.value ? 'block' : 'none';">
+                <img id="f-img-preview" src="" style="display:none;width:120px;height:70px;object-fit:cover;border-radius:4px;border:1px solid var(--border);" onerror="this.style.display='none'">
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
             <label class="field-label">Visibility Settings</label>
             <div class="toggle-row">
               <div class="toggle-wrap" onclick="toggleSwitch('is_published')">
@@ -2272,7 +2281,12 @@
 
         const analyzeRes  = await fetch('api.php?action=analyze', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ raw_text: rawText, official_links: officialLinks, source_url: sourceUrl }),
+          body: JSON.stringify({ 
+            raw_text: rawText, 
+            official_links: officialLinks, 
+            source_url: sourceUrl,
+            featured_image: window._featuredImage || ''
+          }),
         });
         const analyzeData = await analyzeRes.json();
         if (!analyzeData.success) throw new Error(analyzeData.message || 'AI analysis failed');
@@ -2281,11 +2295,12 @@
         if (inputMode === 'url') {
           const kwCount  = analyzeData.kw_count  || 0;
           const faqCount = analyzeData.faq_count || 0;
-          setFetchStatus(
-            `✓ Analysis complete — ${kwCount} SEO keywords · ${faqCount} FAQ pairs · ` +
-            `${officialLinks.length} official links embedded`,
-            'success'
-          );
+          
+          let successMsg = `✓ Analysis complete — ${kwCount} SEO keywords · ${faqCount} FAQ pairs · ${officialLinks.length} official links embedded`;
+          if (analyzeData.image_generated) {
+             successMsg += ` · <span style="color:var(--green)">✓ AI image generated</span>`;
+          }
+          setFetchStatus(successMsg, 'success');
         }
 
         // Store OG tags for display in step 3
@@ -2316,8 +2331,14 @@
         'age_min', 'age_max_gen', 'age_max_obc', 'age_max_sc', 'age_max_ph', 'age_max_ex_serviceman',
         'age_as_on_date', 'age_relaxation_note',
         'notification_pdf', 'gate_note',
-        'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords'];
+        'online_form', 'final_result', 'short_description', 'content', 'meta_title', 'meta_description', 'meta_keywords', 'featured_image'];
       fields.forEach(f => { const el = document.getElementById('f-' + f); if (el && p[f] !== undefined && p[f] !== null) el.value = p[f]; });
+      
+      // Update image preview if featured_image is populated
+      if (document.getElementById('f-featured_image')) {
+          document.getElementById('f-featured_image').dispatchEvent(new Event('change'));
+      }
+      
       let catMatched = false;
       if (p.category_id) { const sel = document.getElementById('f-category_id'); if ([...sel.options].some(o => o.value == p.category_id)) { sel.value = p.category_id; catMatched = true; document.getElementById('cat-match-tag').style.display = ''; } }
       if (!catMatched && p.category_name) catMatched = matchSelectByName('f-category_id', p.category_name, 'cat-match-tag');
@@ -2455,7 +2476,7 @@
         skills:            pd.skills || '',
         responsibilities:  pd.responsibilities || '',
         faq:               pd.faq || null,
-        featured_image:    window._featuredImage || pd.featured_image || '',
+        featured_image:    g('featured_image') || window._featuredImage || pd.featured_image || '',
       };
     }
 
