@@ -80,8 +80,14 @@ define('AI_MODEL', 'gpt-4.1-mini');
 define('AI_API_URL', 'https://api.openai.com/v1/chat/completions');
 define('AI_API_KEY', $env['OPENAI_API_KEY'] ?? 'your_openai_key_here');
 
+// ── Image Generation ──────────────────────────────────────────────────────────
+// gpt-image-1 = latest OpenAI image model (higher quality, native text)
+// dall-e-3    = reliable alt with vivid style
+define('IMAGE_MODEL', 'gpt-image-1');   // Change to 'dall-e-3' if needed
+define('IMAGE_API_URL', 'https://api.openai.com/v1/images/generations');
+
 define('TG_CHANNEL', 'https://t.me/jobone2026');
-define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22');
+define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbBXKhkCsU9UG2tVla0X');
 
 define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE');
 define('INDEXNOW_HOST', 'jobone.in');
@@ -327,6 +333,187 @@ function infer_link_title(string $rawTitle, string $url, int $idx): string
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€ CURL HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+/**
+ * Generate a featured image for a job post using OpenAI image API.
+ * Returns a publicly accessible image URL (b64_json saved to disk, or url).
+ * On failure returns empty string (silent — don't break the publish flow).
+ */
+function generate_featured_image(string $title, string $organization, string $type, string $state = ''): string
+{
+    if (empty(AI_API_KEY) || AI_API_KEY === 'your_openai_key_here')
+        return '';
+
+    $typeLabel = match($type) {
+        'admit_card'  => 'Admit Card',
+        'result'      => 'Exam Result',
+        'answer_key'  => 'Answer Key',
+        'syllabus'    => 'Syllabus',
+        'scholarship' => 'Scholarship',
+        default       => 'Government Job Recruitment',
+    };
+    $locationHint = $state && $state !== 'All India' ? " in {$state}" : ' in India';
+    $orgShort = mb_strimwidth($organization ?: 'Government of India', 0, 60, '...');
+    $titleShort = mb_strimwidth($title ?: 'Govt Job 2026', 0, 80, '...');
+
+    $prompt = "Create a professional, modern government job recruitment announcement banner for Indian govt jobs website JobOne.in. "
+        . "The banner should feature: Organization name '{$orgShort}', "
+        . "Post title '{$titleShort}', type: {$typeLabel}{$locationHint}. "
+        . "Design style: official Indian government recruitment poster — dark navy blue and saffron/orange color scheme, "
+        . "Ashoka Chakra or national emblem motif subtly in background, bold white Hindi/English text, "
+        . "clean modern layout, 'Apply Now' call-to-action, flags/seal elements. "
+        . "No real logos. Photorealistic poster quality. 16:9 landscape orientation.";
+
+    // Determine model-specific payload
+    $isGptImage = str_starts_with(IMAGE_MODEL, 'gpt-image');
+    $payload = [
+        'model'  => IMAGE_MODEL,
+        'prompt' => $prompt,
+        'n'      => 1,
+        'size'   => $isGptImage ? '1536x1024' : '1792x1024',  // gpt-image-1 vs dall-e-3 landscape
+    ];
+    if (!$isGptImage) {
+        $payload['quality'] = 'standard';
+        $payload['response_format'] = 'url'; // dall-e-3 supports url directly
+    } else {
+        $payload['output_format'] = 'png';
+        $payload['response_format'] = 'b64_json'; // gpt-image-1 returns base64
+    }
+
+    $ch = curl_init(IMAGE_API_URL);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_TIMEOUT        => 90,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . AI_API_KEY,
+            'Content-Type: application/json',
+        ],
+    ]);
+    $raw = curl_exec($ch);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($err || !$raw)
+        return '';
+
+    $resp = json_decode($raw, true);
+    $item = $resp['data'][0] ?? null;
+    if (!$item)
+        return '';
+
+    // If URL response (dall-e-3)
+    if (!empty($item['url']))
+        return $item['url'];
+
+    // If b64_json (gpt-image-1) — save to disk and return public URL
+    if (!empty($item['b64_json'])) {
+        $pdfDir = PDF_STORAGE_DIR;  // reuse same /pdfs/ storage
+        $imgDir = dirname($pdfDir) . '/job-images/';
+        if (!is_dir($imgDir)) {
+            @mkdir($imgDir, 0755, true);
+        }
+        $filename = 'job-' . time() . '-' . substr(md5($title), 0, 8) . '.png';
+        $filepath = $imgDir . $filename;
+        if (file_put_contents($filepath, base64_decode($item['b64_json'])) !== false) {
+            // Return public URL
+            $baseUrl = rtrim(JOBONE_SITE_URL, '/');
+            return $baseUrl . '/job-images/' . $filename;
+        }
+    }
+
+    return '';
+}
+
+function generate_featured_image(string $title, string $organization, string $type, string $state = ''): string
+{
+    if (empty(AI_API_KEY) || AI_API_KEY === 'your_openai_key_here')
+        return '';
+
+    $typeLabel = match($type) {
+        'admit_card'  => 'Admit Card',
+        'result'      => 'Exam Result',
+        'answer_key'  => 'Answer Key',
+        'syllabus'    => 'Syllabus',
+        'scholarship' => 'Scholarship',
+        default       => 'Government Job Recruitment',
+    };
+    $locationHint = $state && $state !== 'All India' ? " in {$state}" : ' in India';
+    $orgShort = mb_strimwidth($organization ?: 'Government of India', 0, 60, '...');
+    $titleShort = mb_strimwidth($title ?: 'Govt Job 2026', 0, 80, '...');
+
+    $prompt = "Create a professional, modern government job recruitment announcement banner for Indian govt jobs website JobOne.in. "
+        . "The banner should feature: Organization name '{$orgShort}', "
+        . "Post title '{$titleShort}', type: {$typeLabel}{$locationHint}. "
+        . "Design style: official Indian government recruitment poster — dark navy blue and saffron/orange color scheme, "
+        . "Ashoka Chakra or national emblem motif subtly in background, bold white Hindi/English text, "
+        . "clean modern layout, 'Apply Now' call-to-action, flags/seal elements. "
+        . "No real logos. Photorealistic poster quality. 16:9 landscape orientation.";
+
+    // Determine model-specific payload
+    $isGptImage = str_starts_with(IMAGE_MODEL, 'gpt-image');
+    $payload = [
+        'model'  => IMAGE_MODEL,
+        'prompt' => $prompt,
+        'n'      => 1,
+        'size'   => $isGptImage ? '1536x1024' : '1792x1024',  // gpt-image-1 vs dall-e-3 landscape
+    ];
+    if (!$isGptImage) {
+        $payload['quality'] = 'standard';
+        $payload['response_format'] = 'url'; // dall-e-3 supports url directly
+    } else {
+        $payload['output_format'] = 'png';
+        $payload['response_format'] = 'b64_json'; // gpt-image-1 returns base64
+    }
+
+    $ch = curl_init(IMAGE_API_URL);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_TIMEOUT        => 90,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . AI_API_KEY,
+            'Content-Type: application/json',
+        ],
+    ]);
+    $raw = curl_exec($ch);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($err || !$raw)
+        return '';
+
+    $resp = json_decode($raw, true);
+    $item = $resp['data'][0] ?? null;
+    if (!$item)
+        return '';
+
+    // If URL response (dall-e-3)
+    if (!empty($item['url']))
+        return $item['url'];
+
+    // If b64_json (gpt-image-1) — save to disk and return public URL
+    if (!empty($item['b64_json'])) {
+        $pdfDir = PDF_STORAGE_DIR;  // reuse same /pdfs/ storage
+        $imgDir = dirname($pdfDir) . '/job-images/';
+        if (!is_dir($imgDir)) {
+            @mkdir($imgDir, 0755, true);
+        }
+        $filename = 'job-' . time() . '-' . substr(md5($title), 0, 8) . '.png';
+        $filepath = $imgDir . $filename;
+        if (file_put_contents($filepath, base64_decode($item['b64_json'])) !== false) {
+            // Return public URL
+            $baseUrl = rtrim(JOBONE_SITE_URL, '/');
+            return $baseUrl . '/job-images/' . $filename;
+        }
+    }
+
+    return '';
+}
 
 function curl_request(string $url, string $method = 'GET', array $headers = [], ?string $body = null): array
 {
@@ -1742,16 +1929,31 @@ switch ($action) {
         $content .= "\n"; 
         $parsed['content'] = $content;
 
+        // ── AI Image Generation — fires when no image was scraped from the page ──
+        $featuredImageUrl = trim($input['featured_image'] ?? '');
+        if (empty($featuredImageUrl)) {
+            $featuredImageUrl = generate_featured_image(
+                $parsed['title']        ?? '',
+                $parsed['organization'] ?? '',
+                $parsed['type']         ?? 'job',
+                $parsed['state_name']   ?? ''
+            );
+        }
+        if (!empty($featuredImageUrl)) {
+            $parsed['featured_image'] = $featuredImageUrl;
+        }
+
         $ogTags = generate_og_tags($parsed, JOBONE_SITE_URL . '/preview');
         $kwCount = !empty($parsed['meta_keywords'])
             ? count(array_filter(array_map('trim', explode(',', $parsed['meta_keywords'])))) : 0;
 
         send_json([
-            'success' => true,
-            'data' => $parsed,
-            'kw_count' => $kwCount,
+            'success'   => true,
+            'data'      => $parsed,
+            'kw_count'  => $kwCount,
             'faq_count' => count($faqData),
-            'og_tags' => $ogTags,
+            'og_tags'   => $ogTags,
+            'image_generated' => !empty($featuredImageUrl) && empty(trim($input['featured_image'] ?? '')),
         ]);
 
     // â”€â”€ post_job â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
