@@ -2257,7 +2257,7 @@
           if (!scrapeData.success) throw new Error(scrapeData.message || 'Failed to fetch URL. Try pasting raw text instead.');
 
           officialLinks = scrapeData.official_links || [];
-          window._featuredImage = scrapeData.featured_image || '';
+          window._featuredImage = ''; // Always ignore scraped image, we will generate an infographic
           const skipped = scrapeData.skipped_count  || 0;
           const found   = officialLinks.length;
 
@@ -2265,8 +2265,7 @@
           setFetchStatus(
             `✓ Fetched ${(scrapeData.chars || 0).toLocaleString()} chars — ` +
             `<strong>${found} official link${found !== 1 ? 's' : ''}</strong> kept, ` +
-            `<span style="color:var(--text-muted)">${skipped} aggregator link${skipped !== 1 ? 's' : ''} discarded</span>` +
-            (window._featuredImage ? ` · <span style="color:var(--green)">✓ Featured image found</span>` : ''),
+            `<span style="color:var(--text-muted)">${skipped} aggregator link${skipped !== 1 ? 's' : ''} discarded</span>`,
             'success'
           );
           rawText = scrapeData.text;
@@ -2307,23 +2306,21 @@
 
         populateForm(analyzeData.data, analyzeData.kw_count || 0);
 
-        // Auto-generate infographic if no featured image was scraped
-        if (!document.getElementById('f-featured_image').value) {
-            setFetchStatus('Generating beautiful infographic banner...', 'info');
-            try {
-                const b64 = await generateInfographicImage(analyzeData.data);
-                if (b64) {
-                    const uploadUrl = await uploadInfographic(b64, analyzeData.data.title || 'job');
-                    if (uploadUrl) {
-                        const imgInput = document.getElementById('f-featured_image');
-                        imgInput.value = uploadUrl;
-                        imgInput.dispatchEvent(new Event('change'));
-                        setFetchStatus(document.getElementById('fetch-status').innerHTML + ' <br><span style="color:var(--green)">✓ Infographic generated</span>', 'success');
-                    }
+        // Auto-generate infographic always
+        setFetchStatus('Generating beautiful infographic banner...', 'info');
+        try {
+            const b64 = await generateInfographicImage(analyzeData.data);
+            if (b64) {
+                const uploadUrl = await uploadInfographic(b64, analyzeData.data.title || 'job');
+                if (uploadUrl) {
+                    const imgInput = document.getElementById('f-featured_image');
+                    imgInput.value = uploadUrl;
+                    imgInput.dispatchEvent(new Event('change'));
+                    setFetchStatus(document.getElementById('fetch-status').innerHTML + ' <br><span style="color:var(--green)">✓ Infographic generated</span>', 'success');
                 }
-            } catch (err) {
-                console.error("Infographic generation failed:", err);
             }
+        } catch (err) {
+            console.error("Infographic generation failed:", err);
         }
 
         goStep(2);
