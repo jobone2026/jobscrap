@@ -2101,6 +2101,10 @@ switch ($action) {
             $postResult['og_tags'] = $ogTags;
             $postResult['job_schema'] = $finalSchema;
             $postResult['job_url'] = $jobUrl;
+
+            // Auto-post to Telegram if configured
+            $tgResult = send_to_telegram($mergedData, $jobUrl);
+            $postResult['telegram'] = $tgResult ? json_decode($tgResult, true) : null;
         }
 
         send_json($postResult);
@@ -2244,4 +2248,59 @@ function repair_json(string $s): string
     if ($inStr)
         $s .= '"';
     return $s . implode('', array_reverse($stack));
+}
+
+// ── Telegram Auto-Post ──────────────────────────────────────────────────────────
+function send_to_telegram($post, $jobUrl) {
+    $envPath = __DIR__ . '/../../.env';
+    $botToken = '';
+    $chatId = '';
+    if (file_exists($envPath)) {
+        $env = file_get_contents($envPath);
+        if (preg_match('/^TELEGRAM_BOT_TOKEN=(.+)$/m', $env, $m)) $botToken = trim($m[1]);
+        if (preg_match('/^TELEGRAM_CHANNEL_ID=(.+)$/m', $env, $m)) $chatId = trim($m[1]);
+    }
+    
+    if (!$botToken || !$chatId) return false;
+    
+    $title = $post['title'] ?? 'New Job Alert';
+    $org = $post['organization'] ?? 'Govt Job';
+    $vacancies = $post['total_posts'] ?? 'Various';
+    $lastDate = $post['last_date'] ?? 'Check website';
+    $imgUrl = $post['featured_image'] ?? '';
+    
+    $message = "🚨 *New Recruitment 2026* 🚨\n\n"
+             . "🏢 *Org:* {$org}\n"
+             . "📌 *Post:* {$title}\n"
+             . "💼 *Vacancies:* {$vacancies}\n"
+             . "📅 *Last Date:* {$lastDate}\n\n"
+             . "👉 *Details & Apply:* {$jobUrl}";
+             
+    $url = "https://api.telegram.org/bot{$botToken}/";
+    
+    $data = [
+        'chat_id' => $chatId,
+        'caption' => $message,
+        'parse_mode' => 'Markdown',
+    ];
+    
+    if ($imgUrl) {
+        $endpoint = $url . 'sendPhoto';
+        $data['photo'] = $imgUrl;
+    } else {
+        $endpoint = $url . 'sendMessage';
+        $data['text'] = $message;
+        unset($data['caption']);
+    }
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $endpoint);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    
+    return $result;
 }
