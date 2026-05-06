@@ -71,32 +71,32 @@ if (file_exists(__DIR__ . '/config.php')) {
     }
 }
 
-define('JOBONE_API', 'https://jobone.in/api');
-define('JOBONE_TOKEN', $env['JOBONE_TOKEN'] ?? 'your_jobone_token_here');
-define('JOBONE_SITE_URL', 'https://jobone.in');
-define('JOBONE_SITE_NAME', 'JobOne.in');
+defined('JOBONE_API') || define('JOBONE_API', 'https://jobone.in/api');
+defined('JOBONE_TOKEN') || define('JOBONE_TOKEN', $env['JOBONE_TOKEN'] ?? 'your_jobone_token_here');
+defined('JOBONE_SITE_URL') || define('JOBONE_SITE_URL', 'https://jobone.in');
+defined('JOBONE_SITE_NAME') || define('JOBONE_SITE_NAME', 'JobOne.in');
 
-define('AI_MODEL', 'gpt-4.1-mini');
-define('AI_API_URL', 'https://api.openai.com/v1/chat/completions');
-define('AI_API_KEY', $env['OPENAI_API_KEY'] ?? 'your_openai_key_here');
+defined('AI_MODEL') || define('AI_MODEL', $env['AI_MODEL'] ?? 'gpt-4.1-mini');
+defined('AI_API_URL') || define('AI_API_URL', 'https://api.openai.com/v1/chat/completions');
+defined('AI_API_KEY') || define('AI_API_KEY', $env['OPENAI_API_KEY'] ?? 'your_openai_key_here');
 
 // ── Image Generation ──────────────────────────────────────────────────────────
 // gpt-image-1 = latest OpenAI image model (higher quality, native text)
 // dall-e-3    = reliable alt with vivid style
-define('IMAGE_MODEL', 'gpt-image-1');   // Change to 'dall-e-3' if needed
-define('IMAGE_API_URL', 'https://api.openai.com/v1/images/generations');
+defined('IMAGE_MODEL') || define('IMAGE_MODEL', 'gpt-image-1');   // Change to 'dall-e-3' if needed
+defined('IMAGE_API_URL') || define('IMAGE_API_URL', 'https://api.openai.com/v1/images/generations');
 
-define('TG_CHANNEL', 'https://t.me/jobone2026');
-define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbBXKhkCsU9UG2tVla0X');
+defined('TG_CHANNEL') || define('TG_CHANNEL', 'https://t.me/jobone2026');
+defined('WA_CHANNEL') || define('WA_CHANNEL', 'https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22');
 
-define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE');
-define('INDEXNOW_HOST', 'jobone.in');
+defined('INDEXNOW_KEY') || define('INDEXNOW_KEY', 'YOUR_32CHAR_GUID_KEY_HERE');
+defined('INDEXNOW_HOST') || define('INDEXNOW_HOST', 'jobone.in');
 
 // ── PDF Storage ──────────────────────────────────────────────────────────────
 // On live server: /var/www/jobone/public/pdfs/
 // Locally under XAMPP: adjust PDF_STORAGE_DIR if needed
-define('PDF_STORAGE_DIR', dirname(__DIR__) . '/pdfs/');
-define('PDF_STORAGE_URL', JOBONE_SITE_URL . '/pdfs/');
+defined('PDF_STORAGE_DIR') || define('PDF_STORAGE_DIR', dirname(__DIR__) . '/pdfs/');
+defined('PDF_STORAGE_URL') || define('PDF_STORAGE_URL', JOBONE_SITE_URL . '/pdfs/');
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // â”€â”€ DOMAIN CLASSIFIER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -752,7 +752,8 @@ function generate_job_schema(array $p, array $importantLinks = []): string
 {
     $now = date('c');
     $postSlug = $p['slug'] ?? '';
-    $jobUrl = $postSlug ? JOBONE_SITE_URL . '/' . $postSlug : JOBONE_SITE_URL;
+    $postType = $p['type'] ?? 'job';
+    $jobUrl = $postSlug ? JOBONE_SITE_URL . '/' . $postType . '/' . $postSlug : JOBONE_SITE_URL;
 
     // â”€â”€ Hiring organisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     $org = [
@@ -1344,8 +1345,6 @@ function auto_detect_education(string $content, array $current): array
 
 function auto_detect_tags(string $content, array $current): array
 {
-    if (!empty($current))
-        return $current;
     $t = strtolower($content);
     $map = [
         'cutoff' => '/cut.?off|cutoff/',
@@ -1356,13 +1355,71 @@ function auto_detect_tags(string $content, array $current): array
         'revised_result' => '/revised.?result/',
         'scorecard' => '/scorecard|score.?card/',
         'marks' => '/marks.?(released|published|available)/',
+        'admit_card' => '/admit.?card|hall.?ticket|call.?letter/',
+        'exam_date' => '/exam.?date|cbt.?date|test.?date|schedule/',
+        'answer_key' => '/answer.?key|response.?sheet|objection/',
+        'syllabus' => '/syllabus|exam.?pattern|curriculum/',
+        'new_vacancy' => '/recruitment|vacanc(?:y|ies)|notification|advertisement|advt/',
+        'govt_job' => '/government.?job|govt\.?\s?job|sarkari.?naukri|bharti/',
+        'link_working' => '/link.?working|link.?active|download.?link.?active|apply.?link.?active/',
+        'application_start' => '/online.?form.?start|application.?start(?:ed)?|registration.?start(?:ed)?|apply.?online.?start/',
+        'date_extended' => '/date.?extended|last.?date.?extended|extended.?till|deadline.?extended|extension.?notice/',
+        'application_reopen' => '/re.?open|reopen|re.?opened|re.?registration|application.?reopen/',
     ];
-    $out = [];
+    $out = is_array($current) ? array_values(array_filter($current, 'is_string')) : [];
     foreach ($map as $tag => $rx) {
         if (preg_match($rx, $t))
             $out[] = $tag;
     }
-    return $out;
+    return array_values(array_unique($out));
+}
+
+function apply_update_signals(array $p, string $sourceText): array
+{
+    $combined = strtolower(trim(
+        ($p['title'] ?? '') . ' ' .
+        ($p['short_description'] ?? '') . ' ' .
+        ($p['content'] ?? '') . ' ' .
+        $sourceText
+    ));
+
+    $tags = is_array($p['tags'] ?? null) ? $p['tags'] : [];
+    $addTag = function (string $tag) use (&$tags): void {
+        if (!in_array($tag, $tags, true)) {
+            $tags[] = $tag;
+        }
+    };
+
+    if (preg_match('/date.?extended|last.?date.?extended|extended.?till|deadline.?extended|extension.?notice/', $combined)) {
+        $p['is_date_extended'] = true;
+        $addTag('date_extended');
+    }
+    if (preg_match('/re.?open|reopen|re.?opened|re.?registration|application.?reopen/', $combined))
+        $addTag('application_reopen');
+    if (preg_match('/online.?form.?start|application.?start(?:ed)?|registration.?start(?:ed)?|apply.?online.?start/', $combined))
+        $addTag('application_start');
+    if (preg_match('/link.?working|link.?active|download.?link.?active|apply.?link.?active/', $combined))
+        $addTag('link_working');
+    if (preg_match('/exam.?date|cbt.?date|test.?date|exam.?city|city.?intimation/', $combined))
+        $addTag('exam_date');
+
+    if (($p['type'] ?? '') === 'admit_card')
+        $addTag('admit_card');
+    elseif (($p['type'] ?? '') === 'answer_key')
+        $addTag('answer_key');
+    elseif (($p['type'] ?? '') === 'syllabus')
+        $addTag('syllabus');
+    elseif (($p['type'] ?? '') === 'result')
+        $addTag('final_result');
+    elseif (($p['type'] ?? '') === 'job') {
+        $addTag('govt_job');
+        if ((int) ($p['total_posts'] ?? 0) > 0)
+            $addTag('new_vacancy');
+    }
+
+    $p['tags'] = array_values(array_unique($tags));
+    $p['is_date_extended'] = (bool) ($p['is_date_extended'] ?? false);
+    return $p;
 }
 
 function correct_category(array $p): array
@@ -1509,6 +1566,12 @@ LINKSEC;
 You are a {$cfg['role']} for JobOne.in — India's top government job portal.
 Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$postType}** post.
 {$extraNotes}
+HEADLINE SIGNALS:
+- "Link Working" or "Link Active" means the official apply/download link is active. Add tag "link_working" and describe it naturally.
+- "Online Form Start" or "Registration Started" means add tag "application_start" and fill start_date if available.
+- "Date Extended" or "Extended Till" means set is_date_extended=true, add tag "date_extended", and mention the revised deadline.
+- "Reopen" / "Re-Open" / "Re-registration" means add tag "application_reopen" and explain the application window has reopened.
+- Ignore emoji/clickbait like "🔥🔥", "live", "check here", "working" in SEO title formatting. Convert them into clean status wording.
 â”â”â”â” FIELD INSTRUCTIONS â”â”â”â”
 
 â‘  title (max 70 chars): {$cfg['title_fmt']}
@@ -1523,7 +1586,7 @@ Analyze the provided content and return a FULLY SEO-OPTIMIZED JSON for a **{$pos
      Available internal links (pick the most relevant for this {$postType}):
 {$internalLinks}
    — DO NOT add "Important Links" section (auto-generated).
-   — End with: <h3>📢 Stay Updated</h3><ul><li>🔵 <a href="{$tg}">Telegram @jobone2026</a></li><li>🟢 <a href="{$wa}">WhatsApp JobOne.in</a></li></ul>
+   — DO NOT add "Stay Updated" section at the end.
 â‘¤ organization: Full official name
 â‘¥ state_name: Indian state OR "All India"
 â‘¦ category_name: {$cfg['cat']}
@@ -1552,7 +1615,7 @@ gate_note: IMPORTANT — clarify if GATE score is only for shortlisting (not fin
 {$linkInstruction}
    âœ… GOOD: "Download Admit Card" | "Check Result" | "Official Notification PDF" | "Apply Online"
    â Œ BAD: "1" | "Link" | "Click Here"
-â‘² tags: relevant subset of [cutoff,merit_list,final_result,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job]
+â‘² tags: relevant subset of [cutoff,merit_list,selection_list,final_result,provisional_result,revised_result,scorecard,marks,admit_card,exam_date,answer_key,syllabus,new_vacancy,govt_job,link_working,application_start,date_extended,application_reopen]
 â‘³ education: relevant subset of [10th_pass,12th_pass,graduate,post_graduate,diploma,iti,btech,mtech,bsc,msc,bcom,mcom,ba,ma,mba,ca,llb,mbbs,phd,any_qualification] or []
 ã‰‘ meta_title: SEO title with org, type, year and "| JobOne.in"
 ã‰’ meta_description: 120–160 chars relevant to this post type
@@ -1567,7 +1630,7 @@ gate_note: IMPORTANT — clarify if GATE score is only for shortlisting (not fin
    H) QUESTION KEYWORDS: "what is [post] salary", "is [org] [post] online or offline", "[org] [post] kab aayega"
    I) COMPETITOR KEYWORDS: "sarkari result [org]", "rojgar result [org]", "free job alert [post]"
    J) CATEGORY KEYWORDS: "police jobs [year]", "defence jobs", "central govt jobs [year]", "[state] police bharti"
-   YOU MUST generate AT LEAST 200 keywords. If fewer than 200, the output is REJECTED.
+   YOU MUST generate AT LEAST 50-150 high-quality, relevant keywords. Focus on search intent and relevance over quantity.
 ã‰” qualifications, skills, responsibilities: relevant text or ""
 ã‰• faq: EXACTLY 7 objects {"question":"...","answer":"..."} — plain text only. Cover: {$cfg['faq']}
 
@@ -1736,6 +1799,7 @@ switch ($action) {
         $parsed['education'] = auto_detect_education($detectSrc, $parsed['education'] ?? []);
         $parsed['tags'] = auto_detect_tags($detectSrc, $parsed['tags'] ?? []);
         $parsed = correct_employment_type($parsed);
+        $parsed = apply_update_signals($parsed, $detectSrc);
 
         // Merge + sanitize links
         $sourceDomain = $sourceUrl ? get_registrable_domain($sourceUrl) : '';
@@ -2041,6 +2105,35 @@ switch ($action) {
             $input['category_id'] = $categoryNameMap[$corrected['category_name']];
         }
 
+        // ── CATEGORY OVERRIDE FOR NON-JOB POST TYPES ─────────────────────────────
+        // Admit cards, results, answer keys, syllabus should have their own categories
+        // regardless of organization (SSC Admit Card → "Admit Card", not "Central Govt Jobs")
+        $postType = $input['type'] ?? 'job';
+        if (in_array($postType, ['admit_card', 'result', 'answer_key', 'syllabus', 'scholarship', 'blog'])) {
+            $typeToCategory = [
+                'admit_card'  => 'Admit Card',
+                'result'      => 'Result',
+                'answer_key'  => 'Answer Key',
+                'syllabus'    => 'Syllabus',
+                'scholarship' => 'Scholarship',
+                'blog'        => 'Blog',
+            ];
+            
+            $overrideCategory = $typeToCategory[$postType] ?? null;
+            if ($overrideCategory) {
+                $input['category_name'] = $overrideCategory;
+                
+                // Map to category ID if exists
+                if (isset($categoryNameMap[$overrideCategory])) {
+                    $input['category_id'] = $categoryNameMap[$overrideCategory];
+                } else {
+                    // Category doesn't exist in database - log warning but continue
+                    error_log("Warning: Category '{$overrideCategory}' not found in database for post type '{$postType}'");
+                }
+            }
+        }
+        // ── END CATEGORY OVERRIDE ─────────────────────────────────────────────────
+
         // Auto-correct salary type (stipend for trainees, apprentices)
         $input = correct_employment_type($input);
 
@@ -2087,7 +2180,8 @@ switch ($action) {
         if (!empty($postResult['success']) || !empty($postResult['data']['id'])) {
             $postData = $postResult['data'] ?? $postResult;
             $slug = $postData['slug'] ?? '';
-            $jobUrl = $slug ? JOBONE_SITE_URL . '/' . $slug : JOBONE_SITE_URL;
+            $postType = $postData['type'] ?? $input['type'] ?? 'job';
+            $jobUrl = $slug ? JOBONE_SITE_URL . '/' . $postType . '/' . $slug : JOBONE_SITE_URL;
 
             $input['id'] = $postData['id'] ?? '';
             $input['slug'] = $slug;
