@@ -1600,7 +1600,7 @@
         </svg>
         <span>Telegram</span>
       </a>
-      <a href="https://whatsapp.com/channel/0029VbBXKhkCsU9UG2tVla0X" target="_blank" rel="noreferrer"
+      <a href="https://whatsapp.com/channel/0029VbD9cau2P59hFZ1nwh22" target="_blank" rel="noreferrer"
         class="social-btn social-btn-wa">
         <svg viewBox="0 0 24 24" fill="currentColor">
           <path
@@ -2080,7 +2080,7 @@
 
   <script>
     // ── Config ──
-    const ALL_TAGS = ['cutoff', 'merit_list', 'selection_list', 'final_result', 'provisional_result', 'revised_result', 'scorecard', 'marks'];
+    const ALL_TAGS = ['cutoff', 'merit_list', 'selection_list', 'final_result', 'provisional_result', 'revised_result', 'scorecard', 'marks', 'admit_card', 'exam_date', 'answer_key', 'syllabus', 'new_vacancy', 'govt_job', 'link_working', 'application_start', 'date_extended', 'application_reopen'];
     const ALL_EDU = ['10th_pass', '12th_pass', 'graduate', 'post_graduate', 'diploma', 'iti', 'btech', 'mtech', 'bsc', 'msc', 'bcom', 'mcom', 'ba', 'ma', 'bba', 'mba', 'ca', 'cs', 'cma', 'llb', 'llm', 'mbbs', 'bds', 'bpharm', 'mpharm', 'nursing', 'bed', 'med', 'phd', 'any_qualification'];
     const FALLBACK_CATEGORIES = [
       { id: '1', name: 'Central Govt Jobs' }, { id: '2', name: 'State Govt Jobs' }, { id: '3', name: 'Banking Jobs' },
